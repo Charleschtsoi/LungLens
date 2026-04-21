@@ -39,7 +39,7 @@ export default function AboutPage() {
           <CardContent className="space-y-3 text-sm leading-relaxed text-muted-foreground">
             <p>
               The machine learning model behind LungLens was developed as part of an MSc group project at
-              <strong className="text-foreground"> [University Name]</strong>.
+              <strong className="text-foreground"> CUHK Chinese University Hong Kong</strong>.
             </p>
             <p>
               I then built this web application independently so the tool could be freely accessible to everyone in a
