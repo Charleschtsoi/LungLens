@@ -1,9 +1,8 @@
-import type { AnalyzeSuccessResponse, FindingLabel, Predictions } from "@/lib/types/analyze";
-import { FINDING_LABELS } from "@/lib/types/analyze";
+import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
+import type { AnalyzeSuccessResponse, Predictions } from "@/types";
 
 const MOCK_DELAY_MS = 1500;
 
-/** Tiny valid PNG (1×1) — placeholder until real Grad-CAM is wired. */
 const PLACEHOLDER_HEATMAP_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
@@ -45,7 +44,8 @@ function topFinding(preds: Predictions): { label: FindingLabel; confidence: numb
   return { label, confidence: max };
 }
 
-export async function mockAnalyze(_imageBuffer: Buffer): Promise<AnalyzeSuccessResponse> {
+/** Mock ML response — swap for real server when ready. */
+export async function generateMockAnalysis(_imageBuffer: Buffer): Promise<AnalyzeSuccessResponse> {
   await new Promise((r) => setTimeout(r, MOCK_DELAY_MS));
   const seed = Date.now() % 1000;
   const predictions = jitterPredictions(seed);

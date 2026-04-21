@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { MedicalDisclaimerFooter } from "@/components/medical-disclaimer";
+import { Navbar } from "@/components/shared/Navbar";
+import { Footer } from "@/components/shared/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -9,9 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "LungLens — Chest X-ray education companion",
-  description:
-    "Understand your chest X-ray with educational guides and AI attention maps. Not a medical device; not a diagnosis.",
+  title: "LungLens — Chest X-ray education",
+  description: "Educational companion for chest X-rays. Not a medical device.",
 };
 
 export default function RootLayout({
@@ -22,8 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans min-h-screen flex flex-col`}>
-        <div className="flex-1">{children}</div>
-        <MedicalDisclaimerFooter />
+        <Navbar />
+        <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</div>
+        <Footer />
       </body>
     </html>
   );

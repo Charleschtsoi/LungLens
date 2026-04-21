@@ -1,9 +1,5 @@
-import type { AnalyzeSuccessResponse } from "@/lib/types/analyze";
+import type { AnalyzeSuccessResponse } from "@/types";
 
-/**
- * Forward analyze request to the real ML server (FastAPI, etc.).
- * Same contract as POST /api/analyze on our Next app.
- */
 export async function forwardToMlServer(
   image: Buffer,
   mimeType: string,
