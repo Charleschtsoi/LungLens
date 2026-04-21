@@ -1,60 +1,80 @@
 import { create } from "zustand";
 import type { AnalyzeSuccessResponse } from "@/types";
 
+export type UploadFlowStep = 1 | 2 | 3;
+
 export interface AppState {
-  doctorReviewConfirmed: boolean | null;
-  privacyAcknowledged: boolean;
+  uploadFlowStep: UploadFlowStep;
+  doctorReviewed: boolean | null;
+  doctorGateNoBranch: boolean;
+  educationalNotDiagnosticAck: boolean;
   imageFile: File | null;
   previewUrl: string | null;
   analysis: AnalyzeSuccessResponse | null;
   analysisError: string | null;
   analysisLoading: boolean;
-  setDoctorReviewConfirmed: (value: boolean | null) => void;
-  setPrivacyAcknowledged: (value: boolean) => void;
+  setUploadFlowStep: (step: UploadFlowStep) => void;
+  setDoctorReviewed: (value: boolean | null) => void;
+  setDoctorGateNoBranch: (value: boolean) => void;
+  setEducationalNotDiagnosticAck: (value: boolean) => void;
   setImage: (file: File | null, previewUrl: string | null) => void;
   setAnalysis: (result: AnalyzeSuccessResponse | null) => void;
   setAnalysisError: (message: string | null) => void;
   setAnalysisLoading: (loading: boolean) => void;
   resetUploadSession: () => void;
+  resetUploadFlow: () => void;
   resetAll: () => void;
 }
 
-const initial: Pick<
-  AppState,
-  | "doctorReviewConfirmed"
-  | "privacyAcknowledged"
-  | "imageFile"
-  | "previewUrl"
-  | "analysis"
-  | "analysisError"
-  | "analysisLoading"
-> = {
-  doctorReviewConfirmed: null,
-  privacyAcknowledged: false,
-  imageFile: null,
-  previewUrl: null,
-  analysis: null,
-  analysisError: null,
+const baseInitial = {
+  uploadFlowStep: 1 as UploadFlowStep,
+  doctorReviewed: null as boolean | null,
+  doctorGateNoBranch: false,
+  educationalNotDiagnosticAck: false,
+  imageFile: null as File | null,
+  previewUrl: null as string | null,
+  analysis: null as AnalyzeSuccessResponse | null,
+  analysisError: null as string | null,
   analysisLoading: false,
 };
 
+function revokePreview(url: string | null) {
+  if (url) URL.revokeObjectURL(url);
+}
+
 export const useAppStore = create<AppState>((set) => ({
-  ...initial,
-  setDoctorReviewConfirmed: (doctorReviewConfirmed) => set({ doctorReviewConfirmed }),
-  setPrivacyAcknowledged: (privacyAcknowledged) => set({ privacyAcknowledged }),
+  ...baseInitial,
+  setUploadFlowStep: (uploadFlowStep) => set({ uploadFlowStep }),
+  setDoctorReviewed: (doctorReviewed) => set({ doctorReviewed }),
+  setDoctorGateNoBranch: (doctorGateNoBranch) => set({ doctorGateNoBranch }),
+  setEducationalNotDiagnosticAck: (educationalNotDiagnosticAck) => set({ educationalNotDiagnosticAck }),
   setImage: (imageFile, previewUrl) =>
-    set({ imageFile, previewUrl, analysis: null, analysisError: null }),
+    set((state) => {
+      revokePreview(state.previewUrl);
+      return { imageFile, previewUrl, analysis: null, analysisError: null };
+    }),
   setAnalysis: (analysis) => set({ analysis }),
   setAnalysisError: (analysisError) => set({ analysisError }),
   setAnalysisLoading: (analysisLoading) => set({ analysisLoading }),
   resetUploadSession: () =>
-    set({
-      privacyAcknowledged: false,
-      imageFile: null,
-      previewUrl: null,
-      analysis: null,
-      analysisError: null,
-      analysisLoading: false,
+    set((state) => {
+      revokePreview(state.previewUrl);
+      return {
+        imageFile: null,
+        previewUrl: null,
+        analysis: null,
+        analysisError: null,
+        analysisLoading: false,
+      };
     }),
-  resetAll: () => set({ ...initial }),
+  resetUploadFlow: () =>
+    set((state) => {
+      revokePreview(state.previewUrl);
+      return { ...baseInitial };
+    }),
+  resetAll: () =>
+    set((state) => {
+      revokePreview(state.previewUrl);
+      return { ...baseInitial };
+    }),
 }));

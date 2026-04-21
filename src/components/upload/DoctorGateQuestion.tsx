@@ -1,58 +1,71 @@
 "use client";
 
-import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppStore } from "@/store/useAppStore";
 
-/** Skeleton: modal gate — “Has a doctor reviewed this?” */
+const FIND_DOCTOR_MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=doctors+near+me";
+
 export function DoctorGateQuestion() {
-  const setDoctorReviewConfirmed = useAppStore((s) => s.setDoctorReviewConfirmed);
-  const [open, setOpen] = useState(false);
+  const doctorGateNoBranch = useAppStore((s) => s.doctorGateNoBranch);
+  const setDoctorGateNoBranch = useAppStore((s) => s.setDoctorGateNoBranch);
+  const setDoctorReviewed = useAppStore((s) => s.setDoctorReviewed);
+  const setUploadFlowStep = useAppStore((s) => s.setUploadFlowStep);
+
+  const goStep2 = (reviewed: boolean) => {
+    setDoctorReviewed(reviewed);
+    setDoctorGateNoBranch(false);
+    setUploadFlowStep(2);
+  };
+
+  if (doctorGateNoBranch) {
+    return (
+      <Card className="border-amber-200/80 bg-amber-50/40">
+        <CardHeader>
+          <CardTitle className="text-base text-foreground">We recommend seeing a clinician first</CardTitle>
+          <CardDescription className="text-foreground/80">
+            We recommend consulting a doctor first. This tool helps you UNDERSTAND results, not replace
+            professional diagnosis.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <Button type="button" variant="default" asChild>
+            <Link href={FIND_DOCTOR_MAPS_URL} target="_blank" rel="noopener noreferrer">
+              Find a doctor near me
+            </Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              goStep2(false);
+            }}
+          >
+            Continue to learn anyway
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="secondary" size="sm">
-          Open doctor review gate (placeholder)
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Has a doctor already reviewed your chest X-ray?</CardTitle>
+        <CardDescription>
+          We&apos;ll tailor disclaimers based on your answer. This app does not replace medical care.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 sm:flex-row">
+        <Button type="button" onClick={() => goStep2(true)}>
+          Yes
         </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Has a doctor reviewed this X-ray?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Placeholder modal. Yes/No will drive upload eligibility and disclaimers.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel
-            onClick={() => {
-              setDoctorReviewConfirmed(false);
-              setOpen(false);
-            }}
-          >
-            Not yet
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              setDoctorReviewConfirmed(true);
-              setOpen(false);
-            }}
-          >
-            Yes
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <Button type="button" variant="secondary" onClick={() => setDoctorGateNoBranch(true)}>
+          No
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
