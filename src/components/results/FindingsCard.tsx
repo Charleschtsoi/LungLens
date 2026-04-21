@@ -1,5 +1,4 @@
 import { CONDITION_DESCRIPTIONS } from "@/lib/constants";
-import type { FindingLabel } from "@/types";
 import type { Predictions } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
