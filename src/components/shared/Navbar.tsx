@@ -6,6 +6,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/upload", label: "Upload" },
   { href: "/learn", label: "Learn" },
+  { href: "/about", label: "About" },
 ];
 
 export function Navbar({ className }: { className?: string }) {
@@ -23,7 +24,7 @@ export function Navbar({ className }: { className?: string }) {
           </span>
           LungLens
         </Link>
-        <nav className="flex gap-5 text-sm">
+        <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
           {links.map((l) => (
             <Link
               key={l.href}
