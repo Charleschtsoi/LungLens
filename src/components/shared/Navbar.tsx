@@ -10,15 +10,26 @@ const links = [
 
 export function Navbar({ className }: { className?: string }) {
   return (
-    <header className={cn("border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80", className)}>
+    <header
+      className={cn(
+        "border-b border-sky-100/80 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75",
+        className,
+      )}
+    >
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <Activity className="h-5 w-5 text-primary" aria-hidden />
+        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100/90 text-primary">
+            <Activity className="h-4 w-5" aria-hidden />
+          </span>
           LungLens
         </Link>
-        <nav className="flex gap-4 text-sm">
+        <nav className="flex gap-5 text-sm">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="text-muted-foreground hover:text-foreground">
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-muted-foreground transition-colors hover:text-primary"
+            >
               {l.label}
             </Link>
           ))}
