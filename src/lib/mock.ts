@@ -1,35 +1,43 @@
 import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 import type { AnalyzeSuccessResponse, Predictions } from "@/types";
 
-const MOCK_DELAY_MS = 1500;
+/** Alias for mock / ML success payloads. */
+export type AnalysisResult = AnalyzeSuccessResponse;
 
-const PLACEHOLDER_HEATMAP_BASE64 =
+const MOCK_DELAY_MS = 2000;
+
+/** 1×1 PNG fallback if canvas is unavailable. */
+const FALLBACK_HEATMAP_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-const BASE_PREDICTIONS: Predictions = {
-  Atelectasis: 0.12,
-  Cardiomegaly: 0.03,
-  Effusion: 0.78,
-  Infiltration: 0.45,
-  Mass: 0.02,
-  Nodule: 0.05,
-  Pneumonia: 0.67,
-  Pneumothorax: 0.01,
-  Consolidation: 0.34,
-  Edema: 0.08,
-  Emphysema: 0.02,
-  Fibrosis: 0.04,
-  Pleural_Thickening: 0.06,
-  Hernia: 0.01,
-};
+function randomBetween(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
 
-function jitterPredictions(seed: number): Predictions {
-  const out = { ...BASE_PREDICTIONS };
-  (Object.keys(out) as FindingLabel[]).forEach((key, i) => {
-    const noise = ((Math.sin(seed + i * 1.7) + 1) / 2) * 0.08 - 0.04;
-    out[key] = Math.min(0.99, Math.max(0.01, out[key] + noise));
-  });
-  return out;
+function shuffle<T>(items: readonly T[]): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Random scores with 2–3 conditions above 0.3 (simulated “findings”). */
+export function generateMockPredictions(): Predictions {
+  const shuffled = shuffle(FINDING_LABELS);
+  const nHigh = 2 + Math.floor(Math.random() * 2);
+  const highLabels = new Set(shuffled.slice(0, nHigh));
+
+  const predictions = {} as Predictions;
+  for (const label of FINDING_LABELS) {
+    if (highLabels.has(label)) {
+      predictions[label] = Number(randomBetween(0.32, 0.94).toFixed(4));
+    } else {
+      predictions[label] = Number(randomBetween(0.02, 0.28).toFixed(4));
+    }
+  }
+  return predictions;
 }
 
 function topFinding(preds: Predictions): { label: FindingLabel; confidence: number } {
@@ -44,17 +52,76 @@ function topFinding(preds: Predictions): { label: FindingLabel; confidence: numb
   return { label, confidence: max };
 }
 
-/** Mock ML response — swap for real server when ready. */
-export async function generateMockAnalysis(_imageBuffer: Buffer): Promise<AnalyzeSuccessResponse> {
-  await new Promise((r) => setTimeout(r, MOCK_DELAY_MS));
-  const seed = Date.now() % 1000;
-  const predictions = jitterPredictions(seed);
+/**
+ * Red → yellow gradient PNG as base64 (placeholder heatmap).
+ * Uses image dimensions when the file is a decodable bitmap.
+ */
+export async function createPlaceholderHeatmapBase64(file: File): Promise<string> {
+  if (typeof document === "undefined") {
+    return FALLBACK_HEATMAP_BASE64;
+  }
+
+  let width = 256;
+  let height = 256;
+
+  try {
+    if (file.type.startsWith("image/")) {
+      const bitmap = await createImageBitmap(file);
+      width = Math.min(512, Math.max(64, bitmap.width));
+      height = Math.min(512, Math.max(64, bitmap.height));
+      bitmap.close();
+    }
+  } catch {
+    /* DICOM or unsupported — default size */
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return FALLBACK_HEATMAP_BASE64;
+
+  const g = ctx.createLinearGradient(0, height, width, 0);
+  g.addColorStop(0, "rgba(220, 38, 38, 0.82)");
+  g.addColorStop(0.45, "rgba(251, 191, 36, 0.65)");
+  g.addColorStop(1, "rgba(254, 249, 195, 0.35)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, width, height);
+
+  const radial = ctx.createRadialGradient(
+    width * 0.35,
+    height * 0.35,
+    0,
+    width * 0.45,
+    height * 0.4,
+    Math.max(width, height) * 0.55,
+  );
+  radial.addColorStop(0, "rgba(255, 80, 0, 0.5)");
+  radial.addColorStop(1, "rgba(255, 200, 0, 0)");
+  ctx.fillStyle = radial;
+  ctx.fillRect(0, 0, width, height);
+
+  const dataUrl = canvas.toDataURL("image/png");
+  const base64 = dataUrl.split(",")[1];
+  return base64 || FALLBACK_HEATMAP_BASE64;
+}
+
+/**
+ * Simulates the ML API: delay, random scores (2–3 above 0.3), gradient heatmap, top prediction.
+ * Intended to run in the browser (uses Canvas).
+ */
+export async function mockAnalyze(image: File): Promise<AnalysisResult> {
+  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+
+  const predictions = generateMockPredictions();
   const { label, confidence } = topFinding(predictions);
+  const heatmap_base64 = await createPlaceholderHeatmapBase64(image);
+
   return {
     success: true,
     predictions,
     gradcam: {
-      heatmap_base64: PLACEHOLDER_HEATMAP_BASE64,
+      heatmap_base64,
       top_prediction: label,
       confidence,
     },
