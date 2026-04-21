@@ -169,6 +169,13 @@ npm run lint
   - `NEXT_PUBLIC_USE_MOCK`
   - `NEXT_PUBLIC_ML_API_URL`
 
+## License
+
+This project is licensed under the MIT License.
+
+- See [LICENSE](LICENSE)
+- Copyright (c) 2026 Chung Him TSOI
+
 ## Safety and Disclaimer
 
 - For educational and research purposes only.
