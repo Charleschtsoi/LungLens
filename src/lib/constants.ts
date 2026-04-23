@@ -16,6 +16,13 @@ export const FINDING_LABELS = [
   "Hernia",
 ] as const;
 
+export const PIPELINE = {
+  gateThreshold: 0.3,
+  questionnaireRequiredOnContinue: true,
+  reportDisclaimer:
+    "LungLens is an educational tool only. This output is not a medical diagnosis. Always consult a qualified healthcare professional.",
+} as const;
+
 export type FindingLabel = (typeof FINDING_LABELS)[number];
 
 /**

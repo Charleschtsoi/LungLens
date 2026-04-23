@@ -1,34 +1,37 @@
+"use client";
+
 import { Stethoscope, Upload, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const steps = [
-  {
-    step: 1,
-    title: "Visit your doctor & get your X-ray",
-    body: "Obtain your imaging through normal care—after a checkup, visit, or follow-up.",
-    icon: Stethoscope,
-  },
-  {
-    step: 2,
-    title: "Upload your image for educational analysis",
-    body: "Bring your JPEG or PNG here for anatomy context and plain-language guidance—not a diagnosis.",
-    icon: Upload,
-  },
-  {
-    step: 3,
-    title: "Understand your results & ask smarter questions",
-    body: "Explore what you're seeing and take better questions back to your clinician.",
-    icon: MessageCircle,
-  },
-] as const;
+import { useI18n } from "@/hooks/useI18n";
 
 export function HowItWorks() {
+  const { t } = useI18n();
+  const steps = [
+    {
+      step: 1,
+      title: t("landing.how.step1.title"),
+      body: t("landing.how.step1.body"),
+      icon: Stethoscope,
+    },
+    {
+      step: 2,
+      title: t("landing.how.step2.title"),
+      body: t("landing.how.step2.body"),
+      icon: Upload,
+    },
+    {
+      step: 3,
+      title: t("landing.how.step3.title"),
+      body: t("landing.how.step3.body"),
+      icon: MessageCircle,
+    },
+  ] as const;
   return (
     <section className="py-16 md:py-20">
       <div className="mx-auto max-w-2xl text-center">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">How it works</h2>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{t("landing.how.title")}</h2>
         <p className="mt-3 text-muted-foreground">
-          Three calm steps from your clinic&apos;s imaging to clearer understanding.
+          {t("landing.how.subtitle")}
         </p>
       </div>
 
@@ -46,7 +49,7 @@ export function HowItWorks() {
                   <s.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
                 </span>
                 <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700/80">
-                  Step {s.step}
+                  {t("landing.how.step")} {s.step}
                 </span>
               </div>
               <h3 className="text-base font-semibold leading-snug text-foreground">{s.title}</h3>

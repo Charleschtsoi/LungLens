@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAppStore } from "@/store/useAppStore";
+import { useI18n } from "@/hooks/useI18n";
 
 export function PrivacyNotice() {
+  const { t } = useI18n();
   const educationalNotDiagnosticAck = useAppStore((s) => s.educationalNotDiagnosticAck);
   const setEducationalNotDiagnosticAck = useAppStore((s) => s.setEducationalNotDiagnosticAck);
   const setUploadFlowStep = useAppStore((s) => s.setUploadFlowStep);
@@ -13,11 +15,9 @@ export function PrivacyNotice() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Privacy &amp; purpose</CardTitle>
+        <CardTitle className="text-lg">{t("upload.privacy.title")}</CardTitle>
         <CardDescription>
-          Your image is sent to this app&apos;s secure API for educational analysis. We don&apos;t use it for
-          advertising. In a future version, processing may stay entirely on your device—check the latest
-          privacy policy before uploading anything sensitive.
+          {t("upload.privacy.desc")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -29,8 +29,7 @@ export function PrivacyNotice() {
             id="educational-ack"
           />
           <span className="text-sm leading-relaxed text-foreground">
-            <span className="font-medium">I understand this is educational, not diagnostic.</span> I will not
-            use LungLens to decide whether I need treatment or emergency care.
+            <span className="font-medium">{t("upload.privacy.ack")}</span>
           </span>
         </label>
 
@@ -39,7 +38,7 @@ export function PrivacyNotice() {
           disabled={!educationalNotDiagnosticAck}
           onClick={() => setUploadFlowStep(3)}
         >
-          Continue to upload
+          {t("upload.privacy.next")}
         </Button>
       </CardContent>
     </Card>

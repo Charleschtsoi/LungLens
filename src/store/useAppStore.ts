@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import type { AnalyzeSuccessResponse } from "@/types";
+import type { AnalyzeSuccessResponse, Stage3QuestionnaireInput } from "@/types";
 
-export type UploadFlowStep = 1 | 2 | 3;
+export type UploadFlowStep = 1 | 2 | 3 | 4;
 
 export interface AppState {
   uploadFlowStep: UploadFlowStep;
@@ -11,6 +11,9 @@ export interface AppState {
   imageFile: File | null;
   previewUrl: string | null;
   analysis: AnalyzeSuccessResponse | null;
+  preQuestionnaireAnalysis: AnalyzeSuccessResponse | null;
+  questionnaire: Stage3QuestionnaireInput;
+  questionnaireSubmitted: boolean;
   analysisError: string | null;
   analysisLoading: boolean;
   setUploadFlowStep: (step: UploadFlowStep) => void;
@@ -19,6 +22,9 @@ export interface AppState {
   setEducationalNotDiagnosticAck: (value: boolean) => void;
   setImage: (file: File | null, previewUrl: string | null) => void;
   setAnalysis: (result: AnalyzeSuccessResponse | null) => void;
+  setPreQuestionnaireAnalysis: (result: AnalyzeSuccessResponse | null) => void;
+  setQuestionnaire: (partial: Partial<Stage3QuestionnaireInput>) => void;
+  setQuestionnaireSubmitted: (value: boolean) => void;
   setAnalysisError: (message: string | null) => void;
   setAnalysisLoading: (loading: boolean) => void;
   resetUploadSession: () => void;
@@ -34,6 +40,15 @@ const baseInitial = {
   imageFile: null as File | null,
   previewUrl: null as string | null,
   analysis: null as AnalyzeSuccessResponse | null,
+  preQuestionnaireAnalysis: null as AnalyzeSuccessResponse | null,
+  questionnaire: {
+    age: 45,
+    fever: false,
+    coughDurationDays: 3,
+    smoking: "never",
+    breathingDifficulty: "none",
+  } as Stage3QuestionnaireInput,
+  questionnaireSubmitted: false,
   analysisError: null as string | null,
   analysisLoading: false,
 };
@@ -51,9 +66,20 @@ export const useAppStore = create<AppState>((set) => ({
   setImage: (imageFile, previewUrl) =>
     set((state) => {
       revokePreview(state.previewUrl);
-      return { imageFile, previewUrl, analysis: null, analysisError: null };
+      return {
+        imageFile,
+        previewUrl,
+        analysis: null,
+        preQuestionnaireAnalysis: null,
+        questionnaireSubmitted: false,
+        analysisError: null,
+      };
     }),
   setAnalysis: (analysis) => set({ analysis }),
+  setPreQuestionnaireAnalysis: (preQuestionnaireAnalysis) => set({ preQuestionnaireAnalysis }),
+  setQuestionnaire: (partial) =>
+    set((state) => ({ questionnaire: { ...state.questionnaire, ...partial } })),
+  setQuestionnaireSubmitted: (questionnaireSubmitted) => set({ questionnaireSubmitted }),
   setAnalysisError: (analysisError) => set({ analysisError }),
   setAnalysisLoading: (analysisLoading) => set({ analysisLoading }),
   resetUploadSession: () =>
@@ -63,6 +89,8 @@ export const useAppStore = create<AppState>((set) => ({
         imageFile: null,
         previewUrl: null,
         analysis: null,
+        preQuestionnaireAnalysis: null,
+        questionnaireSubmitted: false,
         analysisError: null,
         analysisLoading: false,
       };

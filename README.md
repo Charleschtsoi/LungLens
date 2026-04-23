@@ -50,7 +50,7 @@ Current variables:
   - `true`: use browser-side mock analysis
   - `false`: call real ML endpoint
 - `NEXT_PUBLIC_ML_API_URL`
-  - Base URL of ML service. App posts to `${NEXT_PUBLIC_ML_API_URL}/api/analyze`.
+  - Base URL of ML service. App posts to `${NEXT_PUBLIC_ML_API_URL}/pipeline/analyze`.
 
 ### 3) Run development server
 
@@ -94,6 +94,30 @@ src/
     index.ts               # Shared TypeScript types
 ```
 
+## Staged Pipeline Architecture
+
+LungLens follows a staged routing design:
+
+1. **Stage 1**: binary pneumonia signal
+2. **Stage 2**: multiclass X-ray classification
+3. **Gate check**:
+   - `early_stop` when both stages are effectively negative
+   - `continue` when positive findings are present
+4. **Stage 3 (conditional)**: short clinical questionnaire + risk scoring
+5. **Stage 4**: final report synthesis with medical disclaimer
+
+Implementation mapping:
+
+- Types contract: `src/types/index.ts`
+- API orchestration switch: `src/lib/api.ts`
+- Mock parity implementation: `src/lib/mock.ts`
+- Upload routing + questionnaire state: `src/store/useAppStore.ts`, `src/components/upload/*`
+- Results stage rendering: `src/app/results/page.tsx`, `src/components/results/*`
+
+Mock mode parity:
+
+- In `NEXT_PUBLIC_USE_MOCK=true`, the mock returns staged outputs (`stage1`, `stage2`, `gate`, optional `stage3`, `report`, `timing_ms`), so UI behavior matches real pipeline routing as closely as possible.
+
 ## How to Update This Project
 
 ### A) Update UI pages/components
@@ -110,6 +134,7 @@ src/
   - doctor gate: `DoctorGateQuestion.tsx`
   - privacy acknowledgment: `PrivacyNotice.tsx`
   - upload/analyze: `ImageUploader.tsx`
+  - clinical questionnaire: `ClinicalQuestionnaire.tsx`
 
 ### C) Update results logic
 

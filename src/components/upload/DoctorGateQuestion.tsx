@@ -4,11 +4,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppStore } from "@/store/useAppStore";
+import { useI18n } from "@/hooks/useI18n";
 
 const FIND_DOCTOR_MAPS_URL =
   "https://www.google.com/maps/search/?api=1&query=doctors+near+me";
 
 export function DoctorGateQuestion() {
+  const { t } = useI18n();
   const doctorGateNoBranch = useAppStore((s) => s.doctorGateNoBranch);
   const setDoctorGateNoBranch = useAppStore((s) => s.setDoctorGateNoBranch);
   const setDoctorReviewed = useAppStore((s) => s.setDoctorReviewed);
@@ -24,16 +26,15 @@ export function DoctorGateQuestion() {
     return (
       <Card className="border-amber-200/80 bg-amber-50/40">
         <CardHeader>
-          <CardTitle className="text-base text-foreground">We recommend seeing a clinician first</CardTitle>
+          <CardTitle className="text-base text-foreground">{t("upload.gate.warnTitle")}</CardTitle>
           <CardDescription className="text-foreground/80">
-            We recommend consulting a doctor first. This tool helps you UNDERSTAND results, not replace
-            professional diagnosis.
+            {t("upload.gate.warnBody")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button type="button" variant="default" asChild>
             <Link href={FIND_DOCTOR_MAPS_URL} target="_blank" rel="noopener noreferrer">
-              Find a doctor near me
+              {t("upload.gate.findDoctor")}
             </Link>
           </Button>
           <Button
@@ -43,7 +44,7 @@ export function DoctorGateQuestion() {
               goStep2(false);
             }}
           >
-            Continue to learn anyway
+            {t("upload.gate.continue")}
           </Button>
         </CardContent>
       </Card>
@@ -53,17 +54,17 @@ export function DoctorGateQuestion() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Has a doctor already reviewed your chest X-ray?</CardTitle>
+        <CardTitle className="text-lg">{t("upload.gate.title")}</CardTitle>
         <CardDescription>
-          We&apos;ll tailor disclaimers based on your answer. This app does not replace medical care.
+          {t("upload.gate.desc")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 sm:flex-row">
         <Button type="button" onClick={() => goStep2(true)}>
-          Yes
+          {t("upload.gate.yes")}
         </Button>
         <Button type="button" variant="secondary" onClick={() => setDoctorGateNoBranch(true)}>
-          No
+          {t("upload.gate.no")}
         </Button>
       </CardContent>
     </Card>

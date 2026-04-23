@@ -1,28 +1,20 @@
+"use client";
+
 import { CheckCircle2, XCircle } from "lucide-react";
-
-const doesItems = [
-  "Explain anatomy and common terms in plain language",
-  "Show where an educational model focuses attention on your image",
-  "Suggest questions you might ask your doctor or radiology team",
-  "Support health literacy after you already have imaging from care",
-];
-
-const doesNotItems = [
-  "Diagnose pneumonia, cancer, or any condition",
-  "Replace a radiologist or your treating clinician",
-  "Tell you whether you need treatment or emergency care",
-  "Guarantee completeness or accuracy of any automated output",
-];
+import { useI18n } from "@/hooks/useI18n";
 
 export function ExpectationsComparison() {
+  const { t } = useI18n();
+  const doesItems = [1, 2, 3, 4].map((i) => t(`landing.expect.does.${i}`));
+  const doesNotItems = [1, 2, 3, 4].map((i) => t(`landing.expect.not.${i}`));
   return (
     <section className="py-16 md:py-20">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-          Set expectations
+          {t("landing.expect.title")}
         </h2>
         <p className="mt-3 text-muted-foreground">
-          A clear line between education and medical decision-making.
+          {t("landing.expect.subtitle")}
         </p>
       </div>
 
@@ -32,7 +24,7 @@ export function ExpectationsComparison() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100/90 text-emerald-800">
               <CheckCircle2 className="h-4 w-4" strokeWidth={2} aria-hidden />
             </span>
-            What this tool does
+            {t("landing.expect.does")}
           </h3>
           <ul className="mt-5 space-y-3">
             {doesItems.map((item) => (
@@ -53,7 +45,7 @@ export function ExpectationsComparison() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/80 text-slate-700">
               <XCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
             </span>
-            What this tool does not do
+            {t("landing.expect.not")}
           </h3>
           <ul className="mt-5 space-y-3">
             {doesNotItems.map((item) => (

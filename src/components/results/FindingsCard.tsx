@@ -1,5 +1,8 @@
+ "use client";
+
 import { CONDITION_DESCRIPTIONS } from "@/lib/constants";
 import type { Predictions } from "@/types";
+import type { StageMultiClassResult } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   confidenceTier,
@@ -9,11 +12,16 @@ import {
   type ConfidenceTier,
 } from "@/lib/findings-utils";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
+import { CONDITION_DESC } from "@/lib/i18n";
 
 function TierLabel({ tier }: { tier: ConfidenceTier }) {
+  const { t } = useI18n();
+  const tierLabel =
+    tier === "High" ? t("results.high") : tier === "Moderate" ? t("results.moderate") : t("results.low");
   return (
     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      Attention level: <span className="text-foreground">{tier}</span>
+      {t("results.attentionLevel")}: <span className="text-foreground">{tierLabel}</span>
     </span>
   );
 }
@@ -34,27 +42,38 @@ function ConfidenceBar({ tier }: { tier: ConfidenceTier }) {
   );
 }
 
-export function FindingsCard({ predictions }: { predictions: Predictions | null }) {
+export function FindingsCard({
+  predictions,
+  stage2,
+}: {
+  predictions: Predictions | null;
+  stage2?: StageMultiClassResult;
+}) {
+  const { t, locale } = useI18n();
   const notable = predictions ? getNotableFindings(predictions) : [];
+  const stage2Hint =
+    stage2 && stage2.label !== "Normal"
+      ? `Stage 2 prioritized: ${stage2.label} (${Math.round(stage2.confidence * 100)}%).`
+      : null;
 
   return (
     <Card id="what-ai-noticed">
       <CardHeader>
-        <CardTitle className="text-lg">What the AI noticed</CardTitle>
+        <CardTitle className="text-lg">{t("results.anatomyHeader")}</CardTitle>
         <CardDescription>
-          Educational model scores—not a diagnosis. Only a radiologist can confirm what your film shows.
+          {t("results.anatomySub")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {notable.length === 0 ? (
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            The AI did not highlight any significant areas. This is generally consistent with a normal chest X-ray,
-            but only a radiologist can confirm.
-          </p>
+          <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+            <p>{t("results.noSignificant")}</p>
+            {stage2Hint && <p>{stage2Hint}</p>}
+          </div>
         ) : (
           notable.map(({ label, score }) => {
             const tier = confidenceTier(score);
-            const desc = CONDITION_DESCRIPTIONS[label];
+            const desc = CONDITION_DESC[locale]?.[label] ?? CONDITION_DESCRIPTIONS[label];
             return (
               <div key={label} className="space-y-3 border-b border-border/60 pb-6 last:border-0 last:pb-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">

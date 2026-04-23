@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ANATOMY_REGIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 interface ResultsImageTabsProps {
   previewUrl: string | null;
@@ -12,19 +13,20 @@ interface ResultsImageTabsProps {
 }
 
 export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: ResultsImageTabsProps) {
+  const { t } = useI18n();
   const heatmapSrc = heatmapBase64 ? `data:image/png;base64,${heatmapBase64}` : null;
 
   return (
     <Tabs defaultValue="xray" className="w-full">
       <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
         <TabsTrigger value="xray" className="text-xs sm:text-sm">
-          Your X-Ray
+          {t("results.tab.xray")}
         </TabsTrigger>
         <TabsTrigger value="attention" className="text-xs sm:text-sm">
-          AI Attention Map
+          {t("results.tab.attention")}
         </TabsTrigger>
         <TabsTrigger value="anatomy" className="text-xs sm:text-sm">
-          Anatomy Guide
+          {t("results.tab.anatomy")}
         </TabsTrigger>
       </TabsList>
 
@@ -42,8 +44,8 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
           ) : (
             <figcaption className="flex h-full min-h-[220px] items-center justify-center px-4 text-center text-sm text-muted-foreground">
               {fileLabel
-                ? `Preview not available for this file (${fileLabel}). Export a PNG or JPEG if you need to view it here.`
-                : "No image preview available."}
+                ? `${t("results.noPreview")} (${fileLabel})`
+                : t("results.noPreview")}
             </figcaption>
           )}
         </figure>
@@ -73,7 +75,7 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
               <Image src={previewUrl} alt="Your X-ray" fill className="object-contain" unoptimized />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-3">
                 <span className="rounded-md border border-amber-200/80 bg-amber-50/95 px-3 py-1.5 text-xs text-amber-950 shadow-sm backdrop-blur-sm">
-                  Attention map not available for this run.
+                  {t("results.noAttention")}
                 </span>
               </div>
             </div>
@@ -86,18 +88,17 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
                 className="max-h-[min(360px,70vh)] max-w-full object-contain"
               />
               <figcaption className="text-center text-xs text-muted-foreground">
-                Original image preview unavailable; showing attention map only.
+                {t("results.noPreview")}
               </figcaption>
             </div>
           ) : (
             <figcaption className="flex h-full min-h-[220px] items-center justify-center px-4 text-center text-sm text-muted-foreground">
-              No attention map returned for this analysis.
+              {t("results.noAttentionReturned")}
             </figcaption>
           )}
         </figure>
         <p className="mt-2 text-xs text-muted-foreground">
-          Warmer or emphasized regions show where the model focused—this is not a finding list and not a substitute
-          for a radiologist.
+          {t("results.attentionNote")}
         </p>
       </TabsContent>
 
@@ -120,7 +121,7 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
                   )}
                   style={{ top: r.top, left: r.left }}
                 >
-                  {r.label}
+                  {t(`anatomy.${r.id}`, r.label)}
                 </span>
               ))}
             </>
@@ -133,13 +134,13 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
                   className="absolute max-w-[100px] -translate-x-1/2 -translate-y-1/2 rounded-md border border-emerald-200/90 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 shadow sm:max-w-[120px] sm:px-2 sm:text-xs"
                   style={{ top: r.top, left: r.left }}
                 >
-                  {r.label}
+                  {t(`anatomy.${r.id}`, r.label)}
                 </span>
               ))}
               <figcaption className="relative z-10 mt-auto max-w-sm text-center text-xs text-muted-foreground">
                 {fileLabel
-                  ? `Placeholder layout for ${fileLabel}. Labels show typical PA view positions for learning.`
-                  : "Typical label positions on a standard PA chest film (educational schematic)."}
+                  ? `${t("results.anatomyPlaceholder")} (${fileLabel})`
+                  : t("results.anatomyPlaceholder")}
               </figcaption>
             </div>
           )}
@@ -147,7 +148,8 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
         <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground sm:text-sm">
           {ANATOMY_REGIONS.map((r) => (
             <li key={r.id}>
-              <span className="font-medium text-foreground">{r.label}:</span> {r.description}
+              <span className="font-medium text-foreground">{t(`anatomy.${r.id}`, r.label)}:</span>{" "}
+              {t(`anatomy.desc.${r.id}`, r.description)}
             </li>
           ))}
         </ul>

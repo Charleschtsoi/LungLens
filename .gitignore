@@ -1,5 +1,6 @@
 # Local product planning — not versioned
 PRODUCT_ROADMAP.md
+plans-local/
 
 # Dependencies & build
 node_modules

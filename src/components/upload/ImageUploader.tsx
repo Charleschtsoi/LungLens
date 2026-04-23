@@ -10,6 +10,7 @@ import { analyzeImageFile } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useI18n } from "@/hooks/useI18n";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -23,17 +24,18 @@ function isPreviewableImage(file: File): boolean {
   return file.type.startsWith("image/") && (file.type === "image/jpeg" || file.type === "image/png");
 }
 
-function formatRejections(rejections: FileRejection[]): string {
+function formatRejections(rejections: FileRejection[], t: (k: string) => string): string {
   const first = rejections[0];
-  if (!first) return "File not accepted.";
+  if (!first) return t("upload.fileError.type");
   const code = first.errors[0]?.code;
-  if (code === "file-too-large") return "File is larger than 10MB.";
-  if (code === "file-invalid-type") return "Use JPEG, PNG, or DICOM (.dcm).";
-  return first.errors[0]?.message || "Could not use this file.";
+  if (code === "file-too-large") return t("upload.fileError.size");
+  if (code === "file-invalid-type") return t("upload.fileError.type");
+  return first.errors[0]?.message || t("upload.fileError.type");
 }
 
 export function ImageUploader() {
   const router = useRouter();
+  const { t } = useI18n();
   const [rejectError, setRejectError] = useState<string | null>(null);
 
   const imageFile = useAppStore((s) => s.imageFile);
@@ -41,8 +43,10 @@ export function ImageUploader() {
   const analysisLoading = useAppStore((s) => s.analysisLoading);
   const setImage = useAppStore((s) => s.setImage);
   const setAnalysis = useAppStore((s) => s.setAnalysis);
+  const setPreQuestionnaireAnalysis = useAppStore((s) => s.setPreQuestionnaireAnalysis);
   const setAnalysisError = useAppStore((s) => s.setAnalysisError);
   const setAnalysisLoading = useAppStore((s) => s.setAnalysisLoading);
+  const setUploadFlowStep = useAppStore((s) => s.setUploadFlowStep);
 
   const onDrop = useCallback(
     (accepted: File[]) => {
@@ -50,18 +54,18 @@ export function ImageUploader() {
       const file = accepted[0];
       if (!file) return;
       if (file.size > MAX_BYTES) {
-        setRejectError("File must be 10MB or smaller.");
+        setRejectError(t("upload.fileError.size"));
         return;
       }
       const url = isPreviewableImage(file) ? URL.createObjectURL(file) : null;
       setImage(file, url);
     },
-    [setImage],
+    [setImage, t],
   );
 
   const onDropRejected = useCallback((fileRejections: FileRejection[]) => {
-    setRejectError(formatRejections(fileRejections));
-  }, []);
+    setRejectError(formatRejections(fileRejections, t));
+  }, [t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -78,7 +82,7 @@ export function ImageUploader() {
         lower.endsWith(".png") ||
         lower.endsWith(".dcm");
       if (!ok) {
-        return { code: "file-invalid-type", message: "Use JPEG, PNG, or DICOM." };
+        return { code: "file-invalid-type", message: t("upload.fileError.type") };
       }
       return null;
     },
@@ -92,10 +96,17 @@ export function ImageUploader() {
     const res = await analyzeImageFile(file);
     setAnalysisLoading(false);
     if (!res.success) {
-      setAnalysisError(res.error || "Analysis failed.");
+      setAnalysisError(res.error || "Analysis failed");
+      return;
+    }
+    if (res.requires_questionnaire) {
+      setPreQuestionnaireAnalysis(res);
+      setAnalysis(null);
+      setUploadFlowStep(4);
       return;
     }
     setAnalysis(res);
+    setPreQuestionnaireAnalysis(null);
     router.push("/results");
   };
 
@@ -106,10 +117,9 @@ export function ImageUploader() {
   return (
     <div className="space-y-6">
       <Alert>
-        <AlertTitle>DICOM files</AlertTitle>
+        <AlertTitle>{t("upload.dicom.title")}</AlertTitle>
         <AlertDescription>
-          Many browsers can&apos;t preview DICOM. If upload fails, export a PNG or JPEG from your hospital
-          portal or CD viewer. Maximum file size: 10MB.
+          {t("upload.dicom.desc")}
         </AlertDescription>
       </Alert>
 
@@ -129,13 +139,13 @@ export function ImageUploader() {
       >
         <input {...getInputProps()} />
         <Upload className="mb-3 h-9 w-9 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-medium">Drag &amp; drop your chest X-ray</p>
-        <p className="mt-1 text-xs text-muted-foreground">JPEG, PNG, or DICOM (.dcm) · up to 10MB</p>
+        <p className="text-sm font-medium">{t("upload.drop.prompt")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("upload.drop.note")}</p>
       </div>
 
       {imageFile && (
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-          <h3 className="text-sm font-medium">Preview</h3>
+          <h3 className="text-sm font-medium">{t("upload.preview")}</h3>
           {previewUrl ? (
             <div className="relative aspect-[4/3] max-h-[280px] w-full overflow-hidden rounded-lg border bg-muted">
               <Image
@@ -151,15 +161,15 @@ export function ImageUploader() {
               <FileImage className="h-10 w-10 opacity-60" aria-hidden />
               <p>
                 {isDicom
-                  ? "DICOM selected — preview not shown in the browser."
-                  : "No image preview for this file type."}
+                  ? t("upload.preview.noInline")
+                  : t("upload.preview.noType")}
               </p>
               <p className="text-xs">{imageFile.name}</p>
             </div>
           )}
 
           <Button type="button" className="w-full sm:w-auto" size="lg" disabled={analysisLoading} onClick={runAnalyze}>
-            Analyze
+            {t("upload.analyze")}
           </Button>
         </div>
       )}
@@ -172,7 +182,7 @@ export function ImageUploader() {
         >
           <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
           <p className="max-w-md text-center text-sm text-muted-foreground">
-            Our AI is studying your X-ray… (usually takes 5–10 seconds)
+            {t("upload.analyzing")}
           </p>
         </div>
       )}

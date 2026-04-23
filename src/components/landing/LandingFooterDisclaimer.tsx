@@ -1,7 +1,11 @@
+"use client";
+
 import { ShieldAlert } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 /** On-home permanent disclaimer; site-wide legal footer remains in layout `Footer`. */
 export function LandingFooterDisclaimer() {
+  const { t } = useI18n();
   return (
     <aside
       className="mt-4 rounded-2xl border border-sky-100/90 bg-sky-50/40 px-5 py-6 sm:px-8"
@@ -15,16 +19,13 @@ export function LandingFooterDisclaimer() {
         />
         <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
           <h2 id="landing-disclaimer-heading" className="text-base font-semibold text-foreground">
-            Medical disclaimer
+            {t("landing.disclaimer.title")}
           </h2>
           <p>
-            LungLens is an educational health-literacy tool only. It is not a medical device and does not
-            provide a diagnosis, prognosis, or treatment advice. Always follow the guidance of a qualified
-            healthcare professional and your official radiology report.
+            {t("landing.disclaimer.p1")}
           </p>
           <p>
-            If you have chest pain, trouble breathing, fever, or other concerning symptoms, seek appropriate
-            medical care rather than relying on this website.
+            {t("landing.disclaimer.p2")}
           </p>
         </div>
       </div>

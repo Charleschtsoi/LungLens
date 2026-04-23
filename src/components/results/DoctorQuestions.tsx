@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { buildDoctorQuestions } from "@/lib/doctor-questions";
 import type { FindingLabel } from "@/types";
+import { useI18n } from "@/hooks/useI18n";
 
 interface DoctorQuestionsProps {
   findings: { label: FindingLabel }[];
 }
 
 export function DoctorQuestions({ findings }: DoctorQuestionsProps) {
-  const questions = buildDoctorQuestions(findings);
+  const { t, locale } = useI18n();
+  const questions = buildDoctorQuestions(findings, locale);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const copy = async (text: string, index: number) => {
@@ -28,9 +30,9 @@ export function DoctorQuestions({ findings }: DoctorQuestionsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Questions to ask your doctor</CardTitle>
+        <CardTitle className="text-lg">{t("results.questionsTitle")}</CardTitle>
         <CardDescription>
-          Suggested conversation starters based on this educational output—not medical instructions.
+          {t("results.questionsSub")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -50,12 +52,12 @@ export function DoctorQuestions({ findings }: DoctorQuestionsProps) {
               {copiedIndex === i ? (
                 <>
                   <Check className="h-3.5 w-3.5" aria-hidden />
-                  Copied
+                  {t("results.copied")}
                 </>
               ) : (
                 <>
                   <Copy className="h-3.5 w-3.5" aria-hidden />
-                  Copy
+                  {t("results.copy")}
                 </>
               )}
             </Button>

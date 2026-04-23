@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
+import { useI18n } from "@/hooks/useI18n";
 
 const links = [
   { href: "/", label: "Home" },
@@ -10,6 +14,7 @@ const links = [
 ];
 
 export function Navbar({ className }: { className?: string }) {
+  const { t } = useI18n();
   return (
     <header
       className={cn(
@@ -24,6 +29,7 @@ export function Navbar({ className }: { className?: string }) {
           </span>
           LungLens
         </Link>
+        <div className="flex flex-wrap items-center gap-3">
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
           {links.map((l) => (
             <Link
@@ -31,10 +37,18 @@ export function Navbar({ className }: { className?: string }) {
               href={l.href}
               className="text-muted-foreground transition-colors hover:text-primary"
             >
-              {l.label}
+              {l.href === "/"
+                ? t("nav.home")
+                : l.href === "/upload"
+                  ? t("nav.upload")
+                  : l.href === "/learn"
+                    ? t("nav.learn")
+                    : t("nav.about")}
             </Link>
           ))}
         </nav>
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );

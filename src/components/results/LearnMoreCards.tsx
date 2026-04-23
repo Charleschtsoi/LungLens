@@ -1,21 +1,25 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatConditionName } from "@/lib/findings-utils";
 import type { FindingLabel } from "@/types";
+import { useI18n } from "@/hooks/useI18n";
 
 interface LearnMoreCardsProps {
   findings: { label: FindingLabel }[];
 }
 
 export function LearnMoreCards({ findings }: LearnMoreCardsProps) {
+  const { t } = useI18n();
   return (
     <section className="space-y-4" aria-labelledby="learn-more-heading">
       <h2 id="learn-more-heading" className="text-lg font-semibold tracking-tight">
-        Learn more
+        {t("results.learnMore")}
       </h2>
       <p className="text-sm text-muted-foreground">
-        Short guides on the Learn hub—use them to prepare for conversations with your clinician.
+        {t("results.learnMoreSub")}
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {findings.length === 0 ? (
@@ -26,9 +30,9 @@ export function LearnMoreCards({ findings }: LearnMoreCardsProps) {
                   <BookOpen className="h-4 w-4" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <CardTitle className="text-base leading-snug">Chest X-ray basics</CardTitle>
+                  <CardTitle className="text-base leading-snug">{t("results.basics")}</CardTitle>
                   <CardDescription className="mt-1">
-                    Anatomy, common terms, and how to read your report at a high level
+                    {t("results.basicsSub")}
                   </CardDescription>
                 </div>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
@@ -46,7 +50,7 @@ export function LearnMoreCards({ findings }: LearnMoreCardsProps) {
                   <div className="min-w-0 flex-1">
                     <CardTitle className="text-base leading-snug">{formatConditionName(label)}</CardTitle>
                     <CardDescription className="mt-1">
-                      Vocabulary, typical context, and questions for your visit
+                      {t("results.topicSub")}
                     </CardDescription>
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
