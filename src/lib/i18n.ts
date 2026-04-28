@@ -12,7 +12,7 @@ const dictEn: Dict = {
   "nav.language": "Language",
   "lang.en": "EN",
   "lang.hant": "繁中",
-  "lang.hans": "简中",
+  "lang.hans": "簡中",
 
   "footer.important": "Important",
   "footer.permanent":
@@ -94,19 +94,19 @@ const dictEn: Dict = {
     "I understand this is educational, not diagnostic. I will not use LungLens to decide whether I need treatment or emergency care.",
   "upload.privacy.next": "Continue to upload",
 
-  "upload.dicom.title": "DICOM files",
+  "upload.dicom.title": "Supported image formats",
   "upload.dicom.desc":
-    "Many browsers can't preview DICOM. If upload fails, export a PNG or JPEG from your hospital portal or CD viewer. Maximum file size: 10MB.",
+    "Upload JPEG, PNG, or WEBP files. Maximum file size: 10MB.",
   "upload.drop.prompt": "Drag & drop your chest X-ray",
-  "upload.drop.note": "JPEG, PNG, or DICOM (.dcm) - up to 10MB",
+  "upload.drop.note": "JPEG, PNG, or WEBP - up to 10MB",
   "upload.preview": "Preview",
   "upload.preview.noInline":
-    "DICOM selected - preview not shown in the browser.",
+    "Preview unavailable for this file in the browser.",
   "upload.preview.noType": "No image preview for this file type.",
   "upload.analyze": "Analyze",
   "upload.analyzing":
     "Our AI is studying your X-ray... (usually takes 5-10 seconds)",
-  "upload.fileError.type": "Use JPEG, PNG, or DICOM (.dcm).",
+  "upload.fileError.type": "Use JPEG, PNG, or WEBP.",
   "upload.fileError.size": "File is larger than 10MB.",
   "upload.q.title": "Clinical questionnaire",
   "upload.q.subtitle":
@@ -181,6 +181,40 @@ const dictEn: Dict = {
     "Domed muscle below the lungs; position helps assess lung volume.",
   "results.sticky":
     "LungLens is an educational tool only. This is not a medical diagnosis. Always consult a qualified healthcare professional for medical advice.",
+  "results.pipelineTitle": "Pipeline stage summary",
+  "results.stage1": "Stage 1 (Binary)",
+  "results.stage2": "Stage 2 (Multi-class)",
+  "results.gateDecision": "Gate decision",
+  "results.stage3Risk": "Stage 3 risk",
+  "results.timingReportTitle": "Timing & report",
+  "results.totalLatency": "Total latency",
+  "results.reportSummary": "Report summary",
+  "results.reportSummaryGenerated": "Backend report generated. Top highlighted pattern:",
+  "results.questionnaireRequired": "Questionnaire required before final synthesis.",
+  "results.na": "N/A",
+  "stage.Normal": "Normal",
+  "stage.Pneumonia": "Pneumonia",
+  "stage.Lung Opacity": "Lung Opacity",
+  "stage.Viral Pneumonia": "Viral Pneumonia",
+  "stage.Other": "Other",
+  "gate.early_stop": "early stop",
+  "gate.continue": "continue",
+  "gate.both_negative": "both negative",
+  "gate.positive_detected": "positive detected",
+  "risk.low": "low",
+  "risk.medium": "medium",
+  "risk.high": "high",
+  "risk.moderate": "moderate",
+  "risk.favorable": "favorable",
+  "risk.guarded": "guarded",
+  "risk.uncertain": "uncertain",
+  "upload.error.analysisFailed": "Analysis failed",
+  "alt.selectedPreview": "Selected X-ray preview",
+  "alt.uploadedXray": "Your uploaded chest X-ray",
+  "alt.attentionOverlay": "Educational attention overlay",
+  "alt.xray": "Your X-ray",
+  "alt.attentionNoPreview": "Attention map without original preview",
+  "alt.anatomyXray": "Chest X-ray with anatomy labels",
 
   "learn.title": "Learn about chest X-rays",
   "learn.topicPrefix": "Learn:",
@@ -227,7 +261,7 @@ const dictHant: Dict = {
   "nav.language": "語言",
   "lang.en": "EN",
   "lang.hant": "繁中",
-  "lang.hans": "简中",
+  "lang.hans": "簡中",
   "footer.important": "重要聲明",
   "footer.permanent":
     "永久提示：LungLens 僅供教育用途，並不提供疾病診斷、亦不會取代醫生或放射科醫師的專業判讀。",
@@ -238,7 +272,7 @@ const dictHant: Dict = {
   "landing.hero.title": "看懂你的胸肺 X 光",
   "landing.hero.subtitle": "已經有 X 光結果？我們可以幫你理解你正在看的影像內容。",
   "landing.hero.ctaUpload": "上傳你的 X 光",
-  "landing.hero.ctaLearn": "了解胸部 X 光",
+  "landing.hero.ctaLearn": "了解胸肺 X 光",
   "landing.hero.trust": "你的影像不會離開你的裝置",
   "landing.how.title": "如何使用",
   "landing.how.subtitle": "由就診影像到更清晰理解，只需三個步驟。",
@@ -285,16 +319,16 @@ const dictHant: Dict = {
     "你的影像會傳送到本應用的安全 API 作教育性分析，不會用於廣告。未來版本可能支援完全本地處理，上傳前請先查看最新隱私政策。",
   "upload.privacy.ack": "我明白此工具僅供教育用途，不作診斷，也不會據此決定是否需要治療或急診。",
   "upload.privacy.next": "繼續上傳",
-  "upload.dicom.title": "DICOM 檔案",
-  "upload.dicom.desc": "不少瀏覽器無法預覽 DICOM。若上傳失敗，請從醫院系統匯出 PNG/JPEG。檔案上限 10MB。",
+  "upload.dicom.title": "支援的影像格式",
+  "upload.dicom.desc": "請上傳 JPEG、PNG 或 WEBP。檔案上限 10MB。",
   "upload.drop.prompt": "拖曳並放下胸肺 X 光",
-  "upload.drop.note": "JPEG、PNG 或 DICOM (.dcm)，上限 10MB",
+  "upload.drop.note": "JPEG、PNG 或 WEBP，上限 10MB",
   "upload.preview": "預覽",
-  "upload.preview.noInline": "已選擇 DICOM，瀏覽器暫不顯示預覽。",
+  "upload.preview.noInline": "瀏覽器暫不支援此檔案預覽。",
   "upload.preview.noType": "此檔案類型暫不支援預覽。",
   "upload.analyze": "開始分析",
   "upload.analyzing": "AI 正在分析你的 X 光…（通常需時 5-10 秒）",
-  "upload.fileError.type": "請使用 JPEG、PNG 或 DICOM (.dcm)。",
+  "upload.fileError.type": "請使用 JPEG、PNG 或 WEBP。",
   "upload.fileError.size": "檔案大於 10MB。",
   "upload.q.title": "臨床問卷",
   "upload.q.subtitle": "由於出現陽性線索，請回答幾個問題以產生更完整的風險說明。",
@@ -323,7 +357,7 @@ const dictHant: Dict = {
   "results.noAttention": "本次分析沒有提供注意力熱圖。",
   "results.attentionNote": "顏色較強區域代表模型關注位置，並非診斷結果，也不能取代放射科判讀。",
   "results.noAttentionReturned": "本次分析未回傳注意力熱圖。",
-  "results.anatomyPlaceholder": "標準 PA 胸部 X 光的常見標記位置（教育示意）。",
+  "results.anatomyPlaceholder": "標準 PA 胸肺 X 光的常見標記位置（教育示意）。",
   "results.anatomyHeader": "AI 注意到的內容",
   "results.anatomySub": "以下為教育用途分數，不代表診斷，最終仍需由放射科醫師確認。",
   "results.noSignificant": "AI 未標示明顯重點區域。這一般可能接近正常 X 光表現，但仍需放射科醫師確認。",
@@ -337,7 +371,7 @@ const dictHant: Dict = {
   "results.copied": "已複製",
   "results.learnMore": "延伸閱讀",
   "results.learnMoreSub": "到學習頁查看更多主題內容，協助你與醫護人員溝通。",
-  "results.basics": "胸部 X 光基礎",
+  "results.basics": "胸肺 X 光基礎",
   "results.basicsSub": "解剖、術語與報告閱讀入門",
   "results.topicSub": "名詞解釋、常見情境與門診提問方向",
   "anatomy.trachea": "氣管",
@@ -351,6 +385,40 @@ const dictHant: Dict = {
   "anatomy.desc.right-lung": "在標準 PA 視圖中，右肺常顯示於影像左側。",
   "anatomy.desc.diaphragm": "位於肺下方的拱形肌肉，其位置可反映肺容量。",
   "results.sticky": "LungLens 僅供教育用途，並非醫療診斷。請務必諮詢合資格醫護人員。",
+  "results.pipelineTitle": "流程階段摘要",
+  "results.stage1": "第一階段（二元分類）",
+  "results.stage2": "第二階段（多類別分類）",
+  "results.gateDecision": "閘口判斷",
+  "results.stage3Risk": "第三階段風險",
+  "results.timingReportTitle": "耗時與報告",
+  "results.totalLatency": "總耗時",
+  "results.reportSummary": "報告摘要",
+  "results.reportSummaryGenerated": "後端報告已產生。最高關注模式：",
+  "results.questionnaireRequired": "需要先完成問卷，才會產生最終報告。",
+  "results.na": "未提供",
+  "stage.Normal": "正常",
+  "stage.Pneumonia": "肺炎",
+  "stage.Lung Opacity": "肺部陰影",
+  "stage.Viral Pneumonia": "病毒性肺炎",
+  "stage.Other": "其他",
+  "gate.early_stop": "提早停止",
+  "gate.continue": "繼續",
+  "gate.both_negative": "兩階段均為陰性",
+  "gate.positive_detected": "偵測到陽性線索",
+  "risk.low": "低",
+  "risk.medium": "中",
+  "risk.high": "高",
+  "risk.moderate": "中等",
+  "risk.favorable": "較樂觀",
+  "risk.guarded": "需觀察",
+  "risk.uncertain": "不確定",
+  "upload.error.analysisFailed": "分析失敗",
+  "alt.selectedPreview": "已選擇的 X 光預覽",
+  "alt.uploadedXray": "你上傳的 X 光",
+  "alt.attentionOverlay": "教育用途注意力疊圖",
+  "alt.xray": "你的 X 光",
+  "alt.attentionNoPreview": "沒有原圖預覽的注意力圖",
+  "alt.anatomyXray": "帶有解剖標籤的 X 光",
   "learn.title": "了解胸肺 X 光",
   "learn.topicPrefix": "主題：",
   "learn.desc": "學習解剖、常見術語與報告閱讀方式，但不取代放射科醫師判讀。",
@@ -360,7 +428,7 @@ const dictHant: Dict = {
   "about.badge": "關於 LungLens",
   "about.title": "讓胸肺 X 光學習更普及",
   "about.subtitle":
-    "LungLens 是胸部 X 光分析與教育工具，目標是以淺白方式幫助使用者理解影像結果，提升健康素養，而非取代專業醫療判斷。",
+    "LungLens 是胸肺 X 光分析與教育工具，目標是以淺白方式幫助使用者理解影像結果，提升健康素養，而非取代專業醫療判斷。",
   "about.storyTitle": "專案故事",
   "about.storySub": "研究合作 + 獨立產品化",
   "about.story1":
@@ -406,8 +474,13 @@ const dictHans: Dict = {
   "upload.gate.warnTitle": "建议先由医护人员评估",
   "upload.gate.findDoctor": "查找附近医生",
   "upload.privacy.title": "隐私与用途",
+  "upload.dicom.title": "支持的影像格式",
+  "upload.dicom.desc": "请上传 JPEG、PNG 或 WEBP。文件上限 10MB。",
+  "upload.drop.note": "JPEG、PNG 或 WEBP，上限 10MB",
   "upload.preview": "预览",
+  "upload.preview.noInline": "浏览器暂不支持此文件预览。",
   "upload.analyze": "开始分析",
+  "upload.fileError.type": "请使用 JPEG、PNG 或 WEBP。",
   "upload.q.title": "临床问卷",
   "upload.q.subtitle": "由于出现阳性线索，请回答几个问题以生成更完整的风险说明。",
   "upload.q.age": "年龄",
@@ -426,6 +499,40 @@ const dictHans: Dict = {
   "results.newUpload": "重新上传",
   "results.learnMore": "延伸阅读",
   "results.sticky": "LungLens 仅供教育用途，并非医疗诊断。请务必咨询合格医务人员。",
+  "results.pipelineTitle": "流程阶段摘要",
+  "results.stage1": "第一阶段（二分类）",
+  "results.stage2": "第二阶段（多分类）",
+  "results.gateDecision": "闸口判断",
+  "results.stage3Risk": "第三阶段风险",
+  "results.timingReportTitle": "耗时与报告",
+  "results.totalLatency": "总耗时",
+  "results.reportSummary": "报告摘要",
+  "results.reportSummaryGenerated": "后端报告已生成。最高关注模式：",
+  "results.questionnaireRequired": "需要先完成问卷，才会生成最终报告。",
+  "results.na": "未提供",
+  "stage.Normal": "正常",
+  "stage.Pneumonia": "肺炎",
+  "stage.Lung Opacity": "肺部阴影",
+  "stage.Viral Pneumonia": "病毒性肺炎",
+  "stage.Other": "其他",
+  "gate.early_stop": "提前停止",
+  "gate.continue": "继续",
+  "gate.both_negative": "两阶段均为阴性",
+  "gate.positive_detected": "检测到阳性线索",
+  "risk.low": "低",
+  "risk.medium": "中",
+  "risk.high": "高",
+  "risk.moderate": "中等",
+  "risk.favorable": "较乐观",
+  "risk.guarded": "需观察",
+  "risk.uncertain": "不确定",
+  "upload.error.analysisFailed": "分析失败",
+  "alt.selectedPreview": "已选择的 X 光预览",
+  "alt.uploadedXray": "你上传的 X 光",
+  "alt.attentionOverlay": "教育用途注意力叠图",
+  "alt.xray": "你的 X 光",
+  "alt.attentionNoPreview": "没有原图预览的注意力图",
+  "alt.anatomyXray": "带有解剖标签的 X 光",
   "results.topicSub": "名词解释、常见情境与门诊提问方向",
   "anatomy.trachea": "气管",
   "anatomy.heart": "心脏",
@@ -458,12 +565,125 @@ export function t(locale: Locale, key: string, fallback?: string): string {
   return I18N[locale][key] ?? I18N.en[key] ?? fallback ?? key;
 }
 
+export const CONDITION_NAMES: Record<Locale, Record<FindingLabel, string>> = {
+  en: {
+    Atelectasis: "Atelectasis",
+    Cardiomegaly: "Cardiomegaly",
+    Effusion: "Pleural effusion",
+    Infiltration: "Infiltrate",
+    Mass: "Mass",
+    Nodule: "Nodule",
+    Pneumonia: "Pneumonia",
+    Pneumothorax: "Pneumothorax",
+    Consolidation: "Consolidation",
+    Edema: "Pulmonary edema",
+    Emphysema: "Emphysema",
+    Fibrosis: "Fibrosis",
+    Pleural_Thickening: "Pleural thickening",
+    Hernia: "Hernia",
+  },
+  "zh-Hant": {
+    Atelectasis: "肺不張",
+    Cardiomegaly: "心臟擴大",
+    Effusion: "胸腔積液",
+    Infiltration: "肺部浸潤",
+    Mass: "腫塊陰影",
+    Nodule: "肺結節",
+    Pneumonia: "肺炎",
+    Pneumothorax: "氣胸",
+    Consolidation: "肺實變",
+    Edema: "肺水腫",
+    Emphysema: "肺氣腫",
+    Fibrosis: "肺纖維化",
+    Pleural_Thickening: "胸膜增厚",
+    Hernia: "疝氣",
+  },
+  "zh-Hans": {
+    Atelectasis: "肺不张",
+    Cardiomegaly: "心脏扩大",
+    Effusion: "胸腔积液",
+    Infiltration: "肺部浸润",
+    Mass: "肿块阴影",
+    Nodule: "肺结节",
+    Pneumonia: "肺炎",
+    Pneumothorax: "气胸",
+    Consolidation: "肺实变",
+    Edema: "肺水肿",
+    Emphysema: "肺气肿",
+    Fibrosis: "肺纤维化",
+    Pleural_Thickening: "胸膜增厚",
+    Hernia: "疝气",
+  },
+};
+
+export function conditionName(locale: Locale, label: FindingLabel): string {
+  return CONDITION_NAMES[locale]?.[label] ?? CONDITION_NAMES.en[label] ?? label.replace(/_/g, " ");
+}
+
 export const CONDITION_DESC: Record<
   Locale,
   Record<FindingLabel, string>
 > = {
   en: CONDITION_DESCRIPTIONS,
-  "zh-Hant": CONDITION_DESCRIPTIONS,
-  "zh-Hans": CONDITION_DESCRIPTIONS,
+  "zh-Hant": {
+    Atelectasis:
+      "肺不張表示部分肺組織在 X 光上可能較塌陷或未完全張開。它可與手術後、黏液阻塞或拍片時呼吸較淺有關。是否需要處理，仍要以正式報告、症狀和醫生判斷為準。",
+    Cardiomegaly:
+      "心臟擴大是指 X 光上的心影看起來比預期大。這可能與真正心臟變大、體型或拍攝角度有關。是否有臨床意義，需要由醫生按你的情況判斷。",
+    Effusion:
+      "胸腔積液是指肺外圍的空間有液體積聚，在 X 光上可能呈現較白或肋膈角變鈍。成因可包括感染、發炎或心臟相關問題等。請向醫生了解你的症狀和正式報告如何配合解讀。",
+    Infiltration:
+      "肺部浸潤是放射科常用的廣義描述，表示肺組織有額外密度。它可與感染、發炎或液體有關，但同一影像模式在不同人身上意義可不同。請以正式放射科報告為主要依據。",
+    Mass:
+      "腫塊陰影指局部區域比周圍肺部更密，是否需要 CT 或專科跟進取決於大小、形態和風險因素。許多影像發現可以是良性，但需要臨床資料判斷。若報告提及腫塊，請問清楚建議的跟進安排。",
+    Nodule:
+      "肺結節是較小的圓形陰影，可能需要觀察、覆檢或進一步檢查。處理方式會受大小、形態和吸煙史等因素影響。帶同正式報告向醫生了解是否需要定期監察。",
+    Pneumonia:
+      "肺炎在 X 光上常見為肺野較白的區域，但類似表現也可由其他原因造成。教育工具不能確認或排除肺炎。如有發燒、咳嗽或呼吸困難，請按醫護建議處理。",
+    Pneumothorax:
+      "氣胸表示空氣積聚在肺外，可能令肺部部分塌陷。有些情況可觀察，有些需要緊急處理。若突然胸痛或氣促，應立即求醫，不應依賴網站判斷。",
+    Consolidation:
+      "肺實變表示本應含氣的肺組織看起來較實，常與感染一起討論，但並非唯一原因。放射科醫師會結合其他影像線索作判讀。請詢問報告中的 impression 如何解釋此發現。",
+    Edema:
+      "肺水腫可令肺血管和肺紋理較明顯，可能與液體負荷或心臟壓力有關。醫生會結合檢查、生命徵象和其他化驗判斷。請勿只根據本工具自行調整藥物。",
+    Emphysema:
+      "肺氣腫或 COPD 相關變化可在 X 光上出現線索，但 X 光本身不足以診斷或分期。肺功能測試和病史同樣重要。如有長期咳嗽或吸煙史，請與醫護團隊討論。",
+    Fibrosis:
+      "肺纖維化是肺部疤痕樣改變，可與過往感染、環境暴露或免疫疾病等有關。進一步評估常需要高解像 CT 或專科意見。請詢問是否需要與舊片比較或安排跟進。",
+    Pleural_Thickening:
+      "胸膜增厚是指包圍肺部的膜看起來較厚，可能與舊發炎、感染或暴露史有關。其重要性取決於病史和是否穩定。可向醫生查詢是否有舊片可作比較。",
+    Hernia:
+      "疝氣可改變胸片底部附近的輪廓，很多時候是偶然發現。是否與症狀有關需要臨床判斷。若正式報告提及疝氣，請向醫生了解是否需要特別跟進。",
+  },
+  "zh-Hans": {
+    Atelectasis:
+      "肺不张表示部分肺组织在 X 光上可能较塌陷或没有完全张开。它可与术后、黏液阻塞或拍片时呼吸较浅有关。是否需要处理，仍要以正式报告、症状和医生判断为准。",
+    Cardiomegaly:
+      "心脏扩大是指 X 光上的心影看起来比预期大。这可能与真正心脏变大、体型或拍摄角度有关。是否有临床意义，需要由医生结合你的情况判断。",
+    Effusion:
+      "胸腔积液是指肺外周空间有液体积聚，在 X 光上可能呈现较白或肋膈角变钝。原因可包括感染、炎症或心脏相关问题等。请向医生了解你的症状和正式报告如何结合解读。",
+    Infiltration:
+      "肺部浸润是放射科常用的广义描述，表示肺组织有额外密度。它可与感染、炎症或液体有关，但同一影像模式在不同人身上意义可不同。请以正式放射科报告为主要依据。",
+    Mass:
+      "肿块阴影指局部区域比周围肺部更密，是否需要 CT 或专科随访取决于大小、形态和风险因素。许多影像发现可能是良性，但需要临床资料判断。若报告提及肿块，请问清楚建议的随访安排。",
+    Nodule:
+      "肺结节是较小的圆形阴影，可能需要观察、复查或进一步检查。处理方式会受大小、形态和吸烟史等因素影响。带上正式报告向医生了解是否需要定期监测。",
+    Pneumonia:
+      "肺炎在 X 光上常见为肺野较白的区域，但类似表现也可由其他原因造成。教育工具不能确认或排除肺炎。如有发热、咳嗽或呼吸困难，请按医务人员建议处理。",
+    Pneumothorax:
+      "气胸表示空气积聚在肺外，可能令肺部部分塌陷。有些情况可观察，有些需要紧急处理。若突然胸痛或气促，应立即就医，不应依赖网站判断。",
+    Consolidation:
+      "肺实变表示本应含气的肺组织看起来较实，常与感染一起讨论，但并非唯一原因。放射科医生会结合其他影像线索判读。请询问报告中的 impression 如何解释此发现。",
+    Edema:
+      "肺水肿可令肺血管和肺纹理较明显，可能与液体负荷或心脏压力有关。医生会结合检查、生命体征和其他化验判断。请勿只根据本工具自行调整药物。",
+    Emphysema:
+      "肺气肿或 COPD 相关变化可在 X 光上出现线索，但 X 光本身不足以诊断或分期。肺功能测试和病史同样重要。如有长期咳嗽或吸烟史，请与医务人员讨论。",
+    Fibrosis:
+      "肺纤维化是肺部疤痕样改变，可与既往感染、环境暴露或免疫疾病等有关。进一步评估常需要高分辨率 CT 或专科意见。请询问是否需要与旧片比较或安排随访。",
+    Pleural_Thickening:
+      "胸膜增厚是指包围肺部的膜看起来较厚，可能与既往炎症、感染或暴露史有关。其重要性取决于病史和是否稳定。可向医生咨询是否有旧片可作比较。",
+    Hernia:
+      "疝气可改变胸片底部附近的轮廓，很多时候是偶然发现。是否与症状有关需要临床判断。若正式报告提及疝气，请向医生了解是否需要特别随访。",
+  },
 };
 

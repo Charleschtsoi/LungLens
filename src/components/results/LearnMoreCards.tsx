@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatConditionName } from "@/lib/findings-utils";
 import type { FindingLabel } from "@/types";
 import { useI18n } from "@/hooks/useI18n";
+import { conditionName } from "@/lib/i18n";
 
 interface LearnMoreCardsProps {
   findings: { label: FindingLabel }[];
 }
 
 export function LearnMoreCards({ findings }: LearnMoreCardsProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <section className="space-y-4" aria-labelledby="learn-more-heading">
       <h2 id="learn-more-heading" className="text-lg font-semibold tracking-tight">
@@ -48,7 +48,7 @@ export function LearnMoreCards({ findings }: LearnMoreCardsProps) {
                     <BookOpen className="h-4 w-4" aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-base leading-snug">{formatConditionName(label)}</CardTitle>
+                    <CardTitle className="text-base leading-snug">{conditionName(locale, label)}</CardTitle>
                     <CardDescription className="mt-1">
                       {t("results.topicSub")}
                     </CardDescription>

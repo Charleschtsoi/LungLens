@@ -7,16 +7,14 @@ import type {
   Stage3QuestionnaireInput,
 } from "@/types";
 
-function mlAnalyzeUrl(): string | null {
-  const base = process.env.NEXT_PUBLIC_ML_API_URL?.trim();
-  if (!base) return null;
-  return `${base.replace(/\/$/, "")}/pipeline/analyze`;
+function analyzeUrl(): string {
+  return "/api/analyze";
 }
 
 /**
  * Single entry point for analysis from the app.
  * - `NEXT_PUBLIC_USE_MOCK=true` → client-side mock (no server hop).
- * - Otherwise → `POST` multipart `image` to `NEXT_PUBLIC_ML_API_URL/pipeline/analyze`.
+ * - Otherwise → `POST` multipart `image` to frontend `/api/analyze` proxy.
  */
 export interface AnalyzeOptions {
   questionnaire?: Stage3QuestionnaireInput | null;
@@ -24,9 +22,11 @@ export interface AnalyzeOptions {
 
 function normalizeError(status: number, fallback?: string): string {
   if (fallback && fallback.trim()) return fallback;
-  if (status >= 500) return "AI service is temporarily unavailable. Please try again shortly.";
-  if (status === 413) return "The uploaded file is too large for the AI service.";
+  if (status === 401) return "Authentication with AI service failed. Please contact support.";
+  if (status === 413) return "The uploaded file is too large. Please keep it under 10MB.";
+  if (status === 415) return "Unsupported file type. Please upload JPG, PNG, or WEBP.";
   if (status === 400) return "The AI service rejected this request. Please check file format and try again.";
+  if (status >= 500) return "AI service is temporarily unavailable. Please try again shortly.";
   return `Request failed (${status}).`;
 }
 
@@ -66,13 +66,7 @@ export async function analyzeImageFile(
     }
   }
 
-  const url = mlAnalyzeUrl();
-  if (!url) {
-    return {
-      success: false,
-      error: "NEXT_PUBLIC_ML_API_URL is not set. Enable mock mode or configure the ML server URL.",
-    };
-  }
+  const url = analyzeUrl();
 
   const form = new FormData();
   form.append("image", file);

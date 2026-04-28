@@ -35,7 +35,7 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
           {previewUrl ? (
             <Image
               src={previewUrl}
-              alt="Your uploaded chest X-ray"
+              alt={t("alt.uploadedXray")}
               fill
               className="object-contain"
               unoptimized
@@ -66,13 +66,13 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={heatmapSrc}
-                alt="Educational attention overlay"
+                alt={t("alt.attentionOverlay")}
                 className="pointer-events-none absolute inset-0 h-full w-full object-contain opacity-70 mix-blend-multiply"
               />
             </>
           ) : previewUrl && !heatmapSrc ? (
             <div className="relative h-full min-h-[220px] w-full">
-              <Image src={previewUrl} alt="Your X-ray" fill className="object-contain" unoptimized />
+              <Image src={previewUrl} alt={t("alt.xray")} fill className="object-contain" unoptimized />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-3">
                 <span className="rounded-md border border-amber-200/80 bg-amber-50/95 px-3 py-1.5 text-xs text-amber-950 shadow-sm backdrop-blur-sm">
                   {t("results.noAttention")}
@@ -84,7 +84,7 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={heatmapSrc}
-                alt="Attention map without original preview"
+                alt={t("alt.attentionNoPreview")}
                 className="max-h-[min(360px,70vh)] max-w-full object-contain"
               />
               <figcaption className="text-center text-xs text-muted-foreground">
@@ -108,7 +108,7 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
             <>
               <Image
                 src={previewUrl}
-                alt="Chest X-ray with anatomy labels"
+                alt={t("alt.anatomyXray")}
                 fill
                 className="object-contain"
                 unoptimized

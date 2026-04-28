@@ -48,9 +48,13 @@ Current variables:
 
 - `NEXT_PUBLIC_USE_MOCK`
   - `true`: use browser-side mock analysis
-  - `false`: call real ML endpoint
-- `NEXT_PUBLIC_ML_API_URL`
-  - Base URL of ML service. App posts to `${NEXT_PUBLIC_ML_API_URL}/pipeline/analyze`.
+  - `false`: call frontend server route `/api/analyze`
+- `BACKEND_API_BASE_URL` (server-only)
+  - Base URL of backend service. Server route forwards to `${BACKEND_API_BASE_URL}/pipeline/analyze`.
+- `BACKEND_API_KEY` (server-only)
+  - API key sent as `X-API-Key` from the server route to backend.
+
+Security note: never put backend API keys in `NEXT_PUBLIC_*` variables.
 
 ### 3) Run development server
 
@@ -152,7 +156,7 @@ You only need to change integration behavior in one place:
 Current behavior:
 
 - `NEXT_PUBLIC_USE_MOCK=true` -> `mockAnalyze(file)` from `src/lib/mock.ts`
-- `NEXT_PUBLIC_USE_MOCK=false` -> POST file to real ML endpoint
+- `NEXT_PUBLIC_USE_MOCK=false` -> POST file to frontend `/api/analyze`, which forwards server-side to real backend endpoint
 
 Expected ML response shape:
 
@@ -171,6 +175,7 @@ Expected ML response shape:
 ```
 
 Tip: ensure your ML service supports CORS for the web app origin when called directly from browser.
+Tip: with the `/api/analyze` proxy route, backend API keys stay server-side and are not exposed to browser clients.
 
 ## Quality Checks Before Pushing
 
@@ -192,7 +197,8 @@ npm run lint
 - ML service can run on Railway, Cloud Run, or another container host.
 - Set environment variables on your deployment platform:
   - `NEXT_PUBLIC_USE_MOCK`
-  - `NEXT_PUBLIC_ML_API_URL`
+  - `BACKEND_API_BASE_URL`
+  - `BACKEND_API_KEY`
 
 ## License
 

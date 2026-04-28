@@ -11,6 +11,7 @@ export function ClinicalQuestionnaire() {
   const router = useRouter();
   const { t } = useI18n();
   const imageFile = useAppStore((s) => s.imageFile);
+  const analysisError = useAppStore((s) => s.analysisError);
   const questionnaire = useAppStore((s) => s.questionnaire);
   const setQuestionnaire = useAppStore((s) => s.setQuestionnaire);
   const setQuestionnaireSubmitted = useAppStore((s) => s.setQuestionnaireSubmitted);
@@ -41,6 +42,11 @@ export function ClinicalQuestionnaire() {
         <CardTitle>{t("upload.q.title")}</CardTitle>
         <CardDescription>{t("upload.q.subtitle")}</CardDescription>
       </CardHeader>
+      {analysisError && (
+        <p className="px-6 pb-2 text-sm text-destructive" role="alert">
+          {analysisError}
+        </p>
+      )}
       <CardContent className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm">
           <span className="mb-1 block text-muted-foreground">{t("upload.q.age")}</span>

@@ -6,14 +6,13 @@ import type { StageMultiClassResult } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   confidenceTier,
-  formatConditionName,
   getNotableFindings,
   tierBarSegments,
   type ConfidenceTier,
 } from "@/lib/findings-utils";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
-import { CONDITION_DESC } from "@/lib/i18n";
+import { CONDITION_DESC, conditionName } from "@/lib/i18n";
 
 function TierLabel({ tier }: { tier: ConfidenceTier }) {
   const { t } = useI18n();
@@ -53,7 +52,7 @@ export function FindingsCard({
   const notable = predictions ? getNotableFindings(predictions) : [];
   const stage2Hint =
     stage2 && stage2.label !== "Normal"
-      ? `Stage 2 prioritized: ${stage2.label} (${Math.round(stage2.confidence * 100)}%).`
+      ? `${t("results.stage2")}: ${t(`stage.${stage2.label}`, stage2.label)} (${Math.round(stage2.confidence * 100)}%).`
       : null;
 
   return (
@@ -77,7 +76,7 @@ export function FindingsCard({
             return (
               <div key={label} className="space-y-3 border-b border-border/60 pb-6 last:border-0 last:pb-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-base font-semibold text-foreground">{formatConditionName(label)}</h3>
+                  <h3 className="text-base font-semibold text-foreground">{conditionName(locale, label)}</h3>
                   <TierLabel tier={tier} />
                 </div>
                 <ConfidenceBar tier={tier} />

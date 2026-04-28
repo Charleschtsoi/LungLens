@@ -17,7 +17,7 @@ const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPT = {
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
-  "application/dicom": [".dcm"],
+  "image/webp": [".webp"],
 } as const;
 
 function isPreviewableImage(file: File): boolean {
@@ -40,6 +40,7 @@ export function ImageUploader() {
 
   const imageFile = useAppStore((s) => s.imageFile);
   const previewUrl = useAppStore((s) => s.previewUrl);
+  const analysisError = useAppStore((s) => s.analysisError);
   const analysisLoading = useAppStore((s) => s.analysisLoading);
   const setImage = useAppStore((s) => s.setImage);
   const setAnalysis = useAppStore((s) => s.setAnalysis);
@@ -80,7 +81,7 @@ export function ImageUploader() {
         lower.endsWith(".jpg") ||
         lower.endsWith(".jpeg") ||
         lower.endsWith(".png") ||
-        lower.endsWith(".dcm");
+        lower.endsWith(".webp");
       if (!ok) {
         return { code: "file-invalid-type", message: t("upload.fileError.type") };
       }
@@ -96,7 +97,7 @@ export function ImageUploader() {
     const res = await analyzeImageFile(file);
     setAnalysisLoading(false);
     if (!res.success) {
-      setAnalysisError(res.error || "Analysis failed");
+      setAnalysisError(res.error || t("upload.error.analysisFailed"));
       return;
     }
     if (res.requires_questionnaire) {
@@ -128,6 +129,11 @@ export function ImageUploader() {
           {rejectError}
         </p>
       )}
+      {analysisError && (
+        <p className="text-sm text-destructive" role="alert">
+          {analysisError}
+        </p>
+      )}
 
       <div
         {...getRootProps()}
@@ -150,7 +156,7 @@ export function ImageUploader() {
             <div className="relative aspect-[4/3] max-h-[280px] w-full overflow-hidden rounded-lg border bg-muted">
               <Image
                 src={previewUrl}
-                alt="Selected X-ray preview"
+                alt={t("alt.selectedPreview")}
                 fill
                 className="object-contain"
                 unoptimized

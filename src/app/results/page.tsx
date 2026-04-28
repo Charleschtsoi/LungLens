@@ -16,9 +16,10 @@ import { getNotableFindings } from "@/lib/findings-utils";
 import { Loader2 } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import type { FindingLabel } from "@/types";
+import { conditionName } from "@/lib/i18n";
 
 export default function ResultsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const previewUrl = useAppStore((s) => s.previewUrl);
   const analysis = useAppStore((s) => s.analysis);
@@ -69,6 +70,15 @@ export default function ResultsPage() {
         ]
       : [];
   const findingsForSections = notable.length > 0 ? notable : stage2Fallback;
+  const stageLabel = (value: string) => t(`stage.${value}`, value);
+  const gateLabel = (value: string) => t(`gate.${value}`, value);
+  const riskLabel = (value: string) => t(`risk.${value}`, value);
+  const reportSummary =
+    locale === "en"
+      ? analysis.report?.summary
+      : analysis.report
+        ? `${t("results.reportSummaryGenerated")} ${conditionName(locale, analysis.gradcam.top_prediction)}.`
+        : null;
 
   return (
     <div className="relative pb-28">
@@ -106,29 +116,31 @@ export default function ResultsPage() {
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Pipeline stage summary</CardTitle>
+            <CardTitle className="text-base">{t("results.pipelineTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">Stage 1 (Binary): </span>
+              <span className="font-medium text-foreground">{t("results.stage1")}: </span>
               {analysis.stage1
-                ? `${analysis.stage1.label} (${Math.round(analysis.stage1.confidence * 100)}%)`
-                : "N/A"}
+                ? `${stageLabel(analysis.stage1.label)} (${Math.round(analysis.stage1.confidence * 100)}%)`
+                : t("results.na")}
             </p>
             <p>
-              <span className="font-medium text-foreground">Stage 2 (Multi-class): </span>
+              <span className="font-medium text-foreground">{t("results.stage2")}: </span>
               {analysis.stage2
-                ? `${analysis.stage2.label} (${Math.round(analysis.stage2.confidence * 100)}%)`
-                : "N/A"}
+                ? `${stageLabel(analysis.stage2.label)} (${Math.round(analysis.stage2.confidence * 100)}%)`
+                : t("results.na")}
             </p>
             <p>
-              <span className="font-medium text-foreground">Gate decision: </span>
-              {analysis.gate ? `${analysis.gate.route} (${analysis.gate.reason})` : "N/A"}
+              <span className="font-medium text-foreground">{t("results.gateDecision")}: </span>
+              {analysis.gate
+                ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
+                : t("results.na")}
             </p>
             {analysis.stage3?.enabled && (
               <p>
-                <span className="font-medium text-foreground">Stage 3 risk: </span>
-                {analysis.stage3.risk_level} / {analysis.stage3.severity}
+                <span className="font-medium text-foreground">{t("results.stage3Risk")}: </span>
+                {riskLabel(analysis.stage3.risk_level)} / {riskLabel(analysis.stage3.severity)}
               </p>
             )}
           </CardContent>
@@ -136,16 +148,16 @@ export default function ResultsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Timing & report</CardTitle>
+            <CardTitle className="text-base">{t("results.timingReportTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">Total latency: </span>
-              {analysis.timing_ms ? `${analysis.timing_ms.total} ms` : "N/A"}
+              <span className="font-medium text-foreground">{t("results.totalLatency")}: </span>
+              {analysis.timing_ms ? `${analysis.timing_ms.total} ms` : t("results.na")}
             </p>
             <p>
-              <span className="font-medium text-foreground">Report summary: </span>
-              {analysis.report?.summary ?? "Questionnaire required before final synthesis."}
+              <span className="font-medium text-foreground">{t("results.reportSummary")}: </span>
+              {reportSummary ?? t("results.questionnaireRequired")}
             </p>
           </CardContent>
         </Card>

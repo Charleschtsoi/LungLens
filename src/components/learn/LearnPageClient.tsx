@@ -3,21 +3,22 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatConditionName } from "@/lib/findings-utils";
 import type { FindingLabel } from "@/types";
 import { useI18n } from "@/hooks/useI18n";
+import { conditionName } from "@/lib/i18n";
 
 export function LearnPageClient({ topic }: { topic: FindingLabel | null }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const topicName = topic ? conditionName(locale, topic) : null;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          {topic ? `${t("learn.topicPrefix")} ${formatConditionName(topic)}` : t("learn.title")}
+          {topicName ? `${t("learn.topicPrefix")} ${topicName}` : t("learn.title")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {topic ? `${t("learn.topicDesc")} (${formatConditionName(topic)})` : t("learn.desc")}
+          {topicName ? `${t("learn.topicDesc")} (${topicName})` : t("learn.desc")}
         </p>
       </div>
 
