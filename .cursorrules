@@ -1,0 +1,33 @@
+# LungLens Cursor Rules
+
+## Scope
+- Always apply these rules for this repository.
+
+## Required Workflow Before Editing
+1. Scan existing files involved in the request (imports, endpoints, types, UI flow).
+2. Compare current behavior to architecture requirements.
+3. Report: aligned, misaligned, and missing items.
+4. Make minimal adjustments (prefer adapters/mappers over rewrites).
+5. If a behavior looks intentional but conflicts with notes, ask before changing.
+
+## Golden Constraints
+- Frontend never runs ML inference and never imports ML runtimes.
+- Frontend never preprocesses images to tensors; send raw files only.
+- Backend owns preprocessing, inference, and LLM report synthesis.
+- Frontend must not call OpenAI directly.
+- Keep backend API secrets server-side only (no `NEXT_PUBLIC_*` for keys).
+- Always enforce gate-driven flow: only show clinical questionnaire when required.
+- Always keep medical disclaimer visible in results-related experiences.
+
+## Integration Rules
+- Browser talks to Next API route first; route handles backend forwarding and auth header.
+- Keep compatibility mapping when backend payload naming differs (`gate_result` vs `gate`, `requires_clinical_qa` vs `requires_questionnaire`).
+- Validate incoming backend payload shape before returning success to client.
+
+## Warm-Up Rule
+- Trigger silent fire-and-forget backend health warm-up early in session.
+- Warm-up must not block UI and must not surface warm-up errors to users.
+
+## Documentation Rules
+- Keep README/env var names consistent with executable code.
+- Do not claim in-browser inference when production flow is backend inference.

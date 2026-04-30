@@ -64,9 +64,10 @@ export interface AnatomyRegion {
   id: string;
   label: string;
   description: string;
-  /** Approximate position on a typical PA chest X-ray (percent of container). */
+  /** Approximate landmark position on the displayed PA chest X-ray frame. */
   top: string;
   left: string;
+  labelSide?: "left" | "right";
 }
 
 export const ANATOMY_REGIONS: AnatomyRegion[] = [
@@ -74,35 +75,38 @@ export const ANATOMY_REGIONS: AnatomyRegion[] = [
     id: "trachea",
     label: "Trachea",
     description: "Midline airway; deviation can have many causes your radiologist comments on.",
-    top: "8%",
-    left: "48%",
+    top: "14%",
+    left: "50%",
   },
   {
     id: "heart",
     label: "Heart",
     description: "Cardiac silhouette—size and shape are interpreted with your clinical context.",
-    top: "38%",
-    left: "42%",
+    top: "52%",
+    left: "53%",
+    labelSide: "left",
   },
   {
     id: "left-lung",
     label: "Left lung",
     description: "Appears on the right side of the image in a standard PA view.",
-    top: "28%",
-    left: "62%",
+    top: "40%",
+    left: "68%",
   },
   {
     id: "right-lung",
     label: "Right lung",
     description: "Appears on the left side of the image in a standard PA view.",
-    top: "28%",
-    left: "18%",
+    top: "40%",
+    left: "32%",
+    labelSide: "left",
   },
   {
     id: "diaphragm",
     label: "Diaphragm",
     description: "Domed muscle below the lungs; position helps assess lung volume.",
-    top: "72%",
+    top: "78%",
     left: "50%",
+    labelSide: "left",
   },
 ];

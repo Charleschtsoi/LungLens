@@ -9,7 +9,7 @@ Important: this project is educational and research-oriented. It is not a medica
 - Guides users through a safe upload flow with doctor-review and educational disclaimers.
 - Runs image analysis via:
   - browser mock mode (`NEXT_PUBLIC_USE_MOCK=true`), or
-  - a real ML HTTP endpoint (`NEXT_PUBLIC_ML_API_URL`).
+  - a server-side proxy route (`/api/analyze`) that forwards to your backend API.
 - Presents results in an educational dashboard:
   - original image tab,
   - AI attention map tab,
@@ -49,6 +49,9 @@ Current variables:
 - `NEXT_PUBLIC_USE_MOCK`
   - `true`: use browser-side mock analysis
   - `false`: call frontend server route `/api/analyze`
+- `NEXT_PUBLIC_API_URL` (client-visible)
+  - Backend base URL for silent warm-up ping only (`${NEXT_PUBLIC_API_URL}/health`).
+  - This is not used for direct image upload requests.
 - `BACKEND_API_BASE_URL` (server-only)
   - Base URL of backend service. Server route forwards to `${BACKEND_API_BASE_URL}/pipeline/analyze`.
 - `BACKEND_API_KEY` (server-only)
@@ -122,6 +125,11 @@ Mock mode parity:
 
 - In `NEXT_PUBLIC_USE_MOCK=true`, the mock returns staged outputs (`stage1`, `stage2`, `gate`, optional `stage3`, `report`, `timing_ms`), so UI behavior matches real pipeline routing as closely as possible.
 
+Cold-start warm-up:
+
+- The app silently triggers `GET ${NEXT_PUBLIC_API_URL}/health` on first load.
+- The call is fire-and-forget with no loading UI and no user-facing error on failure.
+
 ## How to Update This Project
 
 ### A) Update UI pages/components
@@ -174,8 +182,8 @@ Expected ML response shape:
 }
 ```
 
-Tip: ensure your ML service supports CORS for the web app origin when called directly from browser.
-Tip: with the `/api/analyze` proxy route, backend API keys stay server-side and are not exposed to browser clients.
+Tip: the app uses `/api/analyze` as the main browser entry point, so backend API keys stay server-side and are not exposed to browser clients.
+Tip: backend CORS is still recommended for local backend testing and direct tooling calls.
 
 ## Quality Checks Before Pushing
 
@@ -197,6 +205,7 @@ npm run lint
 - ML service can run on Railway, Cloud Run, or another container host.
 - Set environment variables on your deployment platform:
   - `NEXT_PUBLIC_USE_MOCK`
+  - `NEXT_PUBLIC_API_URL`
   - `BACKEND_API_BASE_URL`
   - `BACKEND_API_KEY`
 

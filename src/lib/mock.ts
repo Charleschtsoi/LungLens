@@ -18,33 +18,109 @@ const MOCK_DELAY_MS = 2000;
 const FALLBACK_HEATMAP_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
+type HeatmapFocus = {
+  x: number;
+  y: number;
+  radius: number;
+  intensity: number;
+};
+
+export type MockScenario = {
+  id: string;
+  primary: FindingLabel;
+  scores: Partial<Record<FindingLabel, number>>;
+  heatmapFoci: HeatmapFocus[];
+};
+
+const MOCK_SCENARIOS: MockScenario[] = [
+  {
+    id: "right-lower-opacity",
+    primary: "Consolidation",
+    scores: {
+      Consolidation: 0.82,
+      Infiltration: 0.64,
+      Pneumonia: 0.58,
+      Effusion: 0.34,
+    },
+    heatmapFoci: [
+      { x: 0.34, y: 0.58, radius: 0.22, intensity: 1 },
+      { x: 0.42, y: 0.48, radius: 0.14, intensity: 0.66 },
+    ],
+  },
+  {
+    id: "left-perihilar-pneumonia",
+    primary: "Pneumonia",
+    scores: {
+      Pneumonia: 0.86,
+      Infiltration: 0.57,
+      Edema: 0.38,
+      Atelectasis: 0.31,
+    },
+    heatmapFoci: [
+      { x: 0.64, y: 0.44, radius: 0.19, intensity: 1 },
+      { x: 0.56, y: 0.55, radius: 0.12, intensity: 0.7 },
+    ],
+  },
+  {
+    id: "basal-effusion",
+    primary: "Effusion",
+    scores: {
+      Effusion: 0.79,
+      Pleural_Thickening: 0.52,
+      Atelectasis: 0.42,
+      Cardiomegaly: 0.33,
+    },
+    heatmapFoci: [
+      { x: 0.28, y: 0.72, radius: 0.18, intensity: 0.9 },
+      { x: 0.68, y: 0.74, radius: 0.2, intensity: 1 },
+    ],
+  },
+  {
+    id: "upper-zone-nodule",
+    primary: "Nodule",
+    scores: {
+      Nodule: 0.74,
+      Mass: 0.45,
+      Fibrosis: 0.35,
+    },
+    heatmapFoci: [
+      { x: 0.62, y: 0.3, radius: 0.13, intensity: 1 },
+      { x: 0.34, y: 0.33, radius: 0.1, intensity: 0.58 },
+    ],
+  },
+];
+
+const fileScenarioCache = new WeakMap<File, MockScenario>();
+
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-function shuffle<T>(items: readonly T[]): T[] {
-  const a = [...items];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }
 
-/** Random scores with 2–3 conditions above 0.3 (simulated “findings”). */
-export function generateMockPredictions(): Predictions {
-  const shuffled = shuffle(FINDING_LABELS);
-  const nHigh = 2 + Math.floor(Math.random() * 2);
-  const highLabels = new Set(shuffled.slice(0, nHigh));
+function selectScenario(file?: File): MockScenario {
+  if (file) {
+    const cached = fileScenarioCache.get(file);
+    if (cached) return cached;
+  }
 
+  const scenario = MOCK_SCENARIOS[Math.floor(Math.random() * MOCK_SCENARIOS.length)];
+  if (file) fileScenarioCache.set(file, scenario);
+  return scenario;
+}
+
+/** Scenario-based scores with small jitter so repeated demos do not look identical. */
+export function generateMockPredictions(scenario: MockScenario = selectScenario()): Predictions {
   const predictions = {} as Predictions;
   for (const label of FINDING_LABELS) {
-    if (highLabels.has(label)) {
-      predictions[label] = Number(randomBetween(0.32, 0.94).toFixed(4));
-    } else {
-      predictions[label] = Number(randomBetween(0.02, 0.28).toFixed(4));
-    }
+    const scenarioScore = scenario.scores[label];
+    const base = scenarioScore ?? randomBetween(0.02, 0.18);
+    const jitter = scenarioScore ? randomBetween(-0.045, 0.045) : randomBetween(-0.015, 0.035);
+    predictions[label] = Number(clamp01(base + jitter).toFixed(4));
   }
+  predictions[scenario.primary] = Math.max(predictions[scenario.primary], 0.72);
   return predictions;
 }
 
@@ -150,11 +226,48 @@ function topFinding(preds: Predictions): { label: FindingLabel; confidence: numb
   return { label, confidence: max };
 }
 
+function drawGradcamFocus(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  focus: HeatmapFocus,
+) {
+  const cx = width * focus.x;
+  const cy = height * focus.y;
+  const radius = Math.max(width, height) * focus.radius;
+  const alpha = focus.intensity;
+
+  const outer = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  outer.addColorStop(0, `rgba(220, 38, 38, ${0.8 * alpha})`);
+  outer.addColorStop(0.18, `rgba(249, 115, 22, ${0.68 * alpha})`);
+  outer.addColorStop(0.34, `rgba(250, 204, 21, ${0.55 * alpha})`);
+  outer.addColorStop(0.52, `rgba(34, 197, 94, ${0.34 * alpha})`);
+  outer.addColorStop(0.72, `rgba(6, 182, 212, ${0.2 * alpha})`);
+  outer.addColorStop(1, "rgba(37, 99, 235, 0)");
+
+  ctx.fillStyle = outer;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.34);
+  core.addColorStop(0, `rgba(185, 28, 28, ${0.72 * alpha})`);
+  core.addColorStop(0.5, `rgba(239, 68, 68, ${0.52 * alpha})`);
+  core.addColorStop(1, "rgba(239, 68, 68, 0)");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 0.36, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 /**
- * Red → yellow gradient PNG as base64 (placeholder heatmap).
+ * Grad-CAM-like transparent PNG as base64.
  * Uses image dimensions when the file is a decodable bitmap.
  */
-export async function createPlaceholderHeatmapBase64(file: File): Promise<string> {
+export async function createPlaceholderHeatmapBase64(
+  file: File,
+  scenario: MockScenario = selectScenario(file),
+): Promise<string> {
   if (typeof document === "undefined") {
     return FALLBACK_HEATMAP_BASE64;
   }
@@ -179,25 +292,28 @@ export async function createPlaceholderHeatmapBase64(file: File): Promise<string
   const ctx = canvas.getContext("2d");
   if (!ctx) return FALLBACK_HEATMAP_BASE64;
 
-  const g = ctx.createLinearGradient(0, height, width, 0);
-  g.addColorStop(0, "rgba(220, 38, 38, 0.82)");
-  g.addColorStop(0.45, "rgba(251, 191, 36, 0.65)");
-  g.addColorStop(1, "rgba(254, 249, 195, 0.35)");
-  ctx.fillStyle = g;
+  ctx.clearRect(0, 0, width, height);
+  ctx.globalCompositeOperation = "source-over";
+
+  const lowActivation = ctx.createRadialGradient(
+    width * 0.5,
+    height * 0.52,
+    0,
+    width * 0.5,
+    height * 0.52,
+    Math.max(width, height) * 0.58,
+  );
+  lowActivation.addColorStop(0, "rgba(34, 197, 94, 0.1)");
+  lowActivation.addColorStop(0.45, "rgba(6, 182, 212, 0.1)");
+  lowActivation.addColorStop(0.8, "rgba(37, 99, 235, 0.06)");
+  lowActivation.addColorStop(1, "rgba(37, 99, 235, 0)");
+  ctx.fillStyle = lowActivation;
   ctx.fillRect(0, 0, width, height);
 
-  const radial = ctx.createRadialGradient(
-    width * 0.35,
-    height * 0.35,
-    0,
-    width * 0.45,
-    height * 0.4,
-    Math.max(width, height) * 0.55,
-  );
-  radial.addColorStop(0, "rgba(255, 80, 0, 0.5)");
-  radial.addColorStop(1, "rgba(255, 200, 0, 0)");
-  ctx.fillStyle = radial;
-  ctx.fillRect(0, 0, width, height);
+  ctx.globalCompositeOperation = "lighter";
+  for (const focus of scenario.heatmapFoci) {
+    drawGradcamFocus(ctx, width, height, focus);
+  }
 
   const dataUrl = canvas.toDataURL("image/png");
   const base64 = dataUrl.split(",")[1];
@@ -205,7 +321,7 @@ export async function createPlaceholderHeatmapBase64(file: File): Promise<string
 }
 
 /**
- * Simulates the ML API: delay, random scores (2–3 above 0.3), gradient heatmap, top prediction.
+ * Simulates the ML API: delay, scenario-based scores, Grad-CAM-like heatmap, top prediction.
  * Intended to run in the browser (uses Canvas).
  */
 export async function mockAnalyze(
@@ -215,9 +331,10 @@ export async function mockAnalyze(
   await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
 
   const t0 = performance.now?.() ?? Date.now();
-  const predictions = generateMockPredictions();
+  const scenario = selectScenario(image);
+  const predictions = generateMockPredictions(scenario);
   const { label, confidence } = topFinding(predictions);
-  const heatmap_base64 = await createPlaceholderHeatmapBase64(image);
+  const heatmap_base64 = await createPlaceholderHeatmapBase64(image, scenario);
   const stage1 = stage1FromPredictions(predictions);
   const stage2 = stage2FromPredictions(predictions);
   const gate = gateFromStages(stage1, stage2);

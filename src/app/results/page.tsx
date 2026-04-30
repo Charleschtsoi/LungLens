@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
@@ -13,13 +13,17 @@ import { DoctorQuestions } from "@/components/results/DoctorQuestions";
 import { LearnMoreCards } from "@/components/results/LearnMoreCards";
 import { ResultsStickyDisclaimer } from "@/components/results/ResultsStickyDisclaimer";
 import { getNotableFindings } from "@/lib/findings-utils";
-import { Loader2 } from "lucide-react";
+import { buildDoctorQuestions } from "@/lib/doctor-questions";
+import { buildEducationReportPdf } from "@/lib/pdf-report";
+import { FileDown, Loader2 } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import type { FindingLabel } from "@/types";
 import { conditionName } from "@/lib/i18n";
 
 export default function ResultsPage() {
   const { t, locale } = useI18n();
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const router = useRouter();
   const previewUrl = useAppStore((s) => s.previewUrl);
   const analysis = useAppStore((s) => s.analysis);
@@ -79,6 +83,60 @@ export default function ResultsPage() {
       : analysis.report
         ? `${t("results.reportSummaryGenerated")} ${conditionName(locale, analysis.gradcam.top_prediction)}.`
         : null;
+  const doctorQuestions = buildDoctorQuestions(findingsForSections, locale);
+
+  const exportPdf = async () => {
+    if (isExportingPdf) return;
+    setExportError(null);
+    setIsExportingPdf(true);
+    try {
+      await buildEducationReportPdf({
+        filename: "lunglens-education-report",
+        title: t("results.title"),
+        subtitle: t("results.subtitle"),
+        generatedAtLabel: t("results.pdfGeneratedAt"),
+        generatedAtValue: new Date().toLocaleString(),
+        disclaimer: t("results.sticky"),
+        pipelineTitle: t("results.pipelineTitle"),
+        stage1Label: t("results.stage1"),
+        stage1Value: analysis.stage1
+          ? `${stageLabel(analysis.stage1.label)} (${Math.round(analysis.stage1.confidence * 100)}%)`
+          : t("results.na"),
+        stage2Label: t("results.stage2"),
+        stage2Value: analysis.stage2
+          ? `${stageLabel(analysis.stage2.label)} (${Math.round(analysis.stage2.confidence * 100)}%)`
+          : t("results.na"),
+        gateDecisionLabel: t("results.gateDecision"),
+        gateDecisionValue: analysis.gate
+          ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
+          : t("results.na"),
+        stage3RiskLabel: t("results.stage3Risk"),
+        stage3RiskValue: analysis.stage3?.enabled
+          ? `${riskLabel(analysis.stage3.risk_level)} / ${riskLabel(analysis.stage3.severity)}`
+          : t("results.na"),
+        totalLatencyLabel: t("results.totalLatency"),
+        totalLatencyValue: analysis.timing_ms ? `${analysis.timing_ms.total} ms` : t("results.na"),
+        reportSummaryLabel: t("results.reportSummary"),
+        reportSummaryValue: reportSummary ?? t("results.questionnaireRequired"),
+        findingsTitle: t("results.anatomyHeader"),
+        findings: findingsForSections.map((f) => ({
+          label: conditionName(locale, f.label),
+          scorePct: Math.round(f.score * 100),
+        })),
+        noFindingsText: t("results.noSignificant"),
+        doctorQuestionsTitle: t("results.questionsTitle"),
+        doctorQuestions,
+        xrayTitle: t("results.pdfXray"),
+        attentionMapTitle: t("results.pdfAttentionMap"),
+        xrayUrl: previewUrl,
+        heatmapBase64: heatmap,
+      });
+    } catch {
+      setExportError(t("results.exportPdfError"));
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   return (
     <div className="relative pb-28">
@@ -89,17 +147,33 @@ export default function ResultsPage() {
             {t("results.subtitle")}
           </p>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link
-            href="/upload"
-            onClick={() => {
-              resetUploadFlow();
-            }}
-          >
-            {t("results.newUpload")}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportPdf} disabled={isExportingPdf}>
+            {isExportingPdf ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                {t("results.exportingPdf")}
+              </>
+            ) : (
+              <>
+                <FileDown className="mr-2 h-4 w-4" aria-hidden />
+                {t("results.exportPdf")}
+              </>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link
+              href="/upload"
+              onClick={() => {
+                resetUploadFlow();
+              }}
+            >
+              {t("results.newUpload")}
+            </Link>
+          </Button>
+        </div>
       </div>
+      {exportError && <p className="mt-3 text-sm text-destructive">{exportError}</p>}
 
       {doctorReviewed === false && (
         <Alert className="mt-6 border-amber-300 bg-amber-100/90 text-foreground shadow-sm">

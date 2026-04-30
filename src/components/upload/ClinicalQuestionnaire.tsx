@@ -5,11 +5,16 @@ import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+const MIN_BUTTON_LOADING_MS = 600;
 
 export function ClinicalQuestionnaire() {
   const router = useRouter();
   const { t } = useI18n();
+  const [submitUiLoading, setSubmitUiLoading] = useState(false);
   const imageFile = useAppStore((s) => s.imageFile);
   const analysisError = useAppStore((s) => s.analysisError);
   const questionnaire = useAppStore((s) => s.questionnaire);
@@ -19,13 +24,21 @@ export function ClinicalQuestionnaire() {
   const setPreQuestionnaireAnalysis = useAppStore((s) => s.setPreQuestionnaireAnalysis);
   const setAnalysisLoading = useAppStore((s) => s.setAnalysisLoading);
   const setAnalysisError = useAppStore((s) => s.setAnalysisError);
+  const analysisLoading = useAppStore((s) => s.analysisLoading);
 
   const submit = async () => {
-    if (!imageFile) return;
+    if (!imageFile || analysisLoading || submitUiLoading) return;
+    const startedAt = Date.now();
+    setSubmitUiLoading(true);
     setAnalysisError(null);
     setAnalysisLoading(true);
     const res = await analyzeImageFile(imageFile, { questionnaire });
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_BUTTON_LOADING_MS) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_BUTTON_LOADING_MS - elapsed));
+    }
     setAnalysisLoading(false);
+    setSubmitUiLoading(false);
     if (!res.success) {
       setAnalysisError(res.error);
       return;
@@ -121,8 +134,16 @@ export function ClinicalQuestionnaire() {
         </label>
 
         <div className="sm:col-span-2">
-          <Button type="button" onClick={submit}>
-            {t("upload.q.submit")}
+          <Button
+            type="button"
+            onClick={submit}
+            disabled={analysisLoading || submitUiLoading}
+            aria-busy={analysisLoading || submitUiLoading}
+          >
+            {(analysisLoading || submitUiLoading) && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            )}
+            {analysisLoading || submitUiLoading ? t("upload.q.generating") : t("upload.q.submit")}
           </Button>
         </div>
       </CardContent>
