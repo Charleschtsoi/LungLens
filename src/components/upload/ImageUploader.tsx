@@ -48,6 +48,7 @@ export function ImageUploader() {
   const setAnalysisError = useAppStore((s) => s.setAnalysisError);
   const setAnalysisLoading = useAppStore((s) => s.setAnalysisLoading);
   const setUploadFlowStep = useAppStore((s) => s.setUploadFlowStep);
+  const configuredMode = process.env.NEXT_PUBLIC_USE_MOCK === "true" ? "demo" : "api";
 
   const onDrop = useCallback(
     (accepted: File[]) => {
@@ -117,6 +118,10 @@ export function ImageUploader() {
 
   return (
     <div className="space-y-6">
+      <Alert>
+        <AlertTitle>{t("upload.modeConfiguredTitle")}</AlertTitle>
+        <AlertDescription>{t(`upload.modeConfigured.${configuredMode}`, configuredMode)}</AlertDescription>
+      </Alert>
       <Alert>
         <AlertTitle>{t("upload.dicom.title")}</AlertTitle>
         <AlertDescription>

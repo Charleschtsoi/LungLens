@@ -3,6 +3,7 @@ import { FINDING_LABELS } from "@/lib/constants";
 import type {
   AnalyzeResponse,
   AnalyzeSuccessResponse,
+  AnalyzeErrorCode,
   Predictions,
   Stage3QuestionnaireInput,
 } from "@/types";
@@ -21,6 +22,15 @@ export interface AnalyzeOptions {
 }
 
 function normalizeError(status: number, fallback?: string): string {
+  if (fallback) {
+    const lower = fallback.toLowerCase();
+    if (lower.includes("h5 model unavailable") || lower.includes("model unavailable")) {
+      return "Stage 2 model is temporarily unavailable. We are showing fallback educational output.";
+    }
+    if (lower.includes("timed out")) {
+      return "AI service timed out. Please retry in a moment.";
+    }
+  }
   if (fallback && fallback.trim()) return fallback;
   if (status === 401) return "Authentication with AI service failed. Please contact support.";
   if (status === 413) return "The uploaded file is too large. Please keep it under 10MB.";
@@ -28,6 +38,16 @@ function normalizeError(status: number, fallback?: string): string {
   if (status === 400) return "The AI service rejected this request. Please check file format and try again.";
   if (status >= 500) return "AI service is temporarily unavailable. Please try again shortly.";
   return `Request failed (${status}).`;
+}
+
+function normalizeErrorCode(status: number): AnalyzeErrorCode {
+  if (status === 401) return "invalid_api_key";
+  if (status === 413) return "payload_too_large";
+  if (status === 415) return "unsupported_file_type";
+  if (status === 400) return "invalid_request";
+  if (status === 504) return "timeout";
+  if (status >= 500) return "backend_unavailable";
+  return "internal_error";
 }
 
 function isPredictionMap(value: unknown): value is Predictions {
@@ -90,9 +110,21 @@ export async function analyzeImageFile(
 
     if (!res.ok) {
       if (!data || !("success" in data) || data.success !== false) {
-        return { success: false, error: normalizeError(res.status) };
+        return {
+          success: false,
+          error: normalizeError(res.status),
+          error_code: normalizeErrorCode(res.status),
+          stage: "pipeline",
+          retryable: res.status >= 500,
+        };
       }
-      return { success: false, error: normalizeError(res.status, data.error) };
+      return {
+        success: false,
+        error: normalizeError(res.status, data.error),
+        error_code: data.error_code ?? normalizeErrorCode(res.status),
+        stage: data.stage ?? "pipeline",
+        retryable: data.retryable ?? res.status >= 500,
+      };
     }
 
     if (!data || typeof data !== "object") {
@@ -106,16 +138,42 @@ export async function analyzeImageFile(
     const elapsed = Math.round((performance.now?.() ?? Date.now()) - reqStart);
     if (!ok.timing_ms) {
       ok.timing_ms = {
-        stage1: 0,
-        stage2: 0,
-        stage3: 0,
-        stage4: 0,
+        model1: 0,
+        model2: 0,
+        model3: 0,
+        model4: 0,
         total: elapsed,
       };
+    }
+    if (!ok.provenance) {
+      ok.provenance = {
+        run_mode: "hybrid",
+        model1: { source: "model", status: ok.model1 ? "fallback" : "skipped" },
+        model2: { source: "model", status: ok.model2 ? "fallback" : "skipped" },
+        model3: { source: "rule", status: ok.model3 != null ? "fallback" : "skipped" },
+        model4: { source: "llm", status: ok.model4 != null ? "fallback" : "skipped" },
+      };
+      if (!ok.warnings) ok.warnings = [];
+      if (!ok.warnings.some((w) => w.code === "missing_provenance")) {
+        ok.warnings.push({
+          code: "missing_provenance",
+          message:
+            "Backend did not provide provenance metadata; run mode is shown as hybrid until backend is updated.",
+          stage: "pipeline",
+        });
+      }
+    } else if (!ok.warnings) {
+      ok.warnings = [];
     }
     return data;
   } catch (e) {
     const message = e instanceof Error ? e.message : "Network error calling ML server.";
-    return { success: false, error: message };
+    return {
+      success: false,
+      error: message,
+      error_code: "network_error",
+      stage: "pipeline",
+      retryable: true,
+    };
   }
 }

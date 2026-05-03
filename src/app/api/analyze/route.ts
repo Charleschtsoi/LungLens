@@ -35,10 +35,98 @@ function normalizeGate(payload: JsonRecord): JsonRecord | undefined {
 
 function labelToFindingLabel(label: unknown): FindingLabel | null {
   if (typeof label !== "string") return null;
-  if (label === "Pneumonia" || label === "Viral Pneumonia") return "Pneumonia";
+  if (
+    label === "Pneumonia" ||
+    label === "Viral Pneumonia" ||
+    label === "Pneumonia-Bacteria" ||
+    label === "Pneumonia-Virus"
+  ) {
+    return "Pneumonia";
+  }
   if (label === "Lung Opacity") return "Infiltration";
   if (label === "Normal") return null;
   return null;
+}
+
+function firstRecord(...candidates: unknown[]): JsonRecord | null {
+  for (const c of candidates) {
+    if (isRecord(c)) return c;
+  }
+  return null;
+}
+
+function pickModelRecord(payload: JsonRecord, newKey: string, oldKey: string): JsonRecord | undefined {
+  const raw = newKey in payload ? payload[newKey] : oldKey in payload ? payload[oldKey] : undefined;
+  if (raw === undefined || raw === null) return undefined;
+  return isRecord(raw) ? raw : undefined;
+}
+
+function pickModelRecordOrNull(
+  payload: JsonRecord,
+  newKey: string,
+  oldKey: string,
+): JsonRecord | null | undefined {
+  const raw = newKey in payload ? payload[newKey] : oldKey in payload ? payload[oldKey] : undefined;
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  return isRecord(raw) ? raw : undefined;
+}
+
+function numberTiming(val: unknown): number {
+  return typeof val === "number" && Number.isFinite(val) ? Math.max(0, val) : 0;
+}
+
+function normalizeTimingMs(raw: unknown): JsonRecord | undefined {
+  if (!isRecord(raw)) return undefined;
+  const r = raw;
+  const pick = (a: unknown, b: unknown) => numberTiming(a ?? b);
+  if ("model1" in r || "model2" in r) {
+    return {
+      model1: pick(r.model1, r.stage1),
+      model2: pick(r.model2, r.stage2),
+      model3: pick(r.model3, r.stage3),
+      model4: pick(r.model4, r.stage4),
+      total: numberTiming(r.total),
+    };
+  }
+  if ("stage1" in r || "stage2" in r) {
+    return {
+      model1: numberTiming(r.stage1),
+      model2: numberTiming(r.stage2),
+      model3: numberTiming(r.stage3),
+      model4: numberTiming(r.stage4),
+      total: numberTiming(r.total),
+    };
+  }
+  return { model1: 0, model2: 0, model3: 0, model4: 0, total: numberTiming(r.total) };
+}
+
+function normalizeProvenanceObject(raw: unknown): JsonRecord | undefined {
+  if (!isRecord(raw)) return undefined;
+  const p: JsonRecord = { ...raw };
+  if (p.model1_result == null && p.stage1_result != null) p.model1_result = p.stage1_result;
+  if (p.model2_result == null && p.stage2_result != null) p.model2_result = p.stage2_result;
+  delete p.stage1_result;
+  delete p.stage2_result;
+  if (!isRecord(p.model1) && isRecord(p.stage1)) p.model1 = p.stage1;
+  if (!isRecord(p.model2) && isRecord(p.stage2)) p.model2 = p.stage2;
+  if (!isRecord(p.model3) && isRecord(p.stage3)) p.model3 = p.stage3;
+  if (!isRecord(p.model4) && isRecord(p.stage4)) p.model4 = p.stage4;
+  delete p.stage1;
+  delete p.stage2;
+  delete p.stage3;
+  delete p.stage4;
+  return p;
+}
+
+function normalizeWarningsArray(raw: unknown): unknown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((w) => {
+    if (!isRecord(w)) return w;
+    const o: JsonRecord = { ...w };
+    if (o.stage == null && typeof o.scope === "string") o.stage = o.scope;
+    return o;
+  });
 }
 
 function normalizePredictions(payload: JsonRecord): JsonRecord {
@@ -53,17 +141,17 @@ function normalizePredictions(payload: JsonRecord): JsonRecord {
     return normalized;
   }
 
-  const stage1 = isRecord(payload.stage1) ? payload.stage1 : null;
-  const stage2 = isRecord(payload.stage2) ? payload.stage2 : null;
-  const stage1Label = stage1?.label;
-  const stage2Label = stage2?.label;
-  const stage1Confidence = score(stage1?.confidence);
-  const stage2Confidence = score(stage2?.confidence);
+  const m1 = firstRecord(payload.model1, payload.stage1);
+  const m2 = firstRecord(payload.model2, payload.stage2);
+  const m1Label = m1?.label;
+  const m2Label = m2?.label;
+  const m1Confidence = score(m1?.confidence);
+  const m2Confidence = score(m2?.confidence);
 
-  const s1Finding = labelToFindingLabel(stage1Label);
-  const s2Finding = labelToFindingLabel(stage2Label);
-  if (s1Finding) normalized[s1Finding] = Math.max(score(normalized[s1Finding]), stage1Confidence);
-  if (s2Finding) normalized[s2Finding] = Math.max(score(normalized[s2Finding]), stage2Confidence);
+  const s1Finding = labelToFindingLabel(m1Label);
+  const s2Finding = labelToFindingLabel(m2Label);
+  if (s1Finding) normalized[s1Finding] = Math.max(score(normalized[s1Finding]), m1Confidence);
+  if (s2Finding) normalized[s2Finding] = Math.max(score(normalized[s2Finding]), m2Confidence);
   return normalized;
 }
 
@@ -85,6 +173,8 @@ function normalizeGradcam(payload: JsonRecord, predictions: JsonRecord): JsonRec
   const heatmap =
     (gradcam && typeof gradcam.heatmap_base64 === "string" && gradcam.heatmap_base64) ||
     (gradcam && typeof gradcam.overlay === "string" && gradcam.overlay) ||
+    (gradcam && typeof gradcam.model2_heatmap === "string" && gradcam.model2_heatmap) ||
+    (gradcam && typeof gradcam.model1_heatmap === "string" && gradcam.model1_heatmap) ||
     (gradcam && typeof gradcam.stage2_heatmap === "string" && gradcam.stage2_heatmap) ||
     (gradcam && typeof gradcam.stage1_heatmap === "string" && gradcam.stage1_heatmap);
 
@@ -110,12 +200,27 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   const gradcam = normalizeGradcam(payload, predictions);
   if (!gradcam) return null;
 
+  const m1 = pickModelRecord(payload, "model1", "stage1");
+  const m2 = pickModelRecord(payload, "model2", "stage2");
+  const m3 = pickModelRecordOrNull(payload, "model3", "stage3");
+  const m4 = pickModelRecordOrNull(payload, "model4", "report");
+
   const normalized: JsonRecord = {
     ...payload,
     success: true,
     predictions,
     gradcam,
+    model1: m1,
+    model2: m2,
+    model3: m3,
+    model4: m4,
   };
+
+  delete normalized.stage1;
+  delete normalized.stage2;
+  delete normalized.stage3;
+  delete normalized.stage4;
+  delete normalized.report;
 
   if (typeof normalized.requires_questionnaire !== "boolean") {
     const rcq = normalized.requires_clinical_qa;
@@ -126,6 +231,32 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
 
   const gate = normalizeGate(payload);
   if (gate) normalized.gate = gate;
+  const baseWarnings = normalizeWarningsArray(payload.warnings);
+  normalized.warnings = baseWarnings;
+
+  const timingNorm = normalizeTimingMs(payload.timing_ms);
+  if (timingNorm) normalized.timing_ms = timingNorm;
+
+  if (isRecord(payload.provenance)) {
+    normalized.provenance = normalizeProvenanceObject(payload.provenance);
+  } else {
+    normalized.provenance = {
+      run_mode: "hybrid",
+      model1: { source: "model", status: m1 ? "fallback" : "skipped" },
+      model2: { source: "model", status: m2 ? "fallback" : "skipped" },
+      model3: { source: "rule", status: m3 != null ? "fallback" : "skipped" },
+      model4: { source: "llm", status: m4 != null ? "fallback" : "skipped" },
+    };
+    normalized.warnings = [
+      ...baseWarnings,
+      {
+        code: "missing_provenance",
+        message:
+          "Backend did not provide provenance metadata; run mode is shown as hybrid until backend is updated.",
+        stage: "pipeline",
+      },
+    ];
+  }
   return normalized;
 }
 
@@ -160,14 +291,26 @@ export async function POST(req: Request) {
 
   if (!base) {
     return NextResponse.json(
-      { success: false, error: "BACKEND_API_BASE_URL is not configured." },
+      {
+        success: false,
+        error: "BACKEND_API_BASE_URL is not configured.",
+        error_code: "backend_unavailable",
+        stage: "pipeline",
+        retryable: false,
+      },
       { status: 500 },
     );
   }
 
   if (!apiKey) {
     return NextResponse.json(
-      { success: false, error: "BACKEND_API_KEY is not configured." },
+      {
+        success: false,
+        error: "BACKEND_API_KEY is not configured.",
+        error_code: "invalid_api_key",
+        stage: "pipeline",
+        retryable: false,
+      },
       { status: 500 },
     );
   }
@@ -179,7 +322,13 @@ export async function POST(req: Request) {
 
     if (!(image instanceof File)) {
       return NextResponse.json(
-        { success: false, error: "Missing image file." },
+        {
+          success: false,
+          error: "Missing image file.",
+          error_code: "missing_image",
+          stage: "pipeline",
+          retryable: false,
+        },
         { status: 400 },
       );
     }
@@ -191,7 +340,7 @@ export async function POST(req: Request) {
       forward.append("questionnaire", questionnaireRaw);
     }
 
-    const res = await fetchWithTimeout(endpoint(base, "/pipeline/analyze"), {
+    const res = await fetchWithTimeout(endpoint(base, "/api/v1/analyze"), {
       method: "POST",
       headers: {
         "X-API-Key": apiKey,
@@ -202,8 +351,20 @@ export async function POST(req: Request) {
 
     if (!payload) {
       const fallback = res.ok
-        ? { success: false, error: "Invalid response from backend API." }
-        : { success: false, error: `Backend request failed (${res.status}).` };
+        ? {
+            success: false,
+            error: "Invalid response from backend API.",
+            error_code: "backend_unavailable",
+            stage: "pipeline",
+            retryable: true,
+          }
+        : {
+            success: false,
+            error: `Backend request failed (${res.status}).`,
+            error_code: res.status >= 500 ? "backend_unavailable" : "invalid_request",
+            stage: "pipeline",
+            retryable: res.status >= 500,
+          };
       return NextResponse.json(fallback, { status: res.status || 502 });
     }
 
@@ -226,6 +387,9 @@ export async function POST(req: Request) {
         error: isAbort
           ? "Backend request timed out."
           : "Network error contacting backend API.",
+        error_code: isAbort ? "timeout" : "network_error",
+        stage: "pipeline",
+        retryable: true,
       },
       { status: 502 },
     );

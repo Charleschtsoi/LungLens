@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { buildDoctorQuestions } from "@/lib/doctor-questions";
 import type { FindingLabel } from "@/types";
 import { useI18n } from "@/hooks/useI18n";
+import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 
 interface DoctorQuestionsProps {
   findings: { label: FindingLabel }[];
+  doctorQuestionsProvenance?: unknown;
 }
 
-export function DoctorQuestions({ findings }: DoctorQuestionsProps) {
+export function DoctorQuestions({ findings, doctorQuestionsProvenance }: DoctorQuestionsProps) {
   const { t, locale } = useI18n();
   const questions = buildDoctorQuestions(findings, locale);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -30,7 +32,10 @@ export function DoctorQuestions({ findings }: DoctorQuestionsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">{t("results.questionsTitle")}</CardTitle>
+        <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
+          <span>{t("results.questionsTitle")}</span>
+          <SectionSourceBadge source={doctorQuestionsProvenance} />
+        </CardTitle>
         <CardDescription>
           {t("results.questionsSub")}
         </CardDescription>

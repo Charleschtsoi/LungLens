@@ -6,17 +6,23 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import type { FindingLabel } from "@/types";
 import { useI18n } from "@/hooks/useI18n";
 import { conditionName } from "@/lib/i18n";
+import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 
 interface LearnMoreCardsProps {
   findings: { label: FindingLabel }[];
+  anatomyGuideProvenance?: unknown;
 }
 
-export function LearnMoreCards({ findings }: LearnMoreCardsProps) {
+export function LearnMoreCards({ findings, anatomyGuideProvenance }: LearnMoreCardsProps) {
   const { t, locale } = useI18n();
   return (
     <section className="space-y-4" aria-labelledby="learn-more-heading">
-      <h2 id="learn-more-heading" className="text-lg font-semibold tracking-tight">
-        {t("results.learnMore")}
+      <h2
+        id="learn-more-heading"
+        className="flex flex-wrap items-center gap-2 text-lg font-semibold tracking-tight"
+      >
+        <span>{t("results.learnMore")}</span>
+        <SectionSourceBadge source={anatomyGuideProvenance} />
       </h2>
       <p className="text-sm text-muted-foreground">
         {t("results.learnMoreSub")}

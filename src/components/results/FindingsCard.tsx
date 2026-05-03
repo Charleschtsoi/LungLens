@@ -1,9 +1,12 @@
- "use client";
+"use client";
 
 import { CONDITION_DESCRIPTIONS } from "@/lib/constants";
 import type { Predictions } from "@/types";
 import type { StageMultiClassResult } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
+import type { AnalyzeStageSource } from "@/types";
 import {
   confidenceTier,
   getNotableFindings,
@@ -43,31 +46,63 @@ function ConfidenceBar({ tier }: { tier: ConfidenceTier }) {
 
 export function FindingsCard({
   predictions,
-  stage2,
+  model2,
+  findingsBadgeSource,
+  model2ProvenanceSource,
 }: {
   predictions: Predictions | null;
-  stage2?: StageMultiClassResult;
+  model2?: StageMultiClassResult;
+  /** Resolved badge source (mock / rule / …), including when 14-class scores are not from model2. */
+  findingsBadgeSource?: AnalyzeStageSource | null;
+  /** Nested `provenance.model2.source` for copy about 3-class vs 14-class. */
+  model2ProvenanceSource?: AnalyzeStageSource;
 }) {
   const { t, locale } = useI18n();
   const notable = predictions ? getNotableFindings(predictions) : [];
-  const stage2Hint =
-    stage2 && stage2.label !== "Normal"
-      ? `${t("results.stage2")}: ${t(`stage.${stage2.label}`, stage2.label)} (${Math.round(stage2.confidence * 100)}%).`
+  const findingsAreMock = findingsBadgeSource === "mock";
+  const showStrongNotice =
+    findingsBadgeSource === "mock" || model2ProvenanceSource === "model";
+  const showRuleNotice = findingsBadgeSource === "rule";
+  const model2Hint =
+    model2 && model2.label !== "Normal"
+      ? `${t("results.stage2")}: ${t(`stage.${model2.label}`, model2.label)} (${Math.round(model2.confidence * 100)}%).`
       : null;
 
   return (
     <Card id="what-ai-noticed">
       <CardHeader>
-        <CardTitle className="text-lg">{t("results.anatomyHeader")}</CardTitle>
-        <CardDescription>
-          {t("results.anatomySub")}
-        </CardDescription>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
+              <span>{t("results.anatomyHeader")}</span>
+              <SectionSourceBadge
+                source={findingsBadgeSource}
+                prominentMock={findingsAreMock || model2ProvenanceSource === "model"}
+              />
+            </CardTitle>
+            <CardDescription>{t("results.anatomySub")}</CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {showStrongNotice && (
+          <Alert className="border-red-300 bg-red-50 text-red-950 shadow-sm [&>div]:text-red-950">
+            <AlertDescription className="text-sm font-medium">
+              {t("results.provenance.findingsMockNotice")}
+            </AlertDescription>
+          </Alert>
+        )}
+        {showRuleNotice && !showStrongNotice && (
+          <Alert className="border-amber-200 bg-amber-50 text-amber-950 shadow-sm [&>div]:text-amber-950">
+            <AlertDescription className="text-sm font-medium">
+              {t("results.provenance.findingsRuleNotice")}
+            </AlertDescription>
+          </Alert>
+        )}
         {notable.length === 0 ? (
           <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
             <p>{t("results.noSignificant")}</p>
-            {stage2Hint && <p>{stage2Hint}</p>}
+            {model2Hint && <p>{model2Hint}</p>}
           </div>
         ) : (
           notable.map(({ label, score }) => {

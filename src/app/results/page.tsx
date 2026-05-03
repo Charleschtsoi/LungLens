@@ -19,6 +19,25 @@ import { FileDown, Loader2 } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import type { FindingLabel } from "@/types";
 import { conditionName } from "@/lib/i18n";
+import {
+  buildFlatProvenanceSummary,
+  buildNestedProvenanceSummary,
+  flatProvenanceImpactRows,
+  isFlatSectionProvenance,
+  isNestedStageProvenance,
+  nestedProvenanceImpactRows,
+  provenanceBadgeClassName,
+  resolveFindingsBadgeSource,
+} from "@/lib/provenance-ui";
+import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
+import type { AnalyzeStageSource } from "@/types";
+
+type ImpactRow = {
+  section: string;
+  source: string;
+  status: string;
+  sourceKind?: AnalyzeStageSource | null;
+};
 
 export default function ResultsPage() {
   const { t, locale } = useI18n();
@@ -59,31 +78,85 @@ export default function ResultsPage() {
   const predictions = analysis.predictions;
   const heatmap = analysis.gradcam.heatmap_base64;
   const notable = getNotableFindings(predictions);
-  const stage2Fallback: Array<{ label: FindingLabel; score: number }> =
-    analysis.stage2?.label && analysis.stage2.label !== "Normal"
+  const model2Fallback: Array<{ label: FindingLabel; score: number }> =
+    analysis.model2?.label && analysis.model2.label !== "Normal"
       ? [
           {
             label:
-              analysis.stage2.label === "Viral Pneumonia"
+              analysis.model2.label === "Viral Pneumonia"
                 ? "Pneumonia"
-                : analysis.stage2.label === "Lung Opacity"
+                : analysis.model2.label === "Lung Opacity"
                   ? "Infiltration"
                   : "Mass",
-            score: analysis.stage2.confidence,
+            score: analysis.model2.confidence,
           }
         ]
       : [];
-  const findingsForSections = notable.length > 0 ? notable : stage2Fallback;
+  const findingsForSections = notable.length > 0 ? notable : model2Fallback;
   const stageLabel = (value: string) => t(`stage.${value}`, value);
   const gateLabel = (value: string) => t(`gate.${value}`, value);
   const riskLabel = (value: string) => t(`risk.${value}`, value);
   const reportSummary =
     locale === "en"
-      ? analysis.report?.summary
-      : analysis.report
+      ? analysis.model4?.summary
+      : analysis.model4
         ? `${t("results.reportSummaryGenerated")} ${conditionName(locale, analysis.gradcam.top_prediction)}.`
         : null;
   const doctorQuestions = buildDoctorQuestions(findingsForSections, locale);
+  const runMode = analysis.provenance?.run_mode ?? (process.env.NEXT_PUBLIC_USE_MOCK === "true" ? "mock" : "real");
+  const runModeLabel = t(`results.runMode.${runMode}`, runMode);
+  const warningMessages = (analysis.warnings ?? []).map((w) => w.message);
+  const flatProv = isFlatSectionProvenance(analysis.provenance);
+  const nestedProv = isNestedStageProvenance(analysis.provenance);
+  const flatSummary =
+    flatProv && analysis.provenance ? buildFlatProvenanceSummary(analysis.provenance, t, locale) : "";
+  const nestedSummary =
+    !flatProv && nestedProv && analysis.provenance ? buildNestedProvenanceSummary(analysis.provenance, t) : "";
+  const hybridBanner =
+    analysis.provenance?.run_mode === "hybrid"
+      ? t(
+          "results.provenance.hybridBanner",
+          "Only Stage 2 classification uses real ML model output. Stage 1, findings, and doctor questions use mock or rule-based data.",
+        )
+      : "";
+  const specificSummary = hybridBanner || flatSummary || nestedSummary;
+
+  const impactRows: ImpactRow[] =
+    nestedProv && analysis.provenance
+      ? nestedProvenanceImpactRows(analysis.provenance, t)
+      : flatProv && analysis.provenance
+        ? flatProvenanceImpactRows(analysis.provenance, t)
+        : [
+        {
+          section: t("results.impact.pipelineSection"),
+          source: t("results.impact.sourceModel"),
+          status:
+            analysis.provenance?.model1?.status === "failed" || analysis.provenance?.model2?.status === "failed"
+              ? t("results.impact.statusFailed")
+              : t("results.impact.statusOk"),
+        },
+        {
+          section: t("results.impact.findingsSection"),
+          source: t("results.impact.sourceRulesModel"),
+          status:
+            findingsForSections.length > 0 ? t("results.impact.statusOk") : t("results.impact.statusFallback"),
+        },
+        {
+          section: t("results.impact.questionsSection"),
+          source: t("results.impact.sourceRulesModel"),
+          status: t("results.impact.statusOk"),
+        },
+        {
+          section: t("results.impact.reportSection"),
+          source: t("results.impact.sourceLlm"),
+          status: analysis.model4 ? t("results.impact.statusOk") : t("results.impact.statusSkipped"),
+        },
+        {
+          section: t("results.impact.anatomySection"),
+          source: t("results.impact.sourceStatic"),
+          status: t("results.impact.statusOk"),
+        },
+      ];
 
   const exportPdf = async () => {
     if (isExportingPdf) return;
@@ -99,20 +172,20 @@ export default function ResultsPage() {
         disclaimer: t("results.sticky"),
         pipelineTitle: t("results.pipelineTitle"),
         stage1Label: t("results.stage1"),
-        stage1Value: analysis.stage1
-          ? `${stageLabel(analysis.stage1.label)} (${Math.round(analysis.stage1.confidence * 100)}%)`
+        stage1Value: analysis.model1
+          ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}%)`
           : t("results.na"),
         stage2Label: t("results.stage2"),
-        stage2Value: analysis.stage2
-          ? `${stageLabel(analysis.stage2.label)} (${Math.round(analysis.stage2.confidence * 100)}%)`
+        stage2Value: analysis.model2
+          ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}%)`
           : t("results.na"),
         gateDecisionLabel: t("results.gateDecision"),
         gateDecisionValue: analysis.gate
           ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
           : t("results.na"),
         stage3RiskLabel: t("results.stage3Risk"),
-        stage3RiskValue: analysis.stage3?.enabled
-          ? `${riskLabel(analysis.stage3.risk_level)} / ${riskLabel(analysis.stage3.severity)}`
+        stage3RiskValue: analysis.model3?.enabled
+          ? `${riskLabel(analysis.model3.risk_level)} / ${riskLabel(analysis.model3.severity)}`
           : t("results.na"),
         totalLatencyLabel: t("results.totalLatency"),
         totalLatencyValue: analysis.timing_ms ? `${analysis.timing_ms.total} ms` : t("results.na"),
@@ -126,6 +199,12 @@ export default function ResultsPage() {
         noFindingsText: t("results.noSignificant"),
         doctorQuestionsTitle: t("results.questionsTitle"),
         doctorQuestions,
+        runModeTitle: t("results.runModeTitle"),
+        runModeValue: runModeLabel,
+        warningsTitle: t("results.warningsTitle"),
+        warnings: warningMessages,
+        impactMapTitle: t("results.impact.title"),
+        impactRows,
         xrayTitle: t("results.pdfXray"),
         attentionMapTitle: t("results.pdfAttentionMap"),
         xrayUrl: previewUrl,
@@ -145,6 +224,9 @@ export default function ResultsPage() {
           <h1 className="text-2xl font-bold tracking-tight">{t("results.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("results.subtitle")}
+          </p>
+          <p className="mt-2 inline-flex rounded-full border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            {t("results.runModeTitle")}: {runModeLabel}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -182,9 +264,36 @@ export default function ResultsPage() {
           </AlertDescription>
         </Alert>
       )}
+      {specificSummary ? (
+        <Alert className="mt-4 border-amber-300 bg-amber-100/90 text-foreground shadow-sm">
+          <AlertDescription className="space-y-2 text-sm text-amber-950">
+            <p className="font-medium leading-relaxed">{specificSummary}</p>
+            {warningMessages.length > 0 && (
+              <p>
+                <span className="font-semibold">{t("results.warningsTitle")}:</span> {warningMessages.join(" ")}
+              </p>
+            )}
+          </AlertDescription>
+        </Alert>
+      ) : (
+        warningMessages.length > 0 && (
+          <Alert className="mt-4 border-amber-300 bg-amber-100/90 text-foreground shadow-sm">
+            <AlertDescription className="text-sm text-amber-950">
+              <span className="font-medium">{t("results.warningsTitle")}:</span> {warningMessages.join(" ")}
+            </AlertDescription>
+          </Alert>
+        )
+      )}
 
       <div className="mt-8">
-        <ResultsImageTabs previewUrl={previewUrl} heatmapBase64={heatmap} fileLabel={imageFile?.name ?? null} />
+        <ResultsImageTabs
+          previewUrl={previewUrl}
+          heatmapBase64={heatmap}
+          fileLabel={imageFile?.name ?? null}
+          anatomyGuideProvenance={
+            analysis.provenance?.anatomy_guide ?? (nestedProv ? "static" : undefined)
+          }
+        />
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -193,28 +302,45 @@ export default function ResultsPage() {
             <CardTitle className="text-base">{t("results.pipelineTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">{t("results.stage1")}: </span>
-              {analysis.stage1
-                ? `${stageLabel(analysis.stage1.label)} (${Math.round(analysis.stage1.confidence * 100)}%)`
-                : t("results.na")}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">{t("results.stage2")}: </span>
-              {analysis.stage2
-                ? `${stageLabel(analysis.stage2.label)} (${Math.round(analysis.stage2.confidence * 100)}%)`
-                : t("results.na")}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">{t("results.gateDecision")}: </span>
-              {analysis.gate
-                ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
-                : t("results.na")}
-            </p>
-            {analysis.stage3?.enabled && (
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="min-w-0 flex-1">
+                <span className="font-medium text-foreground">{t("results.stage1")}: </span>
+                {analysis.model1
+                  ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}%)`
+                  : t("results.na")}
+              </p>
+              <SectionSourceBadge
+                source={analysis.provenance?.model1_result ?? analysis.provenance?.model1?.source}
+              />
+            </div>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="min-w-0 flex-1">
+                <span className="font-medium text-foreground">{t("results.stage2")}: </span>
+                {analysis.model2
+                  ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}%)`
+                  : t("results.na")}
+              </p>
+              <SectionSourceBadge
+                source={analysis.provenance?.model2_result ?? analysis.provenance?.model2?.source}
+              />
+            </div>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="min-w-0 flex-1">
+                <span className="font-medium text-foreground">{t("results.gateDecision")}: </span>
+                {analysis.gate
+                  ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
+                  : t("results.na")}
+              </p>
+              <SectionSourceBadge
+                source={
+                  analysis.provenance?.gate_decision ?? (nestedProv ? "rule" : undefined)
+                }
+              />
+            </div>
+            {analysis.model3?.enabled && (
               <p>
                 <span className="font-medium text-foreground">{t("results.stage3Risk")}: </span>
-                {riskLabel(analysis.stage3.risk_level)} / {riskLabel(analysis.stage3.severity)}
+                {riskLabel(analysis.model3.risk_level)} / {riskLabel(analysis.model3.severity)}
               </p>
             )}
           </CardContent>
@@ -229,18 +355,63 @@ export default function ResultsPage() {
               <span className="font-medium text-foreground">{t("results.totalLatency")}: </span>
               {analysis.timing_ms ? `${analysis.timing_ms.total} ms` : t("results.na")}
             </p>
-            <p>
-              <span className="font-medium text-foreground">{t("results.reportSummary")}: </span>
-              {reportSummary ?? t("results.questionnaireRequired")}
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="min-w-0 flex-1">
+                <span className="font-medium text-foreground">{t("results.reportSummary")}: </span>
+                {reportSummary ?? t("results.questionnaireRequired")}
+              </p>
+              <SectionSourceBadge
+                source={
+                  analysis.provenance?.report_summary ?? analysis.provenance?.model4?.source
+                }
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
 
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t("results.impact.title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {impactRows.map((row) => (
+            <div key={row.section} className="grid grid-cols-1 gap-1 border-b pb-2 last:border-b-0 md:grid-cols-3">
+              <p className="font-medium text-foreground">{row.section}</p>
+              <p>
+                {row.sourceKind != null ? (
+                  <span className={provenanceBadgeClassName(row.sourceKind)}>{row.source}</span>
+                ) : (
+                  <span className="text-muted-foreground">{row.source}</span>
+                )}
+              </p>
+              <p className="text-muted-foreground">{row.status}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       <div className="mt-10 space-y-10">
-        <FindingsCard predictions={predictions} stage2={analysis.stage2} />
-        <DoctorQuestions findings={findingsForSections} />
-        <LearnMoreCards findings={findingsForSections} />
+        <FindingsCard
+          predictions={predictions}
+          model2={analysis.model2}
+          findingsBadgeSource={resolveFindingsBadgeSource(analysis.provenance)}
+          model2ProvenanceSource={analysis.provenance?.model2?.source}
+        />
+        <DoctorQuestions
+          findings={findingsForSections}
+          doctorQuestionsProvenance={
+            analysis.provenance?.doctor_questions ??
+            analysis.provenance?.model3?.source ??
+            (nestedProv ? "rule" : undefined)
+          }
+        />
+        <LearnMoreCards
+          findings={findingsForSections}
+          anatomyGuideProvenance={
+            analysis.provenance?.anatomy_guide ?? (nestedProv ? "static" : undefined)
+          }
+        />
       </div>
 
       <ResultsStickyDisclaimer />

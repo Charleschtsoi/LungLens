@@ -5,6 +5,12 @@ export interface PdfSectionFinding {
   scorePct: number;
 }
 
+export interface PdfImpactRow {
+  section: string;
+  source: string;
+  status: string;
+}
+
 export interface BuildEducationReportPdfInput {
   filename: string;
   title: string;
@@ -30,6 +36,12 @@ export interface BuildEducationReportPdfInput {
   noFindingsText: string;
   doctorQuestionsTitle: string;
   doctorQuestions: string[];
+  runModeTitle: string;
+  runModeValue: string;
+  warningsTitle: string;
+  warnings: string[];
+  impactMapTitle: string;
+  impactRows: PdfImpactRow[];
   xrayTitle: string;
   attentionMapTitle: string;
   xrayUrl: string | null;
@@ -139,6 +151,22 @@ export async function buildEducationReportPdf(input: BuildEducationReportPdfInpu
   input.doctorQuestions.forEach((q, i) => {
     writeWrapped(`${i + 1}. ${q}`);
   });
+
+  sectionTitle(input.runModeTitle);
+  writeWrapped(input.runModeValue);
+  if (input.warnings.length > 0) {
+    sectionTitle(input.warningsTitle);
+    input.warnings.forEach((w) => writeWrapped(`- ${w}`));
+  }
+
+  sectionTitle(input.impactMapTitle);
+  if (input.impactRows.length === 0) {
+    writeWrapped("-");
+  } else {
+    input.impactRows.forEach((row) => {
+      writeWrapped(`- ${row.section}: ${row.source} (${row.status})`);
+    });
+  }
 
   const xrayDataUrl = input.xrayUrl ? await imageUrlToDataUrl(input.xrayUrl) : null;
   const heatmapDataUrl = input.heatmapBase64 ? `data:image/png;base64,${input.heatmapBase64}` : null;

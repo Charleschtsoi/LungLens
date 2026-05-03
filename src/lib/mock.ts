@@ -343,7 +343,7 @@ export async function mockAnalyze(
   const needsQuestionnaire =
     gate.route === "continue" && PIPELINE.questionnaireRequiredOnContinue && !opts?.questionnaire;
   const stage3 = opts?.questionnaire ? stage3FromQuestionnaire(opts.questionnaire) : null;
-  const report = needsQuestionnaire ? null : buildReport(gate, top, stage3);
+  const model4 = needsQuestionnaire ? null : buildReport(gate, top, stage3);
   const total = Math.round((performance.now?.() ?? Date.now()) - t0);
 
   return {
@@ -354,18 +354,49 @@ export async function mockAnalyze(
       top_prediction: label,
       confidence,
     },
-    stage1,
-    stage2,
+    model1: stage1,
+    model2: stage2,
     gate,
-    stage3,
-    report,
+    model3: stage3,
+    model4,
     requires_questionnaire: needsQuestionnaire,
     timing_ms: {
-      stage1: Math.max(40, Math.round(total * 0.12)),
-      stage2: Math.max(40, Math.round(total * 0.14)),
-      stage3: stage3 ? Math.max(20, Math.round(total * 0.1)) : 0,
-      stage4: report ? Math.max(60, Math.round(total * 0.2)) : 0,
+      model1: Math.max(40, Math.round(total * 0.12)),
+      model2: Math.max(40, Math.round(total * 0.14)),
+      model3: stage3 ? Math.max(20, Math.round(total * 0.1)) : 0,
+      model4: model4 ? Math.max(60, Math.round(total * 0.2)) : 0,
       total,
     },
+    provenance: {
+      run_mode: "mock",
+      model1_result: "mock",
+      model2_result: "mock",
+      gate_decision: "mock",
+      findings: "mock",
+      doctor_questions: "mock",
+      report_summary: "mock",
+      anatomy_guide: "static",
+      model1: { source: "mock", status: "ok", model_id: "mock-model1", model_version: "demo-v1" },
+      model2: { source: "mock", status: "ok", model_id: "mock-model2", model_version: "demo-v1" },
+      model3: stage3
+        ? { source: "mock", status: "ok", model_id: "mock-model3", model_version: "demo-v1" }
+        : { source: "mock", status: "skipped", model_id: "mock-model3", model_version: "demo-v1" },
+      model4: model4
+        ? { source: "mock", status: "ok", model_id: "mock-model4", model_version: "demo-v1" }
+        : { source: "mock", status: "skipped", model_id: "mock-model4", model_version: "demo-v1" },
+      explanations: [
+        { section: "pipeline-summary", stage_keys: ["model1", "model2", "model3"], source_type: "mock" },
+        { section: "report-summary", stage_keys: ["model4"], source_type: "mock" },
+        { section: "anatomy-guide", stage_keys: ["pipeline"], source_type: "static" },
+      ],
+    },
+    warnings: [
+      {
+        code: "mock_data",
+        message:
+          "This report is generated from mock data for demo/testing and does not represent live model inference.",
+        stage: "pipeline",
+      },
+    ],
   };
 }

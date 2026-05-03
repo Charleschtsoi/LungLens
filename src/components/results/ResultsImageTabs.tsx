@@ -5,14 +5,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ANATOMY_REGIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
+import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 
 interface ResultsImageTabsProps {
   previewUrl: string | null;
   heatmapBase64: string | null;
   fileLabel: string | null;
+  anatomyGuideProvenance?: unknown;
 }
 
-export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: ResultsImageTabsProps) {
+export function ResultsImageTabs({
+  previewUrl,
+  heatmapBase64,
+  fileLabel,
+  anatomyGuideProvenance,
+}: ResultsImageTabsProps) {
   const { t } = useI18n();
   const heatmapSrc = heatmapBase64 ? `data:image/png;base64,${heatmapBase64}` : null;
 
@@ -26,7 +33,10 @@ export function ResultsImageTabs({ previewUrl, heatmapBase64, fileLabel }: Resul
           {t("results.tab.attention")}
         </TabsTrigger>
         <TabsTrigger value="anatomy" className="text-xs sm:text-sm">
-          {t("results.tab.anatomy")}
+          <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
+            {t("results.tab.anatomy")}
+            <SectionSourceBadge source={anatomyGuideProvenance} />
+          </span>
         </TabsTrigger>
       </TabsList>
 
