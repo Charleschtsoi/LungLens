@@ -25,7 +25,7 @@ function normalizeError(status: number, fallback?: string): string {
   if (fallback) {
     const lower = fallback.toLowerCase();
     if (lower.includes("h5 model unavailable") || lower.includes("model unavailable")) {
-      return "Stage 2 model is temporarily unavailable. We are showing fallback educational output.";
+      return "Model 2 is temporarily unavailable. We are showing fallback educational output.";
     }
     if (lower.includes("timed out")) {
       return "AI service timed out. Please retry in a moment.";
@@ -86,6 +86,7 @@ export async function analyzeImageFile(
     }
   }
 
+  /** Browser always POSTs here; Next.js route forwards to BACKEND_API_BASE_URL/api/v1/analyze (see src/app/api/analyze/route.ts). */
   const url = analyzeUrl();
 
   const form = new FormData();
@@ -109,6 +110,11 @@ export async function analyzeImageFile(
     }
 
     if (!res.ok) {
+      console.error("[LungLens] POST /api/analyze failed", {
+        httpStatus: res.status,
+        response: data,
+        hint: "Check server BACKEND_API_BASE_URL (e.g. http://127.0.0.1:8000) and BACKEND_API_KEY; see terminal logs from the Next route.",
+      });
       if (!data || !("success" in data) || data.success !== false) {
         return {
           success: false,
@@ -128,11 +134,19 @@ export async function analyzeImageFile(
     }
 
     if (!data || typeof data !== "object") {
+      console.error("[LungLens] /api/analyze returned OK but body is not JSON object");
       return { success: false, error: "Invalid response from ML server." };
     }
 
     const ok = data as AnalyzeSuccessResponse;
     if (!ok.success || !isPredictionMap(ok.predictions) || !isValidGradcam(ok.gradcam)) {
+      console.error("[LungLens] /api/analyze success payload failed validation", {
+        success: ok.success,
+        hasPredictions: Boolean(ok.predictions),
+        hasGradcam: Boolean(ok.gradcam),
+        model1: ok.model1,
+        model2: ok.model2,
+      });
       return { success: false, error: "Invalid ML server payload." };
     }
     const elapsed = Math.round((performance.now?.() ?? Date.now()) - reqStart);
@@ -167,6 +181,7 @@ export async function analyzeImageFile(
     }
     return data;
   } catch (e) {
+    console.error("[LungLens] analyzeImageFile fetch error (network or CORS)", e);
     const message = e instanceof Error ? e.message : "Network error calling ML server.";
     return {
       success: false,

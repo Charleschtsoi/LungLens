@@ -45,6 +45,57 @@ export function isFlatSectionProvenance(p: AnalyzeProvenance | undefined): boole
   return FLAT_PROVENANCE_KEYS.some((k) => normalizeToBadgeSource(rec[k]) != null);
 }
 
+/** Prefer nested `provenance.modelN.source` over flat `modelN_result` so badges match real inference. */
+export function pipelineProvenanceSource(
+  provenance: AnalyzeProvenance | undefined,
+  which: "model1" | "model2",
+): unknown {
+  if (!provenance) return undefined;
+  const nested = provenance[which]?.source;
+  if (nested != null && String(nested).trim() !== "") return nested;
+  const flatKey = which === "model1" ? "model1_result" : "model2_result";
+  return (provenance as unknown as Record<string, unknown>)[flatKey];
+}
+
+function classifierSourceIsModel(
+  provenance: AnalyzeProvenance | undefined,
+  which: "model1" | "model2",
+): boolean {
+  return normalizeToBadgeSource(pipelineProvenanceSource(provenance, which)) === "model";
+}
+
+/** True when both classifier models ran as live `source: "model"` (no hybrid disclaimer needed for them). */
+export function bothClassifierModelsLive(provenance: AnalyzeProvenance | undefined): boolean {
+  return classifierSourceIsModel(provenance, "model1") && classifierSourceIsModel(provenance, "model2");
+}
+
+export function hybridRunModeBannerMessage(
+  provenance: AnalyzeProvenance | undefined,
+  t: (key: string, defaultValue?: string) => string,
+): string {
+  const m1 = classifierSourceIsModel(provenance, "model1");
+  const m2 = classifierSourceIsModel(provenance, "model2");
+  if (m1 && m2) {
+    return "";
+  }
+  if (m1 && !m2) {
+    return t(
+      "results.provenance.hybridBanner.model1Only",
+      "Model 1 used a live classifier. Model 2 did not run as a loaded neural model on this run (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+    );
+  }
+  if (!m1 && m2) {
+    return t(
+      "results.provenance.hybridBanner.model2Only",
+      "Model 2 used a live classifier. Model 1 did not run as a loaded neural model on this run (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+    );
+  }
+  return t(
+    "results.provenance.hybridBanner.fallback",
+    "This run mixed live and non-live sources. Check the pipeline badges for which steps used a model versus mock or rules.",
+  );
+}
+
 export function isNestedStageProvenance(p: AnalyzeProvenance | undefined): boolean {
   if (!p) return false;
   return Boolean(
@@ -59,14 +110,17 @@ export function provenanceBadgeClassName(
   const prominent = opts?.prominent ?? false;
   const base =
     "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-semibold tracking-tight";
-  const ring = prominent && source === "mock" ? " ring-2 ring-red-400 ring-offset-2 ring-offset-background" : "";
+  const ring =
+    prominent && source === "mock"
+      ? " ring-2 ring-amber-400 ring-offset-2 ring-offset-background"
+      : "";
   switch (source) {
     case "model":
       return `${base} border-emerald-200 bg-emerald-100 text-emerald-950${ring}`;
     case "rule":
-      return `${base} border-amber-200 bg-amber-100 text-amber-950${ring}`;
+      return `${base} border-slate-300 bg-slate-100 text-slate-800${ring}`;
     case "mock":
-      return `${base} border-red-300 bg-red-100 text-red-950${ring}`;
+      return `${base} border-amber-200 bg-amber-100 text-amber-950${ring}`;
     case "llm":
       return `${base} border-sky-200 bg-sky-100 text-sky-950${ring}`;
     case "static":
@@ -134,21 +188,21 @@ function stageSentence(
 ): string {
   const repl = (s: string) => s.replace(/\{n\}/g, String(n));
   if (sp.status === "skipped" || sp.status === "failed") {
-    return repl(t("results.provenance.nested.stageSkipped", `Stage ${n} was skipped.`));
+    return repl(t("results.provenance.nested.stageSkipped", `Model ${n} was skipped.`));
   }
   switch (sp.source) {
     case "model":
-      return repl(t("results.provenance.nested.stageUsesModel", `Stage ${n} uses a real ML model.`));
+      return repl(t("results.provenance.nested.stageUsesModel", `Model ${n} uses a real ML model.`));
     case "mock":
-      return repl(t("results.provenance.nested.stageUsesMock", `Stage ${n} uses mock data.`));
+      return repl(t("results.provenance.nested.stageUsesMock", `Model ${n} uses mock data.`));
     case "rule":
-      return repl(t("results.provenance.nested.stageUsesRule", `Stage ${n} is rule-based.`));
+      return repl(t("results.provenance.nested.stageUsesRule", `Model ${n} is rule-based.`));
     case "llm":
-      return repl(t("results.provenance.nested.stageUsesLlm", `Stage ${n} is LLM-based.`));
+      return repl(t("results.provenance.nested.stageUsesLlm", `Model ${n} is LLM-based.`));
     case "static":
-      return repl(t("results.provenance.nested.stageUsesStatic", `Stage ${n} is static content.`));
+      return repl(t("results.provenance.nested.stageUsesStatic", `Model ${n} is static content.`));
     default:
-      return repl(t("results.provenance.nested.stageUnknown", `Stage ${n}: unknown source.`));
+      return repl(t("results.provenance.nested.stageUnknown", `Model ${n}: unknown source.`));
   }
 }
 
@@ -158,9 +212,9 @@ function skippedRangeSentence(
   t: (key: string, fallback?: string) => string,
 ): string {
   if (from === to) {
-    return t("results.provenance.nested.stageSkipped", `Stage ${from} was skipped.`).replace(/\{n\}/g, String(from));
+    return t("results.provenance.nested.stageSkipped", `Model ${from} was skipped.`).replace(/\{n\}/g, String(from));
   }
-  return t("results.provenance.nested.stagesSkippedRange", `Stages ${from}-${to} were skipped.`)
+  return t("results.provenance.nested.stagesSkippedRange", `Models ${from}-${to} were skipped.`)
     .replace(/\{from\}/g, String(from))
     .replace(/\{to\}/g, String(to));
 }
@@ -234,10 +288,10 @@ export function nestedProvenanceImpactRows(
 ): { section: string; source: string; sourceKind: AnalyzeStageSource | null; status: string }[] {
   const rows: { section: string; source: string; sourceKind: AnalyzeStageSource | null; status: string }[] = [];
   const stageDefs: { key: "model1" | "model2" | "model3" | "model4"; titleKey: string }[] = [
-    { key: "model1", titleKey: "results.provenance.impact.stage1" },
-    { key: "model2", titleKey: "results.provenance.impact.stage2" },
-    { key: "model3", titleKey: "results.provenance.impact.stage3" },
-    { key: "model4", titleKey: "results.provenance.impact.stage4" },
+    { key: "model1", titleKey: "results.provenance.impact.model1" },
+    { key: "model2", titleKey: "results.provenance.impact.model2" },
+    { key: "model3", titleKey: "results.provenance.impact.model3" },
+    { key: "model4", titleKey: "results.provenance.impact.model4" },
   ];
   for (const { key, titleKey } of stageDefs) {
     const sp = provenance[key];

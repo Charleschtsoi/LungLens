@@ -61,6 +61,50 @@ function pickModelRecord(payload: JsonRecord, newKey: string, oldKey: string): J
   return isRecord(raw) ? raw : undefined;
 }
 
+/** Some backends wrap the analyze body in `data` or `result`. Lift models to the root we normalize. */
+function unwrapAnalyzeRoot(raw: JsonRecord): JsonRecord {
+  if (
+    isRecord(raw.model1) ||
+    isRecord(raw.stage1) ||
+    isRecord(raw.model2) ||
+    isRecord(raw.stage2)
+  ) {
+    return raw;
+  }
+  const inner = raw.data ?? raw.result;
+  if (!isRecord(inner)) return raw;
+  if (
+    isRecord(inner.model1) ||
+    isRecord(inner.stage1) ||
+    isRecord(inner.model2) ||
+    isRecord(inner.stage2)
+  ) {
+    return { ...raw, ...inner };
+  }
+  return raw;
+}
+
+function coerceStageRecord(rec: JsonRecord): JsonRecord {
+  const out: JsonRecord = { ...rec };
+  if (typeof out.label === "string") out.label = out.label.trim();
+  const c = out.confidence;
+  if (typeof c === "string") {
+    const n = Number(c);
+    if (Number.isFinite(n)) {
+      out.confidence = n > 1 ? Math.max(0, Math.min(1, n / 100)) : Math.max(0, Math.min(1, n));
+    }
+  } else if (typeof c === "number" && Number.isFinite(c) && c > 1) {
+    out.confidence = Math.max(0, Math.min(1, c / 100));
+  }
+  return out;
+}
+
+function resolveModelRecord(payload: JsonRecord, newKey: string, oldKey: string): JsonRecord | undefined {
+  const raw = pickModelRecord(payload, newKey, oldKey);
+  if (!raw) return undefined;
+  return coerceStageRecord(raw);
+}
+
 function pickModelRecordOrNull(
   payload: JsonRecord,
   newKey: string,
@@ -116,6 +160,15 @@ function normalizeProvenanceObject(raw: unknown): JsonRecord | undefined {
   delete p.stage2;
   delete p.stage3;
   delete p.stage4;
+  // Nested modelN.source is authoritative; keep flat modelN_result in sync for badges/summaries.
+  const m1n = p.model1;
+  if (isRecord(m1n) && typeof m1n.source === "string" && m1n.source.trim() !== "") {
+    p.model1_result = m1n.source;
+  }
+  const m2n = p.model2;
+  if (isRecord(m2n) && typeof m2n.source === "string" && m2n.source.trim() !== "") {
+    p.model2_result = m2n.source;
+  }
   return p;
 }
 
@@ -196,17 +249,20 @@ function normalizeGradcam(payload: JsonRecord, predictions: JsonRecord): JsonRec
 }
 
 function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
-  const predictions = normalizePredictions(payload);
-  const gradcam = normalizeGradcam(payload, predictions);
+  const root = unwrapAnalyzeRoot(payload);
+  const predictions = normalizePredictions(root);
+  const gradcam = normalizeGradcam(root, predictions);
   if (!gradcam) return null;
 
-  const m1 = pickModelRecord(payload, "model1", "stage1");
-  const m2 = pickModelRecord(payload, "model2", "stage2");
-  const m3 = pickModelRecordOrNull(payload, "model3", "stage3");
-  const m4 = pickModelRecordOrNull(payload, "model4", "report");
+  const m1 = resolveModelRecord(root, "model1", "stage1");
+  const m2 = resolveModelRecord(root, "model2", "stage2");
+  const m3Raw = pickModelRecordOrNull(root, "model3", "stage3");
+  const m4Raw = pickModelRecordOrNull(root, "model4", "report");
+  const m3 = m3Raw == null ? m3Raw : coerceStageRecord(m3Raw);
+  const m4 = m4Raw == null ? m4Raw : coerceStageRecord(m4Raw);
 
   const normalized: JsonRecord = {
-    ...payload,
+    ...root,
     success: true,
     predictions,
     gradcam,
@@ -229,16 +285,16 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     }
   }
 
-  const gate = normalizeGate(payload);
+  const gate = normalizeGate(root);
   if (gate) normalized.gate = gate;
-  const baseWarnings = normalizeWarningsArray(payload.warnings);
+  const baseWarnings = normalizeWarningsArray(root.warnings);
   normalized.warnings = baseWarnings;
 
-  const timingNorm = normalizeTimingMs(payload.timing_ms);
+  const timingNorm = normalizeTimingMs(root.timing_ms);
   if (timingNorm) normalized.timing_ms = timingNorm;
 
-  if (isRecord(payload.provenance)) {
-    normalized.provenance = normalizeProvenanceObject(payload.provenance);
+  if (isRecord(root.provenance)) {
+    normalized.provenance = normalizeProvenanceObject(root.provenance);
   } else {
     normalized.provenance = {
       run_mode: "hybrid",
@@ -350,6 +406,11 @@ export async function POST(req: Request) {
     const payload = await parseJsonBody(res);
 
     if (!payload) {
+      console.error("[LungLens /api/analyze proxy] Backend returned empty or invalid JSON", {
+        status: res.status,
+        backendBase: base,
+        path: "/api/v1/analyze",
+      });
       const fallback = res.ok
         ? {
             success: false,
@@ -371,6 +432,10 @@ export async function POST(req: Request) {
     if (res.ok) {
       const normalized = normalizeSuccessPayload(payload);
       if (!normalized) {
+        console.error(
+          "[LungLens /api/analyze proxy] Response failed normalization (e.g. missing heatmap). Check backend shape vs route.ts.",
+          { backendBase: base },
+        );
         return NextResponse.json(
           { success: false, error: "Invalid response from backend API." },
           { status: 502 },
@@ -378,8 +443,16 @@ export async function POST(req: Request) {
       }
       return NextResponse.json(normalized, { status: res.status });
     }
+    console.error("[LungLens /api/analyze proxy] Backend error response", {
+      status: res.status,
+      backendBase: base,
+      bodyKeys: Object.keys(payload),
+    });
     return NextResponse.json(payload, { status: res.status });
   } catch (e) {
+    console.error("[LungLens /api/analyze proxy] Network or unexpected error", e, {
+      backendBase: base,
+    });
     const isAbort = e instanceof Error && e.name === "AbortError";
     return NextResponse.json(
       {

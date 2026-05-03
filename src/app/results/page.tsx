@@ -20,12 +20,15 @@ import { useI18n } from "@/hooks/useI18n";
 import type { FindingLabel } from "@/types";
 import { conditionName } from "@/lib/i18n";
 import {
+  bothClassifierModelsLive,
   buildFlatProvenanceSummary,
   buildNestedProvenanceSummary,
   flatProvenanceImpactRows,
+  hybridRunModeBannerMessage,
   isFlatSectionProvenance,
   isNestedStageProvenance,
   nestedProvenanceImpactRows,
+  pipelineProvenanceSource,
   provenanceBadgeClassName,
   resolveFindingsBadgeSource,
 } from "@/lib/provenance-ui";
@@ -114,12 +117,12 @@ export default function ResultsPage() {
     !flatProv && nestedProv && analysis.provenance ? buildNestedProvenanceSummary(analysis.provenance, t) : "";
   const hybridBanner =
     analysis.provenance?.run_mode === "hybrid"
-      ? t(
-          "results.provenance.hybridBanner",
-          "Only Stage 2 classification uses real ML model output. Stage 1, findings, and doctor questions use mock or rule-based data.",
-        )
+      ? hybridRunModeBannerMessage(analysis.provenance, t)
       : "";
-  const specificSummary = hybridBanner || flatSummary || nestedSummary;
+  const bothModelsNeural = bothClassifierModelsLive(analysis.provenance);
+  const specificSummary = bothModelsNeural
+    ? ""
+    : hybridBanner || flatSummary || nestedSummary;
 
   const impactRows: ImpactRow[] =
     nestedProv && analysis.provenance
@@ -171,11 +174,11 @@ export default function ResultsPage() {
         generatedAtValue: new Date().toLocaleString(),
         disclaimer: t("results.sticky"),
         pipelineTitle: t("results.pipelineTitle"),
-        stage1Label: t("results.stage1"),
+        stage1Label: t("results.model1"),
         stage1Value: analysis.model1
           ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}%)`
           : t("results.na"),
-        stage2Label: t("results.stage2"),
+        stage2Label: t("results.model2"),
         stage2Value: analysis.model2
           ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}%)`
           : t("results.na"),
@@ -183,7 +186,7 @@ export default function ResultsPage() {
         gateDecisionValue: analysis.gate
           ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
           : t("results.na"),
-        stage3RiskLabel: t("results.stage3Risk"),
+        stage3RiskLabel: t("results.model3Risk"),
         stage3RiskValue: analysis.model3?.enabled
           ? `${riskLabel(analysis.model3.risk_level)} / ${riskLabel(analysis.model3.severity)}`
           : t("results.na"),
@@ -304,25 +307,21 @@ export default function ResultsPage() {
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">
-                <span className="font-medium text-foreground">{t("results.stage1")}: </span>
+                <span className="font-medium text-foreground">{t("results.model1")}: </span>
                 {analysis.model1
                   ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}%)`
                   : t("results.na")}
               </p>
-              <SectionSourceBadge
-                source={analysis.provenance?.model1_result ?? analysis.provenance?.model1?.source}
-              />
+              <SectionSourceBadge source={pipelineProvenanceSource(analysis.provenance, "model1")} />
             </div>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">
-                <span className="font-medium text-foreground">{t("results.stage2")}: </span>
+                <span className="font-medium text-foreground">{t("results.model2")}: </span>
                 {analysis.model2
                   ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}%)`
                   : t("results.na")}
               </p>
-              <SectionSourceBadge
-                source={analysis.provenance?.model2_result ?? analysis.provenance?.model2?.source}
-              />
+              <SectionSourceBadge source={pipelineProvenanceSource(analysis.provenance, "model2")} />
             </div>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">
@@ -339,7 +338,7 @@ export default function ResultsPage() {
             </div>
             {analysis.model3?.enabled && (
               <p>
-                <span className="font-medium text-foreground">{t("results.stage3Risk")}: </span>
+                <span className="font-medium text-foreground">{t("results.model3Risk")}: </span>
                 {riskLabel(analysis.model3.risk_level)} / {riskLabel(analysis.model3.severity)}
               </p>
             )}

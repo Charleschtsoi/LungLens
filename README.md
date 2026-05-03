@@ -53,7 +53,7 @@ Current variables:
   - Backend base URL for silent warm-up ping only (`${NEXT_PUBLIC_API_URL}/health`).
   - This is not used for direct image upload requests.
 - `BACKEND_API_BASE_URL` (server-only)
-  - Base URL of backend service. Server route forwards to `${BACKEND_API_BASE_URL}/pipeline/analyze`.
+  - Base URL of backend service. Server route forwards to `${BACKEND_API_BASE_URL}/api/v1/analyze` (not the Next dev server).
 - `BACKEND_API_KEY` (server-only)
   - API key sent as `X-API-Key` from the server route to backend.
 
