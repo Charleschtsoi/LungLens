@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
@@ -17,7 +17,12 @@ import { buildDoctorQuestions } from "@/lib/doctor-questions";
 import { buildEducationReportPdf } from "@/lib/pdf-report";
 import { FileDown, Loader2 } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
-import type { FindingLabel } from "@/types";
+import {
+  denseNetResponseFromAnalyzeModel3,
+  mergeDenseNetDisplayForUi,
+} from "@/lib/dense-net-from-analysis";
+import { mapModelSignalsToHighAttentionFindings } from "@/lib/high-attention-findings";
+import type { FindingLabel, SuggestedDoctorQuestion } from "@/types";
 import { conditionName } from "@/lib/i18n";
 import {
   bothClassifierModelsLive,
@@ -33,7 +38,17 @@ import {
   resolveFindingsBadgeSource,
 } from "@/lib/provenance-ui";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
+import { DenseNetPipelineBlock } from "@/components/results/DenseNetPipelineBlock";
+import { PIPELINE_MODEL_ROWS } from "@/lib/result-pipeline-models";
 import type { AnalyzeStageSource } from "@/types";
+
+/** Raw base64 for attention overlay (tabs + PDF); strips `data:image/...;base64,` if present. */
+function heatmapBase64ForDisplay(raw: string | null | undefined): string {
+  if (!raw || !raw.trim()) return "";
+  const t = raw.trim();
+  const m = /^data:image\/\w+;base64,(.+)$/i.exec(t);
+  return m && m[1] ? m[1] : t;
+}
 
 type ImpactRow = {
   section: string;
@@ -53,6 +68,16 @@ export default function ResultsPage() {
   const doctorReviewed = useAppStore((s) => s.doctorReviewed);
   const imageFile = useAppStore((s) => s.imageFile);
   const resetUploadFlow = useAppStore((s) => s.resetUploadFlow);
+  const denseNetLoading = useAppStore((s) => s.denseNetLoading);
+  const denseNetResult = useAppStore((s) => s.denseNetResult);
+
+  const denseNetFromAnalyze = analysis ? denseNetResponseFromAnalyzeModel3(analysis) : null;
+  const denseNetDisplay = analysis ? mergeDenseNetDisplayForUi(denseNetFromAnalyze, denseNetResult) : null;
+
+  const [suggestedQuestions, setSuggestedQuestions] = useState<SuggestedDoctorQuestion[] | null>(null);
+  const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
+  const hasFetchedQuestions = useRef(false);
+  const prevAnalysisRef = useRef<typeof analysis>(undefined);
 
   useEffect(() => {
     if (loading) return;
@@ -60,6 +85,106 @@ export default function ResultsPage() {
       router.replace("/upload");
     }
   }, [analysis, loading, router]);
+
+  useEffect(() => {
+    console.log("Q&A Hook Triggered. Analysis exists:", !!analysis);
+
+    if (prevAnalysisRef.current !== analysis) {
+      console.log("Q&A: Analysis identity changed; resetting fetch guard and loading.");
+      hasFetchedQuestions.current = false;
+      prevAnalysisRef.current = analysis;
+      setIsQuestionsLoading(false);
+    }
+
+    if (!analysis) {
+      console.log("Q&A: No analysis; clearing questions and loading.");
+      setSuggestedQuestions(null);
+      setIsQuestionsLoading(false);
+      return;
+    }
+
+    if (hasFetchedQuestions.current) {
+      console.log("Q&A: Skip — already fetched for this analysis session.");
+      return;
+    }
+
+    const findings: string[] = [];
+    if (analysis.model1?.label && analysis.model1.label !== "Normal") {
+      findings.push(analysis.model1.label);
+    }
+    if (analysis.model3?.prediction && analysis.model3.prediction !== "Normal") {
+      findings.push(analysis.model3.prediction);
+    }
+
+    console.log("Q&A Extracted Findings:", findings);
+
+    if (findings.length === 0) {
+      console.log("Q&A: No abnormal findings, skipping fetch.");
+      setSuggestedQuestions([]);
+      setIsQuestionsLoading(false);
+      hasFetchedQuestions.current = true;
+      return;
+    }
+
+    const high_attention_findings = mapModelSignalsToHighAttentionFindings(findings);
+    console.log("Q&A Mapped high_attention_findings:", high_attention_findings);
+
+    if (high_attention_findings.length === 0) {
+      console.log("Q&A: No mappable finding keys after normalization; skipping fetch.");
+      setSuggestedQuestions([]);
+      setIsQuestionsLoading(false);
+      hasFetchedQuestions.current = true;
+      return;
+    }
+
+    const fetchQuestions = async () => {
+      hasFetchedQuestions.current = true;
+      setIsQuestionsLoading(true);
+      console.log("Q&A: Initiating fetch to proxy...", { high_attention_findings });
+      try {
+        const res = await fetch("/api/generate-questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ high_attention_findings }),
+        });
+
+        console.log("Q&A Proxy Response Status:", res.status);
+
+        if (!res.ok) {
+          throw new Error(`Proxy returned status ${res.status}`);
+        }
+
+        const data: unknown = await res.json();
+        console.log("Q&A Data Received:", data);
+
+        const rawList =
+          data && typeof data === "object"
+            ? (data as { suggested_questions?: unknown }).suggested_questions
+            : undefined;
+        if (!Array.isArray(rawList)) {
+          setSuggestedQuestions([]);
+          return;
+        }
+        const list = rawList.filter(
+          (item): item is SuggestedDoctorQuestion =>
+            Boolean(item) &&
+            typeof item === "object" &&
+            typeof (item as SuggestedDoctorQuestion).id === "string" &&
+            typeof (item as SuggestedDoctorQuestion).text === "string" &&
+            typeof (item as SuggestedDoctorQuestion).finding_trigger === "string",
+        );
+        setSuggestedQuestions(list);
+      } catch (error) {
+        console.error("Q&A Fetch Error on Client:", error);
+        setSuggestedQuestions([]);
+      } finally {
+        console.log("Q&A: Fetch complete, disabling loader.");
+        setIsQuestionsLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [analysis]);
 
   if (!analysis && loading) {
     return (
@@ -79,18 +204,19 @@ export default function ResultsPage() {
   }
 
   const predictions = analysis.predictions;
-  const heatmap = analysis.gradcam.heatmap_base64;
+  const model1GradcamRaw =
+    analysis.model1?.gradcam && analysis.model1.gradcam.trim().length > 0
+      ? analysis.model1.gradcam.trim()
+      : null;
+  const attentionHeatmapBase64 = heatmapBase64ForDisplay(
+    model1GradcamRaw ?? analysis.gradcam.heatmap_base64,
+  );
   const notable = getNotableFindings(predictions);
   const model2Fallback: Array<{ label: FindingLabel; score: number }> =
     analysis.model2?.label && analysis.model2.label !== "Normal"
       ? [
           {
-            label:
-              analysis.model2.label === "Viral Pneumonia"
-                ? "Pneumonia"
-                : analysis.model2.label === "Lung Opacity"
-                  ? "Infiltration"
-                  : "Mass",
+            label: analysis.model2.label === "Viral Pneumonia" ? "Pneumonia" : "Lung Opacity",
             score: analysis.model2.confidence,
           }
         ]
@@ -119,6 +245,12 @@ export default function ResultsPage() {
     analysis.provenance?.run_mode === "hybrid"
       ? hybridRunModeBannerMessage(analysis.provenance, t)
       : "";
+  const waitingOnSupplementalDenseNet =
+    denseNetLoading &&
+    (denseNetFromAnalyze == null ||
+      !denseNetFromAnalyze.success ||
+      !denseNetFromAnalyze.gradcam?.trim());
+  const denseNetLoadingEffective = waitingOnSupplementalDenseNet;
   const bothModelsNeural = bothClassifierModelsLive(analysis.provenance);
   const specificSummary = bothModelsNeural
     ? ""
@@ -187,8 +319,8 @@ export default function ResultsPage() {
           ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
           : t("results.na"),
         stage3RiskLabel: t("results.model3Risk"),
-        stage3RiskValue: analysis.model3?.enabled
-          ? `${riskLabel(analysis.model3.risk_level)} / ${riskLabel(analysis.model3.severity)}`
+        stage3RiskValue: analysis.clinical_risk?.enabled
+          ? `${riskLabel(analysis.clinical_risk.risk_level)} / ${riskLabel(analysis.clinical_risk.severity)}`
           : t("results.na"),
         totalLatencyLabel: t("results.totalLatency"),
         totalLatencyValue: analysis.timing_ms ? `${analysis.timing_ms.total} ms` : t("results.na"),
@@ -211,7 +343,7 @@ export default function ResultsPage() {
         xrayTitle: t("results.pdfXray"),
         attentionMapTitle: t("results.pdfAttentionMap"),
         xrayUrl: previewUrl,
-        heatmapBase64: heatmap,
+        heatmapBase64: attentionHeatmapBase64 || null,
       });
     } catch {
       setExportError(t("results.exportPdfError"));
@@ -290,8 +422,9 @@ export default function ResultsPage() {
 
       <div className="mt-8">
         <ResultsImageTabs
+          analysis={analysis}
+          denseNetDisplay={denseNetDisplay}
           previewUrl={previewUrl}
-          heatmapBase64={heatmap}
           fileLabel={imageFile?.name ?? null}
           anatomyGuideProvenance={
             analysis.provenance?.anatomy_guide ?? (nestedProv ? "static" : undefined)
@@ -305,24 +438,40 @@ export default function ResultsPage() {
             <CardTitle className="text-base">{t("results.pipelineTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <p className="min-w-0 flex-1">
-                <span className="font-medium text-foreground">{t("results.model1")}: </span>
-                {analysis.model1
-                  ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}%)`
-                  : t("results.na")}
-              </p>
-              <SectionSourceBadge source={pipelineProvenanceSource(analysis.provenance, "model1")} />
-            </div>
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <p className="min-w-0 flex-1">
-                <span className="font-medium text-foreground">{t("results.model2")}: </span>
-                {analysis.model2
-                  ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}%)`
-                  : t("results.na")}
-              </p>
-              <SectionSourceBadge source={pipelineProvenanceSource(analysis.provenance, "model2")} />
-            </div>
+            {PIPELINE_MODEL_ROWS.map((row) => {
+              if (row.source === "analyze") {
+                if (row.id !== "model1" && row.id !== "model2") return null;
+                const model = row.id === "model1" ? analysis.model1 : analysis.model2;
+                const which = row.id === "model1" ? ("model1" as const) : ("model2" as const);
+                return (
+                  <div key={row.id} className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1">
+                      <span className="font-medium text-foreground">{t(row.titleKey)}: </span>
+                      {model
+                        ? `${stageLabel(model.label)} (${Math.round(model.confidence * 100)}%)`
+                        : t("results.na")}
+                    </p>
+                    <SectionSourceBadge source={pipelineProvenanceSource(analysis.provenance, which)} />
+                  </div>
+                );
+              }
+              if (row.supplementalKey === "densenet") {
+                return (
+                  <div key={row.id} className="space-y-3 border-t border-border/60 pt-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="min-w-0 flex-1 font-medium text-foreground">{t(row.titleKey)}</p>
+                      {denseNetDisplay?.success ? <SectionSourceBadge source="model" /> : null}
+                    </div>
+                    <DenseNetPipelineBlock
+                      loading={denseNetLoadingEffective}
+                      result={denseNetDisplay}
+                      previewUrl={previewUrl}
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })}
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">
                 <span className="font-medium text-foreground">{t("results.gateDecision")}: </span>
@@ -336,10 +485,11 @@ export default function ResultsPage() {
                 }
               />
             </div>
-            {analysis.model3?.enabled && (
+            {analysis.clinical_risk?.enabled && (
               <p>
                 <span className="font-medium text-foreground">{t("results.model3Risk")}: </span>
-                {riskLabel(analysis.model3.risk_level)} / {riskLabel(analysis.model3.severity)}
+                {riskLabel(analysis.clinical_risk.risk_level)} /{" "}
+                {riskLabel(analysis.clinical_risk.severity)}
               </p>
             )}
           </CardContent>
@@ -395,15 +545,16 @@ export default function ResultsPage() {
           predictions={predictions}
           model2={analysis.model2}
           findingsBadgeSource={resolveFindingsBadgeSource(analysis.provenance)}
-          model2ProvenanceSource={analysis.provenance?.model2?.source}
         />
         <DoctorQuestions
           findings={findingsForSections}
           doctorQuestionsProvenance={
             analysis.provenance?.doctor_questions ??
-            analysis.provenance?.model3?.source ??
+            analysis.provenance?.clinical_risk?.source ??
             (nestedProv ? "rule" : undefined)
           }
+          questions={suggestedQuestions}
+          isLoading={isQuestionsLoading}
         />
         <LearnMoreCards
           findings={findingsForSections}

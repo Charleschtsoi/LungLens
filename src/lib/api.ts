@@ -1,9 +1,16 @@
 import { mockAnalyze } from "@/lib/mock";
 import { FINDING_LABELS } from "@/lib/constants";
+import {
+  isDenseNetProbabilities,
+  isDistinctDenseNetInputPreview,
+  normalizeDenseNetConfidence,
+  normalizeDenseNetPrediction,
+} from "@/lib/densenet-normalize";
 import type {
   AnalyzeResponse,
   AnalyzeSuccessResponse,
   AnalyzeErrorCode,
+  DenseNetResponse,
   Predictions,
   Stage3QuestionnaireInput,
 } from "@/types";
@@ -164,7 +171,8 @@ export async function analyzeImageFile(
         run_mode: "hybrid",
         model1: { source: "model", status: ok.model1 ? "fallback" : "skipped" },
         model2: { source: "model", status: ok.model2 ? "fallback" : "skipped" },
-        model3: { source: "rule", status: ok.model3 != null ? "fallback" : "skipped" },
+        model3: { source: "model", status: ok.model3 != null ? "fallback" : "skipped" },
+        clinical_risk: { source: "rule", status: ok.clinical_risk != null ? "fallback" : "skipped" },
         model4: { source: "llm", status: ok.model4 != null ? "fallback" : "skipped" },
       };
       if (!ok.warnings) ok.warnings = [];
@@ -192,3 +200,100 @@ export async function analyzeImageFile(
     };
   }
 }
+
+const DENSENET_UNAVAILABLE = "__DENSENET_UNAVAILABLE__";
+
+/**
+ * POST /api/predict/densenet → backend /predict/densenet (multipart `image`).
+ * Does not use mock mode; requires Next proxy + backend configured.
+ */
+export async function predictDenseNet(imageFile: File): Promise<DenseNetResponse> {
+  const form = new FormData();
+  form.append("image", imageFile);
+
+  const emptyError = (error: string): DenseNetResponse => ({
+    success: false,
+    prediction: "",
+    confidence: 0,
+    probabilities: {},
+    gradcam: "",
+    error,
+  });
+
+  try {
+    const res = await fetch("/api/predict/densenet", {
+      method: "POST",
+      body: form,
+    });
+
+    let data: unknown = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    const rec = data && typeof data === "object" && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+
+    if (!res.ok) {
+      const raw =
+        rec && typeof rec.error === "string"
+          ? rec.error
+          : res.status === 503 || res.status === 502
+            ? DENSENET_UNAVAILABLE
+            : `Request failed (${res.status}).`;
+      const error =
+        res.status === 503 || /not loaded|disabled/i.test(raw) ? DENSENET_UNAVAILABLE : raw;
+      return emptyError(error);
+    }
+
+    if (!rec || rec.success !== true) {
+      const err =
+        rec && typeof rec.error === "string"
+          ? rec.error
+          : "Invalid response from DenseNet endpoint.";
+      return emptyError(err);
+    }
+
+    const rawPrediction = typeof rec.prediction === "string" ? rec.prediction : "";
+    const probs = rec.probabilities as Record<string, number>;
+    const prediction = normalizeDenseNetPrediction(rawPrediction, probs);
+    const confidence = normalizeDenseNetConfidence(
+      typeof rec.confidence === "number" && Number.isFinite(rec.confidence) ? rec.confidence : NaN,
+    );
+    const gradcam = typeof rec.gradcam === "string" ? rec.gradcam : "";
+    const ipB64 = typeof rec.input_preview_base64 === "string" ? rec.input_preview_base64.trim() : "";
+    const ipAlias = typeof rec.input_preview === "string" ? rec.input_preview.trim() : "";
+    let inputPreviewRaw = ipB64 || ipAlias;
+    if (inputPreviewRaw && !isDistinctDenseNetInputPreview(inputPreviewRaw, gradcam)) {
+      inputPreviewRaw = "";
+    }
+
+    if (!isDenseNetProbabilities(rec.probabilities)) {
+      return emptyError("Invalid probabilities in response.");
+    }
+    if (!prediction) {
+      return emptyError("Invalid prediction in response.");
+    }
+    if (!Number.isFinite(confidence)) {
+      return emptyError("Invalid confidence in response.");
+    }
+    if (!gradcam) {
+      return emptyError("Missing Grad-CAM in response.");
+    }
+
+    return {
+      success: true,
+      prediction,
+      confidence,
+      probabilities: probs,
+      gradcam,
+      ...(inputPreviewRaw ? { input_preview_base64: inputPreviewRaw } : {}),
+    };
+  } catch (e) {
+    console.error("[LungLens] predictDenseNet fetch error", e);
+    return emptyError(DENSENET_UNAVAILABLE);
+  }
+}
+
+export { DENSENET_UNAVAILABLE };

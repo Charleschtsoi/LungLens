@@ -7,6 +7,7 @@ import { useDropzone, type FileRejection } from "react-dropzone";
 import { FileImage, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeImageFile } from "@/lib/api";
+import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -48,6 +49,7 @@ export function ImageUploader() {
   const setAnalysisError = useAppStore((s) => s.setAnalysisError);
   const setAnalysisLoading = useAppStore((s) => s.setAnalysisLoading);
   const setUploadFlowStep = useAppStore((s) => s.setUploadFlowStep);
+  const startSupplementalDensenet = useAppStore((s) => s.startSupplementalDensenet);
   const configuredMode = process.env.NEXT_PUBLIC_USE_MOCK === "true" ? "demo" : "api";
 
   const onDrop = useCallback(
@@ -109,6 +111,10 @@ export function ImageUploader() {
     }
     setAnalysis(res);
     setPreQuestionnaireAnalysis(null);
+    const dn = denseNetResponseFromAnalyzeModel3(res);
+    if (!(dn?.success === true && Boolean(dn.gradcam?.trim()))) {
+      startSupplementalDensenet();
+    }
     router.push("/results");
   };
 

@@ -11,17 +11,37 @@ export interface GradcamResult {
   confidence: number;
 }
 
+/** DenseNet-121 block inside `POST /api/v1/analyze` (`model3`). */
+export interface DenseNetAnalyzeModel3 {
+  /** Backend typically sends `"DenseNet-121"`. */
+  model_name?: string;
+  prediction?: string;
+  confidence?: number;
+  probabilities?: Record<string, number>;
+  gradcam?: string;
+  /** Same 224×224 center crop as model input (PNG base64); aligns with `gradcam` framing. */
+  input_preview_base64?: string;
+  /** Some backends may use this alias; treat like `input_preview_base64` (never Grad-CAM). */
+  input_preview?: string;
+  error?: string;
+}
+
 export interface AnalyzeSuccessResponse {
   success: true;
   predictions: Predictions;
   gradcam: GradcamResult;
   gate?: GateDecision;
-  /** Binary screening model output (backend `model1`). */
+  /** Model 1 output: PyTorch ResNet-50 3-class (backend `model1`). */
   model1?: StageBinaryResult;
-  /** Multi-class classifier output (backend `model2`). */
+  /** Model 2 output: Keras ResNet-152V2 3-class (backend `model2`). */
   model2?: StageMultiClassResult;
-  /** Clinical / questionnaire block (backend `model3`). */
-  model3?: StageClinicalResult | null;
+  /** Clinical / questionnaire severity (backend `clinical_risk`; legacy: clinical-shaped `model3`). */
+  clinical_risk?: StageClinicalResult | null;
+  /**
+   * DenseNet-121 3-class + Grad-CAM (backend `model3`).
+   * Separate from questionnaire clinical block.
+   */
+  model3?: DenseNetAnalyzeModel3 | null;
   /** Report synthesis (backend `model4`; same shape as former `report`). */
   model4?: StageReportResult | null;
   timing_ms?: StageTiming;
@@ -51,13 +71,17 @@ export interface GateDecision {
   reason: GateReason;
 }
 
-/** Model 1 output: binary legacy labels or 3-class ResNet50 labels from backend. */
+/** Model 1 row shape: 3-class ResNet-50 labels from backend when neural runs (UI type name is legacy). */
 export interface StageBinaryResult {
   label: "Pneumonia" | "Normal" | "Pneumonia-Bacteria" | "Pneumonia-Virus";
   confidence: number;
   model_name?: string;
+  /** Base64 PNG Grad-CAM overlay (PyTorch ResNet50) when backend provides it. */
+  gradcam?: string;
+  probabilities?: Record<string, number>;
 }
 
+/** Model 2 row shape: 3-class ResNet-152V2 (Keras H5) labels — not a separate binary stage. */
 export interface StageMultiClassResult {
   label: "Normal" | "Lung Opacity" | "Viral Pneumonia" | "Other";
   confidence: number;
@@ -94,6 +118,13 @@ export interface StageTiming {
   model3: number;
   model4: number;
   total: number;
+}
+
+/** Backend `/api/v1/generate-questions` suggested prompts for the doctor Q&A card. */
+export interface SuggestedDoctorQuestion {
+  id: string;
+  text: string;
+  finding_trigger: string;
 }
 
 export type AnalyzeRunMode = "real" | "mock" | "hybrid";
@@ -151,6 +182,8 @@ export interface AnalyzeProvenance {
   /** Flat section-level tags (backend `model1_result`, `model2_result`, …). */
   model1_result?: string;
   model2_result?: string;
+  model3_result?: string;
+  clinical_risk_result?: string;
   gate_decision?: string;
   findings?: string;
   doctor_questions?: string;
@@ -158,7 +191,24 @@ export interface AnalyzeProvenance {
   anatomy_guide?: string;
   model1?: StageProvenance;
   model2?: StageProvenance;
+  /** DenseNet-121 / neural model3. */
   model3?: StageProvenance;
   model4?: StageProvenance;
+  clinical_risk?: StageProvenance;
   explanations?: ImpactExplanation[];
+}
+
+/** Standalone backend POST /predict/densenet (not part of analyze pipeline). */
+export interface DenseNetResponse {
+  success: boolean;
+  prediction: string;
+  /** Display confidence as percentage 0–100 after client normalization (backend may send 0–1 or 0–100). */
+  confidence: number;
+  /** Class probabilities, typically 0–1 per class (same as backend). */
+  probabilities: Record<string, number>;
+  /** Raw base64 PNG or data URL from backend. */
+  gradcam: string;
+  /** Same 224×224 center crop as model input when backend sends it (analyze or /predict/densenet). */
+  input_preview_base64?: string;
+  error?: string;
 }

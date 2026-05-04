@@ -1,6 +1,7 @@
 "use client";
 
 import { analyzeImageFile } from "@/lib/api";
+import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function ClinicalQuestionnaire() {
   const setAnalysisLoading = useAppStore((s) => s.setAnalysisLoading);
   const setAnalysisError = useAppStore((s) => s.setAnalysisError);
   const analysisLoading = useAppStore((s) => s.analysisLoading);
+  const startSupplementalDensenet = useAppStore((s) => s.startSupplementalDensenet);
 
   const submit = async () => {
     if (!imageFile || analysisLoading || submitUiLoading) return;
@@ -46,6 +48,10 @@ export function ClinicalQuestionnaire() {
     setQuestionnaireSubmitted(true);
     setPreQuestionnaireAnalysis(null);
     setAnalysis(res);
+    const dn = denseNetResponseFromAnalyzeModel3(res);
+    if (!(dn?.success === true && Boolean(dn.gradcam?.trim()))) {
+      startSupplementalDensenet();
+    }
     router.push("/results");
   };
 

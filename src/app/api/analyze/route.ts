@@ -35,16 +35,18 @@ function normalizeGate(payload: JsonRecord): JsonRecord | undefined {
 
 function labelToFindingLabel(label: unknown): FindingLabel | null {
   if (typeof label !== "string") return null;
+  const t = label.trim();
+  if (t === "Normal") return null;
+  if (t === "COVID-19") return "COVID-19";
+  if (t === "Lung Opacity" || t === "Infiltration") return "Lung Opacity";
   if (
-    label === "Pneumonia" ||
-    label === "Viral Pneumonia" ||
-    label === "Pneumonia-Bacteria" ||
-    label === "Pneumonia-Virus"
+    t === "Pneumonia" ||
+    t === "Viral Pneumonia" ||
+    t === "Pneumonia-Bacteria" ||
+    t === "Pneumonia-Virus"
   ) {
     return "Pneumonia";
   }
-  if (label === "Lung Opacity") return "Infiltration";
-  if (label === "Normal") return null;
   return null;
 }
 
@@ -154,7 +156,16 @@ function normalizeProvenanceObject(raw: unknown): JsonRecord | undefined {
   delete p.stage2_result;
   if (!isRecord(p.model1) && isRecord(p.stage1)) p.model1 = p.stage1;
   if (!isRecord(p.model2) && isRecord(p.stage2)) p.model2 = p.stage2;
-  if (!isRecord(p.model3) && isRecord(p.stage3)) p.model3 = p.stage3;
+  if (isRecord(p.stage3)) {
+    const s3 = p.stage3;
+    const clinical = typeof s3.enabled === "boolean" && typeof s3.severity === "string";
+    const densenet =
+      s3.model_name === "DenseNet-121" ||
+      (typeof s3.prediction === "string" && isRecord(s3.probabilities));
+    if (clinical && !isRecord(p.clinical_risk)) p.clinical_risk = s3;
+    if (densenet && !isRecord(p.model3)) p.model3 = s3;
+    if (!clinical && !densenet && !isRecord(p.model3)) p.model3 = s3;
+  }
   if (!isRecord(p.model4) && isRecord(p.stage4)) p.model4 = p.stage4;
   delete p.stage1;
   delete p.stage2;
@@ -168,6 +179,10 @@ function normalizeProvenanceObject(raw: unknown): JsonRecord | undefined {
   const m2n = p.model2;
   if (isRecord(m2n) && typeof m2n.source === "string" && m2n.source.trim() !== "") {
     p.model2_result = m2n.source;
+  }
+  const m3n = p.model3;
+  if (isRecord(m3n) && typeof m3n.source === "string" && m3n.source.trim() !== "") {
+    p.model3_result = m3n.source;
   }
   return p;
 }
@@ -221,17 +236,44 @@ function pickTopPrediction(predictions: JsonRecord): { label: FindingLabel; conf
   return { label: topLabel, confidence: topScore };
 }
 
+function isClinicalRiskShape(rec: unknown): rec is JsonRecord {
+  return isRecord(rec) && typeof rec.enabled === "boolean" && typeof rec.severity === "string";
+}
+
+function isDenseNetAnalyzeShape(rec: unknown): rec is JsonRecord {
+  if (!isRecord(rec)) return false;
+  const mn = rec.model_name;
+  if (typeof mn === "string" && /densenet-121/i.test(mn.trim())) return true;
+  return typeof rec.prediction === "string" && isRecord(rec.probabilities);
+}
+
+/** Raw base64 for `gradcam.heatmap_base64` (strip `data:image/...;base64,` if present). */
+function heatmapBase64Payload(s: string): string {
+  const t = s.trim();
+  const m = /^data:image\/\w+;base64,(.+)$/i.exec(t);
+  return m && m[1] ? m[1] : t;
+}
+
 function normalizeGradcam(payload: JsonRecord, predictions: JsonRecord): JsonRecord | null {
   const gradcam = isRecord(payload.gradcam) ? payload.gradcam : null;
+  const m1rec = firstRecord(payload.model1, payload.stage1);
+  const m1Heat =
+    m1rec && typeof m1rec.gradcam === "string" && m1rec.gradcam.trim().length > 0
+      ? m1rec.gradcam.trim()
+      : null;
   const heatmap =
     (gradcam && typeof gradcam.heatmap_base64 === "string" && gradcam.heatmap_base64) ||
     (gradcam && typeof gradcam.overlay === "string" && gradcam.overlay) ||
     (gradcam && typeof gradcam.model2_heatmap === "string" && gradcam.model2_heatmap) ||
     (gradcam && typeof gradcam.model1_heatmap === "string" && gradcam.model1_heatmap) ||
     (gradcam && typeof gradcam.stage2_heatmap === "string" && gradcam.stage2_heatmap) ||
-    (gradcam && typeof gradcam.stage1_heatmap === "string" && gradcam.stage1_heatmap);
+    (gradcam && typeof gradcam.stage1_heatmap === "string" && gradcam.stage1_heatmap) ||
+    m1Heat;
 
   if (!heatmap) return null;
+
+  const heatmapNorm = heatmapBase64Payload(heatmap);
+  if (!heatmapNorm) return null;
 
   const top = pickTopPrediction(predictions);
   const topPrediction = gradcam?.top_prediction;
@@ -242,7 +284,7 @@ function normalizeGradcam(payload: JsonRecord, predictions: JsonRecord): JsonRec
       : top.label;
 
   return {
-    heatmap_base64: heatmap,
+    heatmap_base64: heatmapNorm,
     top_prediction: validTop,
     confidence: typeof confidence === "number" ? score(confidence) : top.confidence,
   };
@@ -256,10 +298,20 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
 
   const m1 = resolveModelRecord(root, "model1", "stage1");
   const m2 = resolveModelRecord(root, "model2", "stage2");
-  const m3Raw = pickModelRecordOrNull(root, "model3", "stage3");
   const m4Raw = pickModelRecordOrNull(root, "model4", "report");
-  const m3 = m3Raw == null ? m3Raw : coerceStageRecord(m3Raw);
   const m4 = m4Raw == null ? m4Raw : coerceStageRecord(m4Raw);
+
+  const model3Raw = root.model3;
+  const clinicalFromRoot = root.clinical_risk;
+
+  let clinicalRisk: JsonRecord | null = null;
+  if (isClinicalRiskShape(clinicalFromRoot)) clinicalRisk = clinicalFromRoot;
+  else if (isClinicalRiskShape(model3Raw) && !isDenseNetAnalyzeShape(model3Raw)) {
+    clinicalRisk = model3Raw;
+  }
+
+  let model3DenseNet: JsonRecord | null = null;
+  if (isDenseNetAnalyzeShape(model3Raw)) model3DenseNet = model3Raw;
 
   const normalized: JsonRecord = {
     ...root,
@@ -268,7 +320,8 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     gradcam,
     model1: m1,
     model2: m2,
-    model3: m3,
+    clinical_risk: clinicalRisk,
+    model3: model3DenseNet,
     model4: m4,
   };
 
@@ -300,7 +353,8 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
       run_mode: "hybrid",
       model1: { source: "model", status: m1 ? "fallback" : "skipped" },
       model2: { source: "model", status: m2 ? "fallback" : "skipped" },
-      model3: { source: "rule", status: m3 != null ? "fallback" : "skipped" },
+      model3: { source: "model", status: model3DenseNet != null ? "fallback" : "skipped" },
+      clinical_risk: { source: "rule", status: clinicalRisk != null ? "fallback" : "skipped" },
       model4: { source: "llm", status: m4 != null ? "fallback" : "skipped" },
     };
     normalized.warnings = [

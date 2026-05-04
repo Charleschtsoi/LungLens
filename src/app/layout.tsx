@@ -22,7 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans min-h-screen flex flex-col`}>
+      <body
+        className={`${inter.variable} font-sans min-h-screen flex flex-col`}
+        suppressHydrationWarning
+      >
         <BackendWarmup />
         <Navbar />
         <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</div>

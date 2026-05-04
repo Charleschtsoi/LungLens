@@ -99,7 +99,11 @@ export function hybridRunModeBannerMessage(
 export function isNestedStageProvenance(p: AnalyzeProvenance | undefined): boolean {
   if (!p) return false;
   return Boolean(
-    p.model1?.source || p.model2?.source || p.model3?.source || p.model4?.source,
+    p.model1?.source ||
+      p.model2?.source ||
+      p.model3?.source ||
+      p.model4?.source ||
+      p.clinical_risk?.source,
   );
 }
 
@@ -287,13 +291,38 @@ export function nestedProvenanceImpactRows(
   t: (key: string, fallback?: string) => string,
 ): { section: string; source: string; sourceKind: AnalyzeStageSource | null; status: string }[] {
   const rows: { section: string; source: string; sourceKind: AnalyzeStageSource | null; status: string }[] = [];
-  const stageDefs: { key: "model1" | "model2" | "model3" | "model4"; titleKey: string }[] = [
+  const earlyStages: { key: "model1" | "model2"; titleKey: string }[] = [
     { key: "model1", titleKey: "results.provenance.impact.model1" },
     { key: "model2", titleKey: "results.provenance.impact.model2" },
+  ];
+  for (const { key, titleKey } of earlyStages) {
+    const sp = provenance[key];
+    if (!sp) continue;
+    const src = normalizeToBadgeSource(sp.source);
+    rows.push({
+      section: t(titleKey, key),
+      source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
+      sourceKind: src,
+      status: statusLabel(sp.status, t),
+    });
+  }
+
+  const cr = provenance.clinical_risk;
+  if (cr) {
+    const src = normalizeToBadgeSource(cr.source);
+    rows.push({
+      section: t("results.model3Risk"),
+      source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
+      sourceKind: src,
+      status: statusLabel(cr.status, t),
+    });
+  }
+
+  const lateStages: { key: "model3" | "model4"; titleKey: string }[] = [
     { key: "model3", titleKey: "results.provenance.impact.model3" },
     { key: "model4", titleKey: "results.provenance.impact.model4" },
   ];
-  for (const { key, titleKey } of stageDefs) {
+  for (const { key, titleKey } of lateStages) {
     const sp = provenance[key];
     if (!sp) continue;
     const src = normalizeToBadgeSource(sp.source);
@@ -315,7 +344,7 @@ export function nestedProvenanceImpactRows(
 
   const dq =
     normalizeToBadgeSource(provenance.doctor_questions) ??
-    normalizeToBadgeSource(provenance.model3?.source) ??
+    normalizeToBadgeSource(provenance.clinical_risk?.source) ??
     "rule";
   rows.push({
     section: t("results.impact.questionsSection"),
@@ -351,13 +380,14 @@ export function nestedProvenanceImpactRows(
 }
 
 /**
- * 14-class "findings" are not produced by the 3-class model2 output unless backend tags otherwise.
+ * Findings scores mirror backend `predictions` (primary ML class scores). Badge defaults to rule-based
+ * when the backend omits `provenance.findings`, so the UI does not imply separate mock 14-class scaffolding.
  */
 export function resolveFindingsBadgeSource(prov: AnalyzeProvenance | undefined): AnalyzeStageSource | null {
   if (!prov) return null;
   const explicit = normalizeToBadgeSource(prov.findings);
   if (explicit) return explicit;
-  if (prov.model2?.source === "model") return "mock";
+  if (prov.model2?.source === "model") return "rule";
   if (prov.model2?.source === "mock") return "mock";
   return "rule";
 }

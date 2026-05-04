@@ -53,9 +53,11 @@ Current variables:
   - Backend base URL for silent warm-up ping only (`${NEXT_PUBLIC_API_URL}/health`).
   - This is not used for direct image upload requests.
 - `BACKEND_API_BASE_URL` (server-only)
-  - Base URL of backend service. Server route forwards to `${BACKEND_API_BASE_URL}/api/v1/analyze` (not the Next dev server).
+  - Base URL of backend service. Server route forwards to `${BACKEND_API_BASE_URL}/api/v1/analyze` (not the Next dev server). The backend may also expose `POST /pipeline/analyze` as the same handler; this app uses `/api/v1/analyze` only.
 - `BACKEND_API_KEY` (server-only)
   - API key sent as `X-API-Key` from the server route to backend.
+
+**Backend model contract:** see [`docs/BACKEND_MODELS.md`](docs/BACKEND_MODELS.md) (includes **`model3`** fields `gradcam` + **`input_preview_base64`**, standalone **`/predict/densenet`** payload, and backend **resize/crop** geometry for QA). Analyze returns **model1** (ResNet-50), **model2** (ResNet-152V2), **model3** (DenseNet-121), plus **`clinical_risk`** (questionnaire), **`model4`** (report). **`POST /predict/densenet`** remains available as a standalone DenseNet endpoint (same model instance as `model3` when loaded).
 
 Security note: never put backend API keys in `NEXT_PUBLIC_*` variables.
 
@@ -103,15 +105,16 @@ src/
 
 ## Staged Pipeline Architecture
 
-LungLens follows a staged routing design:
+LungLens follows a staged routing design (API fields **`model1`** / **`model2`** / **`model3`** / **`clinical_risk`** / **`model4`**).
 
-1. **Stage 1**: binary pneumonia signal
-2. **Stage 2**: multiclass X-ray classification
-3. **Gate check**:
-   - `early_stop` when both stages are effectively negative
-   - `continue` when positive findings are present
-4. **Stage 3 (conditional)**: short clinical questionnaire + risk scoring
-5. **Stage 4**: final report synthesis with medical disclaimer
+**Pipeline card labels** (results UI, PDF): **Model 1 — ResNet-50**, **Model 2 — ResNet-152V2**, **Model 3 — DenseNet-121** (`src/lib/i18n.ts`). Each row’s **%** is **confidence for that model’s top class** in its own label set, not a single cross-model “accuracy.”
+
+1. **Model 1**: PyTorch **ResNet-50**, 3-class (e.g. Normal / Pneumonia-Bacteria / Pneumonia-Virus)
+2. **Model 2**: Keras **ResNet-152V2**, 3-class API labels with spaces (Normal / Lung Opacity / Viral Pneumonia)
+3. **Gate check**: `early_stop` vs `continue` based on pipeline rules
+4. **Model 3**: PyTorch **DenseNet-121** (COVID-19 / Normal / Pneumonia + optional Grad-CAM) — JSON field **`model3`**
+5. **`clinical_risk`**: questionnaire-based severity (not DenseNet)
+6. **`model4`**: final report synthesis with medical disclaimer
 
 Implementation mapping:
 
@@ -123,7 +126,7 @@ Implementation mapping:
 
 Mock mode parity:
 
-- In `NEXT_PUBLIC_USE_MOCK=true`, the mock returns staged outputs (`stage1`, `stage2`, `gate`, optional `stage3`, `report`, `timing_ms`), so UI behavior matches real pipeline routing as closely as possible.
+- In `NEXT_PUBLIC_USE_MOCK=true`, the mock returns pipeline-shaped outputs (`model1`, `model2`, `gate`, `model3`, `clinical_risk`, `model4`, `timing_ms`), so UI behavior matches real pipeline routing as closely as possible.
 
 Cold-start warm-up:
 

@@ -34,13 +34,12 @@ export type MockScenario = {
 
 const MOCK_SCENARIOS: MockScenario[] = [
   {
-    id: "right-lower-opacity",
-    primary: "Consolidation",
+    id: "lung-opacity-predominant",
+    primary: "Lung Opacity",
     scores: {
-      Consolidation: 0.82,
-      Infiltration: 0.64,
-      Pneumonia: 0.58,
-      Effusion: 0.34,
+      "Lung Opacity": 0.82,
+      Pneumonia: 0.48,
+      "COVID-19": 0.22,
     },
     heatmapFoci: [
       { x: 0.34, y: 0.58, radius: 0.22, intensity: 1 },
@@ -48,13 +47,12 @@ const MOCK_SCENARIOS: MockScenario[] = [
     ],
   },
   {
-    id: "left-perihilar-pneumonia",
+    id: "pneumonia-predominant",
     primary: "Pneumonia",
     scores: {
       Pneumonia: 0.86,
-      Infiltration: 0.57,
-      Edema: 0.38,
-      Atelectasis: 0.31,
+      "Lung Opacity": 0.52,
+      "COVID-19": 0.2,
     },
     heatmapFoci: [
       { x: 0.64, y: 0.44, radius: 0.19, intensity: 1 },
@@ -62,30 +60,16 @@ const MOCK_SCENARIOS: MockScenario[] = [
     ],
   },
   {
-    id: "basal-effusion",
-    primary: "Effusion",
+    id: "covid-predominant",
+    primary: "COVID-19",
     scores: {
-      Effusion: 0.79,
-      Pleural_Thickening: 0.52,
-      Atelectasis: 0.42,
-      Cardiomegaly: 0.33,
+      "COVID-19": 0.79,
+      "Lung Opacity": 0.5,
+      Pneumonia: 0.36,
     },
     heatmapFoci: [
-      { x: 0.28, y: 0.72, radius: 0.18, intensity: 0.9 },
-      { x: 0.68, y: 0.74, radius: 0.2, intensity: 1 },
-    ],
-  },
-  {
-    id: "upper-zone-nodule",
-    primary: "Nodule",
-    scores: {
-      Nodule: 0.74,
-      Mass: 0.45,
-      Fibrosis: 0.35,
-    },
-    heatmapFoci: [
-      { x: 0.62, y: 0.3, radius: 0.13, intensity: 1 },
-      { x: 0.34, y: 0.33, radius: 0.1, intensity: 0.58 },
+      { x: 0.45, y: 0.5, radius: 0.2, intensity: 1 },
+      { x: 0.55, y: 0.42, radius: 0.12, intensity: 0.72 },
     ],
   },
 ];
@@ -132,18 +116,18 @@ function topThree(preds: Predictions): Array<{ label: FindingLabel; score: numbe
 }
 
 function stage1FromPredictions(preds: Predictions): StageBinaryResult {
-  const likelyPneumonia = Math.max(preds.Pneumonia, preds.Consolidation, preds.Infiltration);
-  const normalProxy = 1 - likelyPneumonia;
-  const pneumonia = likelyPneumonia >= 0.5;
+  const lungSignal = Math.max(preds.Pneumonia, preds["COVID-19"], preds["Lung Opacity"]);
+  const normalProxy = 1 - lungSignal;
+  const pneumonia = lungSignal >= 0.5;
   return {
     label: pneumonia ? "Pneumonia" : "Normal",
-    confidence: Number((pneumonia ? likelyPneumonia : normalProxy).toFixed(4)),
+    confidence: Number((pneumonia ? lungSignal : normalProxy).toFixed(4)),
   };
 }
 
 function stage2FromPredictions(preds: Predictions): StageMultiClassResult {
-  const viral = preds.Pneumonia;
-  const opacity = Math.max(preds.Infiltration, preds.Consolidation, preds.Effusion);
+  const viral = Math.max(preds.Pneumonia, preds["COVID-19"]);
+  const opacity = preds["Lung Opacity"];
   const normal = Math.max(0.05, 1 - Math.max(viral, opacity));
   if (normal >= viral && normal >= opacity) {
     return { label: "Normal", confidence: Number(normal.toFixed(4)) };
@@ -357,13 +341,17 @@ export async function mockAnalyze(
     model1: stage1,
     model2: stage2,
     gate,
-    model3: stage3,
+    clinical_risk: stage3,
+    model3: {
+      model_name: "DenseNet-121",
+      error: "Model not available",
+    },
     model4,
     requires_questionnaire: needsQuestionnaire,
     timing_ms: {
       model1: Math.max(40, Math.round(total * 0.12)),
       model2: Math.max(40, Math.round(total * 0.14)),
-      model3: stage3 ? Math.max(20, Math.round(total * 0.1)) : 0,
+      model3: Math.max(15, Math.round(total * 0.08)),
       model4: model4 ? Math.max(60, Math.round(total * 0.2)) : 0,
       total,
     },
@@ -371,6 +359,8 @@ export async function mockAnalyze(
       run_mode: "mock",
       model1_result: "mock",
       model2_result: "mock",
+      model3_result: "skipped",
+      clinical_risk_result: stage3 ? "mock" : "skipped",
       gate_decision: "mock",
       findings: "mock",
       doctor_questions: "mock",
@@ -378,14 +368,24 @@ export async function mockAnalyze(
       anatomy_guide: "static",
       model1: { source: "mock", status: "ok", model_id: "mock-model1", model_version: "demo-v1" },
       model2: { source: "mock", status: "ok", model_id: "mock-model2", model_version: "demo-v1" },
-      model3: stage3
-        ? { source: "mock", status: "ok", model_id: "mock-model3", model_version: "demo-v1" }
-        : { source: "mock", status: "skipped", model_id: "mock-model3", model_version: "demo-v1" },
+      model3: {
+        source: "mock",
+        status: "skipped",
+        model_id: "mock-densenet121",
+        model_version: "demo-v1",
+      },
+      clinical_risk: stage3
+        ? { source: "mock", status: "ok", model_id: "mock-clinical", model_version: "demo-v1" }
+        : { source: "mock", status: "skipped", model_id: "mock-clinical", model_version: "demo-v1" },
       model4: model4
         ? { source: "mock", status: "ok", model_id: "mock-model4", model_version: "demo-v1" }
         : { source: "mock", status: "skipped", model_id: "mock-model4", model_version: "demo-v1" },
       explanations: [
-        { section: "pipeline-summary", stage_keys: ["model1", "model2", "model3"], source_type: "mock" },
+        {
+          section: "pipeline-summary",
+          stage_keys: ["model1", "model2", "clinical_risk", "model3"],
+          source_type: "mock",
+        },
         { section: "report-summary", stage_keys: ["model4"], source_type: "mock" },
         { section: "anatomy-guide", stage_keys: ["pipeline"], source_type: "static" },
       ],

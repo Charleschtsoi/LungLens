@@ -108,6 +108,27 @@ const dictEn: Dict = {
     "Our AI is studying your X-ray... (usually takes 5-10 seconds)",
   "upload.fileError.type": "Use JPEG, PNG, or WEBP.",
   "upload.fileError.size": "File is larger than 10MB.",
+
+  "densenet.confidence": "Confidence",
+  "densenet.probabilities": "Class probabilities",
+  "densenet.label.covid": "COVID-19",
+  "densenet.label.normal": "Normal",
+  "densenet.label.pneumonia": "Pneumonia",
+  "densenet.original": "Original image",
+  "densenet.gradcam.sectionTitle": "Visualization",
+  "densenet.model3Attention.title": "Model 3 — DenseNet-121 Attention",
+  "densenet.gradcam.label": "Grad-CAM overlay",
+  "densenet.gradcam.caption": "Highlighted regions show where the model focused",
+  "densenet.gradcam.unavailable":
+    "Grad-CAM overlay was not returned for this run (class probabilities above are still shown).",
+  "densenet.alt.preview": "Uploaded chest X-ray preview",
+  "densenet.alt.gradcam": "DenseNet-121 Grad-CAM overlay",
+  "densenet.caption.modelInputCrop":
+    "Same 224×224 center crop fed to DenseNet-121 (matches Grad-CAM framing).",
+  "densenet.caption.fullUploadPreview":
+    "Full upload preview; framing may differ from the 224×224 model input and Grad-CAM.",
+  "densenet.gradcam.captionAligned": "Same center crop and size as the image on the left.",
+
   "upload.q.title": "Clinical questionnaire",
   "upload.q.subtitle":
     "Because findings were positive, please answer a few questions to generate contextual risk guidance.",
@@ -143,13 +164,18 @@ const dictEn: Dict = {
   "results.noDoctor":
     "You indicated a doctor has not yet reviewed your X-ray. Please consult a healthcare professional for proper diagnosis.",
   "results.tab.xray": "Your X-Ray",
-  "results.tab.attention": "AI Attention Map",
+  "results.tab.attention": "AI Attention Maps",
+  "results.attention.overlayBadge": "Model 1 — ResNet-50 Attention",
+  "results.attention.overlayBadgeModel3": "Model 3 — DenseNet-121 Attention",
+  "results.attention.overlayBadgeGlobalDemo": "AI Attention Map (Educational Demo)",
   "results.tab.anatomy": "Anatomy Guide",
   "results.noPreview":
     "Preview not available for this file. Export a PNG or JPEG if you need to view it here.",
   "results.noAttention": "Attention map not available for this run.",
   "results.attentionNote":
     "Warmer or emphasized regions show where the model focused-this is not a finding list and not a substitute for a radiologist.",
+  "results.attentionNoteSoloModelCam":
+    "Shown: ResNet-50 Grad-CAM fused on the same 224×224 center-cropped input the model used (not overlaid on your full-resolution preview). Educational only.",
   "results.noAttentionReturned": "No attention map returned for this analysis.",
   "results.anatomyPlaceholder":
     "Typical label positions on a standard PA chest film (educational schematic).",
@@ -165,6 +191,8 @@ const dictEn: Dict = {
   "results.questionsTitle": "Questions to ask your doctor",
   "results.questionsSub":
     "Suggested conversation starters based on this educational output-not medical instructions.",
+  "results.doctorQuestionsEmptyFallback":
+    "No specific questions generated for these findings. Please consult your doctor directly.",
   "results.copy": "Copy",
   "results.copied": "Copied",
   "results.learnMore": "Learn more",
@@ -192,10 +220,15 @@ const dictEn: Dict = {
   "results.sticky":
     "LungLens is an educational tool only. This is not a medical diagnosis. Always consult a qualified healthcare professional for medical advice.",
   "results.pipelineTitle": "Pipeline model summary",
-  "results.model1": "Model 1 (Binary)",
-  "results.model2": "Model 2 (Multi-class)",
+  "results.model1": "Model 1 — ResNet-50",
+  "results.model2": "Model 2 — ResNet-152V2",
+  "results.model3DenseNet": "Model 3 — DenseNet-121",
+  "results.model3DenseNet.loading": "Loading DenseNet-121 results…",
+  "results.model3DenseNet.unavailable": "Model 3 unavailable (DenseNet-121 could not run).",
+  "results.model3DenseNet.disclaimer":
+    "⚠️ DenseNet-121 output is for educational/research use only. Not a substitute for professional medical diagnosis.",
   "results.gateDecision": "Gate decision",
-  "results.model3Risk": "Model 3 risk",
+  "results.model3Risk": "Clinical risk (questionnaire)",
   "results.timingReportTitle": "Timing & report",
   "results.totalLatency": "Total latency",
   "results.reportSummary": "Report summary",
@@ -213,7 +246,7 @@ const dictEn: Dict = {
   "results.provenance.badge.rules": "Rule-based",
   "results.provenance.badge.mock": "Mock Data",
   "results.provenance.hybridBanner.bothModels":
-    "Models 1 and 2 used live classifiers on this run. The 14-class findings chart, attention overlay, and some report text may still be educational mock or rule-based scaffolding.",
+    "Models 1 and 2 used live classifiers on this run. The attention overlay and some report text may still use mock or rule-based scaffolding.",
   "results.provenance.hybridBanner.model1Only":
     "Model 1 used a live classifier. Model 2 did not run as a loaded neural model on this run (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
   "results.provenance.hybridBanner.model2Only":
@@ -222,10 +255,10 @@ const dictEn: Dict = {
     "This run mixed live and non-live sources. Check the pipeline badges for which steps used a model versus mock or rules.",
   "results.provenance.badge.llm": "LLM",
   "results.provenance.badge.static": "Static",
-  "results.provenance.section.model1_result": "Model 1 (binary)",
-  "results.provenance.section.model2_result": "Model 2 classification",
+  "results.provenance.section.model1_result": "Model 1 — ResNet-50",
+  "results.provenance.section.model2_result": "Model 2 — ResNet-152V2",
   "results.provenance.section.gate_decision": "Gate decision",
-  "results.provenance.section.findings": "Findings (14-class scores)",
+  "results.provenance.section.findings": "Findings (primary class scores)",
   "results.provenance.section.doctor_questions": "Doctor question suggestions",
   "results.provenance.section.report_summary": "Report summary",
   "results.provenance.section.anatomy_guide": "Anatomy guide",
@@ -234,10 +267,10 @@ const dictEn: Dict = {
   "results.provenance.narrative.mock": "Mock or illustrative (not live classifier output for these parts): {list}.",
   "results.provenance.narrative.llm": "LLM-generated: {list}.",
   "results.provenance.narrative.static": "Static educational content: {list}.",
-  "results.provenance.findingsMockNotice":
-    "These findings and attention levels are mock or illustrative. Models 1 and 2 each output a small, fixed set of labels when they run live; the 14-class scores shown here are educational scaffolding and are not the direct output of those classifiers.",
-  "results.provenance.findingsRuleNotice":
-    "These 14-class labels and attention bars are rule-based or illustrative scaffolding. They are not the direct output of the live Model 1 or Model 2 classifiers, which each cover only a few lung-related classes.",
+  "results.provenance.findingsPrimaryClassNotice":
+    "These findings are generated directly from the AI models' primary classifications.",
+  "results.provenance.findingsDemoNotice":
+    "This run uses demo predictions (not live clinical models). Scores are for illustration only.",
   "results.provenance.nested.stageSkipped": "Model {n} was skipped.",
   "results.provenance.nested.stagesSkippedRange": "Models {from}-{to} were skipped.",
   "results.provenance.nested.stageUsesModel": "Model {n} uses a real ML model.",
@@ -404,6 +437,24 @@ const dictHant: Dict = {
   "upload.analyzing": "AI 正在分析你的 X 光…（通常需時 5-10 秒）",
   "upload.fileError.type": "請使用 JPEG、PNG 或 WEBP。",
   "upload.fileError.size": "檔案大於 10MB。",
+
+  "densenet.confidence": "信心度",
+  "densenet.probabilities": "各類別機率",
+  "densenet.label.covid": "新冠肺炎（COVID-19）",
+  "densenet.label.normal": "正常",
+  "densenet.label.pneumonia": "肺炎",
+  "densenet.original": "原始影像",
+  "densenet.gradcam.sectionTitle": "視覺化",
+  "densenet.model3Attention.title": "模型 3 — DenseNet-121 注意力",
+  "densenet.gradcam.label": "Grad-CAM 疊加圖",
+  "densenet.gradcam.caption": "亮色區域顯示模型關注的位置",
+  "densenet.gradcam.unavailable": "本次回應未包含 Grad-CAM 疊加圖（仍會顯示上方類別機率）。",
+  "densenet.alt.preview": "已上傳胸肺 X 光預覽",
+  "densenet.alt.gradcam": "DenseNet-121 Grad-CAM 疊加圖",
+  "densenet.caption.modelInputCrop": "與 DenseNet-121 相同的 224×224 中央裁切（與右側 Grad-CAM 畫面一致）。",
+  "densenet.caption.fullUploadPreview": "完整上傳預覽；構圖可能與模型 224×224 輸入及 Grad-CAM 不同。",
+  "densenet.gradcam.captionAligned": "與左側相同的中央裁切與尺寸。",
+
   "upload.q.title": "臨床問卷",
   "upload.q.subtitle": "由於出現陽性線索，請回答幾個問題以產生更完整的風險說明。",
   "upload.q.age": "年齡",
@@ -436,10 +487,15 @@ const dictHant: Dict = {
   "results.noDoctor": "你表示尚未有醫生檢視此 X 光。請儘快諮詢醫護人員作正規診斷。",
   "results.tab.xray": "你的 X 光",
   "results.tab.attention": "AI 注意力熱圖",
+  "results.attention.overlayBadge": "模型 1 — ResNet-50 注意力",
+  "results.attention.overlayBadgeModel3": "模型 3 — DenseNet-121 注意力",
+  "results.attention.overlayBadgeGlobalDemo": "AI 注意力熱圖（教育演示）",
   "results.tab.anatomy": "解剖導覽",
   "results.noPreview": "此檔案暫無預覽，若需要可轉成 PNG/JPEG 再查看。",
   "results.noAttention": "本次分析沒有提供注意力熱圖。",
   "results.attentionNote": "顏色較強區域代表模型關注位置，並非診斷結果，也不能取代放射科判讀。",
+  "results.attentionNoteSoloModelCam":
+    "顯示為 ResNet-50 的 Grad-CAM，疊加在與模型相同的 224×224 中央裁切輸入上（未疊在你上傳的完整解析度預覽上）。僅供教育用途。",
   "results.noAttentionReturned": "本次分析未回傳注意力熱圖。",
   "results.anatomyPlaceholder": "標準 PA 胸肺 X 光的常見標記位置（教育示意）。",
   "results.anatomyHeader": "AI 注意到的內容",
@@ -451,6 +507,8 @@ const dictHant: Dict = {
   "results.high": "高",
   "results.questionsTitle": "可向醫生提出的問題",
   "results.questionsSub": "以下為對話建議，並非醫療指示。",
+  "results.doctorQuestionsEmptyFallback":
+    "本次未產生與這些發現相對應的具體提問。請直接向醫師諮詢。",
   "results.copy": "複製",
   "results.copied": "已複製",
   "results.learnMore": "延伸閱讀",
@@ -470,10 +528,15 @@ const dictHant: Dict = {
   "anatomy.desc.diaphragm": "位於肺下方的拱形肌肉，其位置可反映肺容量。",
   "results.sticky": "LungLens 僅供教育用途，並非醫療診斷。請務必諮詢合資格醫護人員。",
   "results.pipelineTitle": "模型流程摘要",
-  "results.model1": "模型 1（二元分類）",
-  "results.model2": "模型 2（多類別分類）",
+  "results.model1": "模型 1 — ResNet-50",
+  "results.model2": "模型 2 — ResNet-152V2",
+  "results.model3DenseNet": "模型 3 — DenseNet-121",
+  "results.model3DenseNet.loading": "正在載入 DenseNet-121 結果…",
+  "results.model3DenseNet.unavailable": "模型 3 無法使用（DenseNet-121 未能執行）。",
+  "results.model3DenseNet.disclaimer":
+    "⚠️ DenseNet-121 輸出僅供教育／研究用途，不能取代專業醫療診斷。",
   "results.gateDecision": "閘口判斷",
-  "results.model3Risk": "模型 3 風險",
+  "results.model3Risk": "臨床風險（問卷）",
   "results.timingReportTitle": "耗時與報告",
   "results.totalLatency": "總耗時",
   "results.reportSummary": "報告摘要",
@@ -491,7 +554,7 @@ const dictHant: Dict = {
   "results.provenance.badge.rules": "規則引擎",
   "results.provenance.badge.mock": "模擬資料",
   "results.provenance.hybridBanner.bothModels":
-    "本次執行中，模型 1 與模型 2 皆使用即時分類模型。14 類發現圖表、關注圖覆蓋與部分報告文字仍可能是教育用模擬或規則型內容。",
+    "本次執行中，模型 1 與模型 2 皆使用即時分類模型。關注圖覆蓋與部分報告文字仍可能為教育用模擬或規則型內容。",
   "results.provenance.hybridBanner.model1Only":
     "模型 1 使用即時分類模型；模型 2 此輪未以已載入的神經模型執行（模擬或規則）。發現區塊、關注圖與醫師提問提示仍可能是模擬或規則型。",
   "results.provenance.hybridBanner.model2Only":
@@ -500,10 +563,10 @@ const dictHant: Dict = {
     "本次為混合來源執行。請參考下方各步驟標籤，確認哪些為模型、模擬或規則。",
   "results.provenance.badge.llm": "LLM",
   "results.provenance.badge.static": "固定內容",
-  "results.provenance.section.model1_result": "模型 1（二元）",
-  "results.provenance.section.model2_result": "模型 2 分類",
+  "results.provenance.section.model1_result": "模型 1 — ResNet-50",
+  "results.provenance.section.model2_result": "模型 2 — ResNet-152V2",
   "results.provenance.section.gate_decision": "閘口決策",
-  "results.provenance.section.findings": "發現（14 類分數）",
+  "results.provenance.section.findings": "發現（主要類別分數）",
   "results.provenance.section.doctor_questions": "醫生提問建議",
   "results.provenance.section.report_summary": "報告摘要",
   "results.provenance.section.anatomy_guide": "解剖導覽",
@@ -512,10 +575,10 @@ const dictHant: Dict = {
   "results.provenance.narrative.mock": "模擬／示意（以下區塊並非即時分類器輸出）：{list}。",
   "results.provenance.narrative.llm": "LLM 生成：{list}。",
   "results.provenance.narrative.static": "固定教育內容：{list}。",
-  "results.provenance.findingsMockNotice":
-    "以下發現與關注程度為模擬或示意。模型 1 與模型 2 在即時運行時各自僅對應少數標籤；此處 14 類分數為教育用架構，並非任一即時分類器的直接輸出。",
-  "results.provenance.findingsRuleNotice":
-    "此處 14 類標籤與關注條為規則型或示意架構，並非即時的模型 1 或模型 2 分類器（各自僅涵蓋少數肺部相關類別）的直接輸出。",
+  "results.provenance.findingsPrimaryClassNotice":
+    "這些發現直接來自 AI 模型的主要分類輸出。",
+  "results.provenance.findingsDemoNotice":
+    "此為示範用的模擬預測（非臨床即時模型），分數僅供示意。",
   "results.provenance.nested.stageSkipped": "模型 {n} 已略過。",
   "results.provenance.nested.stagesSkippedRange": "模型 {from}–{to} 已略過。",
   "results.provenance.nested.stageUsesModel": "模型 {n} 使用即時 ML 模型。",
@@ -629,6 +692,24 @@ const dictHans: Dict = {
   "upload.preview.noInline": "浏览器暂不支持此文件预览。",
   "upload.analyze": "开始分析",
   "upload.fileError.type": "请使用 JPEG、PNG 或 WEBP。",
+
+  "densenet.confidence": "置信度",
+  "densenet.probabilities": "各类别概率",
+  "densenet.label.covid": "新冠肺炎（COVID-19）",
+  "densenet.label.normal": "正常",
+  "densenet.label.pneumonia": "肺炎",
+  "densenet.original": "原始影像",
+  "densenet.gradcam.sectionTitle": "可视化",
+  "densenet.model3Attention.title": "模型 3 — DenseNet-121 注意力",
+  "densenet.gradcam.label": "Grad-CAM 叠加图",
+  "densenet.gradcam.caption": "高亮区域表示模型关注的部位",
+  "densenet.gradcam.unavailable": "本次响应未包含 Grad-CAM 叠加图（仍会显示上方类别概率）。",
+  "densenet.alt.preview": "已上传胸片预览",
+  "densenet.alt.gradcam": "DenseNet-121 Grad-CAM 叠加图",
+  "densenet.caption.modelInputCrop": "与 DenseNet-121 相同的 224×224 居中裁剪（与右侧 Grad-CAM 一致）。",
+  "densenet.caption.fullUploadPreview": "完整上传预览；构图可能与模型 224×224 输入及 Grad-CAM 不同。",
+  "densenet.gradcam.captionAligned": "与左侧相同的居中裁剪与尺寸。",
+
   "upload.q.title": "临床问卷",
   "upload.q.subtitle": "由于出现阳性线索，请回答几个问题以生成更完整的风险说明。",
   "upload.q.age": "年龄",
@@ -657,14 +738,25 @@ const dictHans: Dict = {
   "results.pdfXray": "原始 X 光",
   "results.pdfAttentionMap": "AI 注意力热图",
   "results.learnMore": "延伸阅读",
+  "results.tab.xray": "你的 X 光",
+  "results.tab.attention": "AI 注意力热图",
+  "results.attention.overlayBadge": "模型 1 — ResNet-50 注意力",
+  "results.attention.overlayBadgeModel3": "模型 3 — DenseNet-121 注意力",
+  "results.attention.overlayBadgeGlobalDemo": "AI 注意力热图（教育演示）",
+  "results.tab.anatomy": "解剖导览",
   "results.questionsTitle": "可向医生提出的问题",
   "results.noSignificant": "AI 未标示明显重点区域。这通常可能接近正常 X 光表现，但仍需放射科医生确认。",
   "results.sticky": "LungLens 仅供教育用途，并非医疗诊断。请务必咨询合格医务人员。",
   "results.pipelineTitle": "模型流程摘要",
-  "results.model1": "模型 1（二分类）",
-  "results.model2": "模型 2（多分类）",
+  "results.model1": "模型 1 — ResNet-50",
+  "results.model2": "模型 2 — ResNet-152V2",
+  "results.model3DenseNet": "模型 3 — DenseNet-121",
+  "results.model3DenseNet.loading": "正在加载 DenseNet-121 结果…",
+  "results.model3DenseNet.unavailable": "模型 3 不可用（DenseNet-121 未能运行）。",
+  "results.model3DenseNet.disclaimer":
+    "⚠️ DenseNet-121 输出仅供教育／研究用途，不能替代专业医疗诊断。",
   "results.gateDecision": "闸口判断",
-  "results.model3Risk": "模型 3 风险",
+  "results.model3Risk": "临床风险（问卷）",
   "results.timingReportTitle": "耗时与报告",
   "results.totalLatency": "总耗时",
   "results.reportSummary": "报告摘要",
@@ -678,10 +770,10 @@ const dictHans: Dict = {
   "results.provenance.badge.mock": "模拟数据",
   "results.provenance.badge.llm": "LLM",
   "results.provenance.badge.static": "静态",
-  "results.provenance.section.model1_result": "模型 1（二分类）",
-  "results.provenance.section.model2_result": "模型 2 分类",
+  "results.provenance.section.model1_result": "模型 1 — ResNet-50",
+  "results.provenance.section.model2_result": "模型 2 — ResNet-152V2",
   "results.provenance.section.gate_decision": "闸口决策",
-  "results.provenance.section.findings": "发现（14 类分数）",
+  "results.provenance.section.findings": "发现（主要类别分数）",
   "results.provenance.section.doctor_questions": "医生建议提问",
   "results.provenance.section.report_summary": "报告摘要",
   "results.provenance.section.anatomy_guide": "解剖导览",
@@ -690,12 +782,10 @@ const dictHans: Dict = {
   "results.provenance.narrative.mock": "模拟／示意（以下并非实时分类器输出）：{list}。",
   "results.provenance.narrative.llm": "LLM 生成：{list}。",
   "results.provenance.narrative.static": "静态教育内容：{list}。",
-  "results.provenance.findingsMockNotice":
-    "以下发现与关注程度为模拟或示意。模型 1 与模型 2 在实时运行时各自仅对应少数标签；此处 14 类分数为教育用结构，并非任一实时分类器的直接输出。",
-  "results.provenance.findingsRuleNotice":
-    "此处 14 类标签与关注条为基于规则或示意的结构，并非实时的模型 1 或模型 2 分类器（各自仅覆盖少数肺部相关类别）的直接输出。",
+  "results.provenance.findingsPrimaryClassNotice": "这些发现直接来自 AI 模型的主要分类输出。",
+  "results.provenance.findingsDemoNotice": "此运行为演示用模拟预测（非临床实时模型），分数仅供示意。",
   "results.provenance.hybridBanner.bothModels":
-    "本次运行中，模型 1 与模型 2 均使用实时分类模型。14 类发现图表、关注图覆盖与部分报告文字仍可能是教育用模拟或基于规则的内容。",
+    "本次运行中，模型 1 与模型 2 均使用实时分类模型。关注图覆盖与部分报告文字仍可能是教育用模拟或基于规则的内容。",
   "results.provenance.hybridBanner.model1Only":
     "模型 1 使用实时分类模型；模型 2 本轮未以已加载的神经网络模型运行（模拟或规则）。发现板块、关注图与医生提问提示仍可能是模拟或基于规则。",
   "results.provenance.hybridBanner.model2Only":
@@ -759,6 +849,10 @@ const dictHans: Dict = {
   "about.team": "团队名单",
   "about.contactTitle": "开源 / 联系",
   "about.email": "邮件联系",
+  "results.doctorQuestionsEmptyFallback":
+    "未针对这些发现生成具体问题，请直接向医生咨询。",
+  "results.attentionNoteSoloModelCam":
+    "显示为 ResNet-50 的 Grad-CAM，与模型使用相同的 224×224 居中裁剪输入叠加（未叠在完整分辨率预览上）。仅供教育参考。",
 };
 
 export const I18N: Record<Locale, Dict> = {
@@ -773,52 +867,19 @@ export function t(locale: Locale, key: string, fallback?: string): string {
 
 export const CONDITION_NAMES: Record<Locale, Record<FindingLabel, string>> = {
   en: {
-    Atelectasis: "Atelectasis",
-    Cardiomegaly: "Cardiomegaly",
-    Effusion: "Pleural effusion",
-    Infiltration: "Infiltrate",
-    Mass: "Mass",
-    Nodule: "Nodule",
     Pneumonia: "Pneumonia",
-    Pneumothorax: "Pneumothorax",
-    Consolidation: "Consolidation",
-    Edema: "Pulmonary edema",
-    Emphysema: "Emphysema",
-    Fibrosis: "Fibrosis",
-    Pleural_Thickening: "Pleural thickening",
-    Hernia: "Hernia",
+    "Lung Opacity": "Lung opacity",
+    "COVID-19": "COVID-19",
   },
   "zh-Hant": {
-    Atelectasis: "肺不張",
-    Cardiomegaly: "心臟擴大",
-    Effusion: "胸腔積液",
-    Infiltration: "肺部浸潤",
-    Mass: "腫塊陰影",
-    Nodule: "肺結節",
     Pneumonia: "肺炎",
-    Pneumothorax: "氣胸",
-    Consolidation: "肺實變",
-    Edema: "肺水腫",
-    Emphysema: "肺氣腫",
-    Fibrosis: "肺纖維化",
-    Pleural_Thickening: "胸膜增厚",
-    Hernia: "疝氣",
+    "Lung Opacity": "肺部陰影／opacity",
+    "COVID-19": "COVID-19",
   },
   "zh-Hans": {
-    Atelectasis: "肺不张",
-    Cardiomegaly: "心脏扩大",
-    Effusion: "胸腔积液",
-    Infiltration: "肺部浸润",
-    Mass: "肿块阴影",
-    Nodule: "肺结节",
     Pneumonia: "肺炎",
-    Pneumothorax: "气胸",
-    Consolidation: "肺实变",
-    Edema: "肺水肿",
-    Emphysema: "肺气肿",
-    Fibrosis: "肺纤维化",
-    Pleural_Thickening: "胸膜增厚",
-    Hernia: "疝气",
+    "Lung Opacity": "肺部阴影／opacity",
+    "COVID-19": "COVID-19",
   },
 };
 
@@ -832,64 +893,20 @@ export const CONDITION_DESC: Record<
 > = {
   en: CONDITION_DESCRIPTIONS,
   "zh-Hant": {
-    Atelectasis:
-      "肺不張表示部分肺組織在 X 光上可能較塌陷或未完全張開。它可與手術後、黏液阻塞或拍片時呼吸較淺有關。是否需要處理，仍要以正式報告、症狀和醫生判斷為準。",
-    Cardiomegaly:
-      "心臟擴大是指 X 光上的心影看起來比預期大。這可能與真正心臟變大、體型或拍攝角度有關。是否有臨床意義，需要由醫生按你的情況判斷。",
-    Effusion:
-      "胸腔積液是指肺外圍的空間有液體積聚，在 X 光上可能呈現較白或肋膈角變鈍。成因可包括感染、發炎或心臟相關問題等。請向醫生了解你的症狀和正式報告如何配合解讀。",
-    Infiltration:
-      "肺部浸潤是放射科常用的廣義描述，表示肺組織有額外密度。它可與感染、發炎或液體有關，但同一影像模式在不同人身上意義可不同。請以正式放射科報告為主要依據。",
-    Mass:
-      "腫塊陰影指局部區域比周圍肺部更密，是否需要 CT 或專科跟進取決於大小、形態和風險因素。許多影像發現可以是良性，但需要臨床資料判斷。若報告提及腫塊，請問清楚建議的跟進安排。",
-    Nodule:
-      "肺結節是較小的圓形陰影，可能需要觀察、覆檢或進一步檢查。處理方式會受大小、形態和吸煙史等因素影響。帶同正式報告向醫生了解是否需要定期監察。",
     Pneumonia:
-      "肺炎在 X 光上常見為肺野較白的區域，但類似表現也可由其他原因造成。教育工具不能確認或排除肺炎。如有發燒、咳嗽或呼吸困難，請按醫護建議處理。",
-    Pneumothorax:
-      "氣胸表示空氣積聚在肺外，可能令肺部部分塌陷。有些情況可觀察，有些需要緊急處理。若突然胸痛或氣促，應立即求醫，不應依賴網站判斷。",
-    Consolidation:
-      "肺實變表示本應含氣的肺組織看起來較實，常與感染一起討論，但並非唯一原因。放射科醫師會結合其他影像線索作判讀。請詢問報告中的 impression 如何解釋此發現。",
-    Edema:
-      "肺水腫可令肺血管和肺紋理較明顯，可能與液體負荷或心臟壓力有關。醫生會結合檢查、生命徵象和其他化驗判斷。請勿只根據本工具自行調整藥物。",
-    Emphysema:
-      "肺氣腫或 COPD 相關變化可在 X 光上出現線索，但 X 光本身不足以診斷或分期。肺功能測試和病史同樣重要。如有長期咳嗽或吸煙史，請與醫護團隊討論。",
-    Fibrosis:
-      "肺纖維化是肺部疤痕樣改變，可與過往感染、環境暴露或免疫疾病等有關。進一步評估常需要高解像 CT 或專科意見。請詢問是否需要與舊片比較或安排跟進。",
-    Pleural_Thickening:
-      "胸膜增厚是指包圍肺部的膜看起來較厚，可能與舊發炎、感染或暴露史有關。其重要性取決於病史和是否穩定。可向醫生查詢是否有舊片可作比較。",
-    Hernia:
-      "疝氣可改變胸片底部附近的輪廓，很多時候是偶然發現。是否與症狀有關需要臨床判斷。若正式報告提及疝氣，請向醫生了解是否需要特別跟進。",
+      "肺炎表示肺部氣囊可能因感染而發炎，並可能積聚液體或膿。AI 顯示與此相符的模式；醫生會結合發燒、咳嗽等症狀解讀。",
+    "Lung Opacity":
+      "肺部陰影（opacity）是廣義描述，指 X 光上某區域比正常肺部更實或較霧狀，可能與積液、感染或組織變化有關，需臨床對照。",
+    "COVID-19":
+      "模型偵測到常與 COVID-19 病毒性肺炎相關的模式（例如雙側陰影）。此為教育性提示，確診需 PCR 或抗原檢測。",
   },
   "zh-Hans": {
-    Atelectasis:
-      "肺不张表示部分肺组织在 X 光上可能较塌陷或没有完全张开。它可与术后、黏液阻塞或拍片时呼吸较浅有关。是否需要处理，仍要以正式报告、症状和医生判断为准。",
-    Cardiomegaly:
-      "心脏扩大是指 X 光上的心影看起来比预期大。这可能与真正心脏变大、体型或拍摄角度有关。是否有临床意义，需要由医生结合你的情况判断。",
-    Effusion:
-      "胸腔积液是指肺外周空间有液体积聚，在 X 光上可能呈现较白或肋膈角变钝。原因可包括感染、炎症或心脏相关问题等。请向医生了解你的症状和正式报告如何结合解读。",
-    Infiltration:
-      "肺部浸润是放射科常用的广义描述，表示肺组织有额外密度。它可与感染、炎症或液体有关，但同一影像模式在不同人身上意义可不同。请以正式放射科报告为主要依据。",
-    Mass:
-      "肿块阴影指局部区域比周围肺部更密，是否需要 CT 或专科随访取决于大小、形态和风险因素。许多影像发现可能是良性，但需要临床资料判断。若报告提及肿块，请问清楚建议的随访安排。",
-    Nodule:
-      "肺结节是较小的圆形阴影，可能需要观察、复查或进一步检查。处理方式会受大小、形态和吸烟史等因素影响。带上正式报告向医生了解是否需要定期监测。",
     Pneumonia:
-      "肺炎在 X 光上常见为肺野较白的区域，但类似表现也可由其他原因造成。教育工具不能确认或排除肺炎。如有发热、咳嗽或呼吸困难，请按医务人员建议处理。",
-    Pneumothorax:
-      "气胸表示空气积聚在肺外，可能令肺部部分塌陷。有些情况可观察，有些需要紧急处理。若突然胸痛或气促，应立即就医，不应依赖网站判断。",
-    Consolidation:
-      "肺实变表示本应含气的肺组织看起来较实，常与感染一起讨论，但并非唯一原因。放射科医生会结合其他影像线索判读。请询问报告中的 impression 如何解释此发现。",
-    Edema:
-      "肺水肿可令肺血管和肺纹理较明显，可能与液体负荷或心脏压力有关。医生会结合检查、生命体征和其他化验判断。请勿只根据本工具自行调整药物。",
-    Emphysema:
-      "肺气肿或 COPD 相关变化可在 X 光上出现线索，但 X 光本身不足以诊断或分期。肺功能测试和病史同样重要。如有长期咳嗽或吸烟史，请与医务人员讨论。",
-    Fibrosis:
-      "肺纤维化是肺部疤痕样改变，可与既往感染、环境暴露或免疫疾病等有关。进一步评估常需要高分辨率 CT 或专科意见。请询问是否需要与旧片比较或安排随访。",
-    Pleural_Thickening:
-      "胸膜增厚是指包围肺部的膜看起来较厚，可能与既往炎症、感染或暴露史有关。其重要性取决于病史和是否稳定。可向医生咨询是否有旧片可作比较。",
-    Hernia:
-      "疝气可改变胸片底部附近的轮廓，很多时候是偶然发现。是否与症状有关需要临床判断。若正式报告提及疝气，请向医生了解是否需要特别随访。",
+      "肺炎表示肺部气囊可能因感染而发炎，并可能积聚液体或脓。AI 显示与此相符的模式；医生会结合发烧、咳嗽等症状解读。",
+    "Lung Opacity":
+      "肺部阴影（opacity）是广义描述，指 X 光上某区域比正常肺部更实或较雾状，可能与积液、感染或组织变化有关，需临床对照。",
+    "COVID-19":
+      "模型检测到常与 COVID-19 病毒性肺炎相关的模式（例如双侧阴影）。此为教育性提示，确诊需 PCR 或抗原检测。",
   },
 };
 

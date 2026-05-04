@@ -7,10 +7,10 @@ import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useI18n } from "@/hooks/useI18n";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/upload", label: "Upload" },
-  { href: "/learn", label: "Learn" },
-  { href: "/about", label: "About" },
+  { href: "/", key: "nav.home" as const },
+  { href: "/upload", key: "nav.upload" as const },
+  { href: "/learn", key: "nav.learn" as const },
+  { href: "/about", key: "nav.about" as const },
 ];
 
 export function Navbar({ className }: { className?: string }) {
@@ -37,13 +37,7 @@ export function Navbar({ className }: { className?: string }) {
               href={l.href}
               className="text-muted-foreground transition-colors hover:text-primary"
             >
-              {l.href === "/"
-                ? t("nav.home")
-                : l.href === "/upload"
-                  ? t("nav.upload")
-                  : l.href === "/learn"
-                    ? t("nav.learn")
-                    : t("nav.about")}
+              {t(l.key)}
             </Link>
           ))}
         </nav>

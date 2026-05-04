@@ -48,21 +48,17 @@ export function FindingsCard({
   predictions,
   model2,
   findingsBadgeSource,
-  model2ProvenanceSource,
 }: {
   predictions: Predictions | null;
   model2?: StageMultiClassResult;
-  /** Resolved badge source (mock / rule / …), including when 14-class scores are not from model2. */
+  /** Resolved badge source (mock / rule / …) from provenance. */
   findingsBadgeSource?: AnalyzeStageSource | null;
-  /** Nested `provenance.model2.source` for copy about 3-class vs 14-class. */
-  model2ProvenanceSource?: AnalyzeStageSource;
 }) {
   const { t, locale } = useI18n();
   const notable = predictions ? getNotableFindings(predictions) : [];
   const findingsAreMock = findingsBadgeSource === "mock";
-  const showStrongNotice =
-    findingsBadgeSource === "mock" || model2ProvenanceSource === "model";
-  const showRuleNotice = findingsBadgeSource === "rule";
+  const showDemoFindingsNotice = findingsAreMock;
+  const showPrimaryClassNotice = !showDemoFindingsNotice;
   const model2Hint =
     model2 && model2.label !== "Normal"
       ? `${t("results.stage2")}: ${t(`stage.${model2.label}`, model2.label)} (${Math.round(model2.confidence * 100)}%).`
@@ -75,27 +71,24 @@ export function FindingsCard({
           <div className="min-w-0 flex-1 space-y-1.5">
             <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
               <span>{t("results.anatomyHeader")}</span>
-              <SectionSourceBadge
-                source={findingsBadgeSource}
-                prominentMock={findingsAreMock || model2ProvenanceSource === "model"}
-              />
+              <SectionSourceBadge source={findingsBadgeSource} prominentMock={findingsAreMock} />
             </CardTitle>
             <CardDescription>{t("results.anatomySub")}</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {showStrongNotice && (
-          <Alert className="border-red-300 bg-red-50 text-red-950 shadow-sm [&>div]:text-red-950">
+        {showDemoFindingsNotice && (
+          <Alert className="border-amber-200 bg-amber-50 text-amber-950 shadow-sm [&>div]:text-amber-950">
             <AlertDescription className="text-sm font-medium">
-              {t("results.provenance.findingsMockNotice")}
+              {t("results.provenance.findingsDemoNotice")}
             </AlertDescription>
           </Alert>
         )}
-        {showRuleNotice && !showStrongNotice && (
-          <Alert className="border-amber-200 bg-amber-50 text-amber-950 shadow-sm [&>div]:text-amber-950">
+        {showPrimaryClassNotice && (
+          <Alert className="border-slate-200 bg-slate-50 text-slate-900 shadow-sm [&>div]:text-slate-900">
             <AlertDescription className="text-sm font-medium">
-              {t("results.provenance.findingsRuleNotice")}
+              {t("results.provenance.findingsPrimaryClassNotice")}
             </AlertDescription>
           </Alert>
         )}
