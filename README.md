@@ -1,34 +1,54 @@
 # LungLens
 
-LungLens is a chest X-ray education companion built with Next.js. It helps users understand imaging terms, view model attention maps, and prepare questions for clinicians.
+LungLens is a chest X-ray education companion built with Next.js. It helps users understand imaging terms, view attention overlays, and prepare better questions for clinicians.
 
 Important: this project is educational and research-oriented. It is not a medical diagnostic tool.
 
+## Teammate Quick Run (5-10 minutes)
+
+1. Install dependencies: `npm install`
+2. Copy env template: `cp .env.example .env.local`
+3. Start in mock mode first:
+   - set `NEXT_PUBLIC_USE_MOCK=true`
+   - run `npm run dev`
+4. Open [http://localhost:3000](http://localhost:3000), upload any chest image, confirm results page renders.
+5. Switch to real backend:
+   - set `NEXT_PUBLIC_USE_MOCK=false`
+   - set `BACKEND_API_BASE_URL` and `BACKEND_API_KEY`
+   - restart dev server
+6. Re-test upload + results flow.
+
 ## What This App Does
 
-- Guides users through a safe upload flow with doctor-review and educational disclaimers.
-- Runs image analysis via:
+- Guides users through doctor-review + disclaimer-aware upload flow.
+- Runs analysis through:
   - browser mock mode (`NEXT_PUBLIC_USE_MOCK=true`), or
-  - a server-side proxy route (`/api/analyze`) that forwards to your backend API.
-- Presents results in an educational dashboard:
-  - original image tab,
-  - AI attention map tab,
-  - anatomy guide tab,
-  - top findings context,
-  - doctor-question suggestions.
+  - server proxy route (`/api/analyze`) forwarding to backend.
+- Shows educational results:
+  - original image,
+  - AI attention overlay,
+  - anatomy guide,
+  - primary finding explanations,
+  - suggested doctor questions.
 
 ## Tech Stack
 
 - Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS
 - State: Zustand
-- UI: shadcn-style components + Radix primitives
+- UI: Radix primitives + reusable UI components
 - Upload: react-dropzone
 - Charts: Recharts
-- ML integration:
-  - Mock: `src/lib/mock.ts`
-  - Real API call gateway: `src/lib/api.ts`
+- Integration:
+  - Mock path: `src/lib/mock.ts`
+  - Real path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`
 
-## Quick Start
+## Local Setup (Detailed)
+
+### Prerequisites
+
+- Node.js 20+ recommended
+- npm 10+
+- Optional (for local backend sample): Python 3.10+
 
 ### 1) Install dependencies
 
@@ -38,175 +58,173 @@ npm install
 
 ### 2) Configure environment
 
-Copy `.env.example` to `.env.local` and update values:
-
 ```bash
 cp .env.example .env.local
 ```
 
-Current variables:
+Set values in `.env.local`:
 
 - `NEXT_PUBLIC_USE_MOCK`
-  - `true`: use browser-side mock analysis
-  - `false`: call frontend server route `/api/analyze`
-- `NEXT_PUBLIC_API_URL` (client-visible)
-  - Backend base URL for silent warm-up ping only (`${NEXT_PUBLIC_API_URL}/health`).
-  - This is not used for direct image upload requests.
+  - `true` = browser mock pipeline
+  - `false` = use server proxy routes
+- `NEXT_PUBLIC_API_URL`
+  - Used only for silent warm-up ping (`${NEXT_PUBLIC_API_URL}/health`).
 - `BACKEND_API_BASE_URL` (server-only)
-  - Base URL of backend service. Server route forwards to `${BACKEND_API_BASE_URL}/api/v1/analyze` (not the Next dev server). The backend may also expose `POST /pipeline/analyze` as the same handler; this app uses `/api/v1/analyze` only.
+  - Backend root, for example `http://127.0.0.1:8000`
+  - Frontend routes call:
+    - `${BACKEND_API_BASE_URL}/api/v1/analyze`
+    - `${BACKEND_API_BASE_URL}/api/v1/generate-questions`
+    - `${BACKEND_API_BASE_URL}/api/v1/predict/densenet` (if used)
 - `BACKEND_API_KEY` (server-only)
-  - API key sent as `X-API-Key` from the server route to backend.
+  - Sent by Next.js API routes as `X-API-Key`.
 
-**Backend model contract:** see [`docs/BACKEND_MODELS.md`](docs/BACKEND_MODELS.md) (includes **`model3`** fields `gradcam` + **`input_preview_base64`**, standalone **`/predict/densenet`** payload, and backend **resize/crop** geometry for QA). Analyze returns **model1** (ResNet-50), **model2** (ResNet-152V2), **model3** (DenseNet-121), plus **`clinical_risk`** (questionnaire), **`model4`** (report). **`POST /predict/densenet`** remains available as a standalone DenseNet endpoint (same model instance as `model3` when loaded).
+Never store secrets in `NEXT_PUBLIC_*` vars.
 
-Security note: never put backend API keys in `NEXT_PUBLIC_*` variables.
-
-### 3) Run development server
+### 3) Run frontend
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000` (or the port shown in terminal).
+Open [http://localhost:3000](http://localhost:3000).
 
-### 4) Build check
+### 4) Production sanity check
 
 ```bash
 npm run build
 ```
 
-## Project Structure
+## Local Backend Sample (optional but useful)
 
-```text
-src/
-  app/
-    page.tsx               # Landing
-    upload/page.tsx        # Multi-step upload flow
-    results/page.tsx       # Results dashboard
-    learn/page.tsx         # Learning hub
-    about/page.tsx         # Project/about page
-  components/
-    landing/               # Landing sections
-    upload/                # Upload flow UI
-    results/               # Results dashboard UI
-    shared/                # Navbar/footer/disclaimers
-    ui/                    # Reusable UI primitives
-  lib/
-    api.ts                 # Single integration switch: mock vs real ML
-    mock.ts                # Mock analysis generator
-    constants.ts           # Condition/anatomy copy and labels
-    findings-utils.ts      # Finding thresholds and helper logic
-    doctor-questions.ts    # Contextual question generation
-  store/
-    useAppStore.ts         # Global app state (wizard, image, analysis)
-  types/
-    index.ts               # Shared TypeScript types
+This repo includes a lightweight FastAPI sample under `backend/` for doctor-question endpoint testing and local wiring checks.
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
 ```
 
-## Staged Pipeline Architecture
+Then set:
 
-LungLens follows a staged routing design (API fields **`model1`** / **`model2`** / **`model3`** / **`clinical_risk`** / **`model4`**).
+- `BACKEND_API_BASE_URL=http://127.0.0.1:8000`
+- restart Next dev server if already running.
 
-**Pipeline card labels** (results UI, PDF): **Model 1 — ResNet-50**, **Model 2 — ResNet-152V2**, **Model 3 — DenseNet-121** (`src/lib/i18n.ts`). Each row’s **%** is **confidence for that model’s top class** in its own label set, not a single cross-model “accuracy.”
+## Pipeline Architecture
 
-1. **Model 1**: PyTorch **ResNet-50**, 3-class (e.g. Normal / Pneumonia-Bacteria / Pneumonia-Virus)
-2. **Model 2**: Keras **ResNet-152V2**, 3-class API labels with spaces (Normal / Lung Opacity / Viral Pneumonia)
-3. **Gate check**: `early_stop` vs `continue` based on pipeline rules
-4. **Model 3**: PyTorch **DenseNet-121** (COVID-19 / Normal / Pneumonia + optional Grad-CAM) — JSON field **`model3`**
-5. **`clinical_risk`**: questionnaire-based severity (not DenseNet)
-6. **`model4`**: final report synthesis with medical disclaimer
+API fields: `model1`, `model2`, `model3`, `clinical_risk`, `model4`.
 
-Implementation mapping:
+Model stages:
 
-- Types contract: `src/types/index.ts`
-- API orchestration switch: `src/lib/api.ts`
-- Mock parity implementation: `src/lib/mock.ts`
-- Upload routing + questionnaire state: `src/store/useAppStore.ts`, `src/components/upload/*`
-- Results stage rendering: `src/app/results/page.tsx`, `src/components/results/*`
+1. **Model 1 (ResNet-50)**: 3-class (Normal / Pneumonia-Bacteria / Pneumonia-Virus)
+2. **Model 2 (ResNet-152V2)**: 3-class (Normal / Lung Opacity / Viral Pneumonia)
+3. **Gate**: `early_stop` or `continue`
+4. **Model 3 (DenseNet-121)**: `COVID-19` / `Normal` / `Pneumonia` (+ optional Grad-CAM)
+5. **clinical_risk**: questionnaire-based risk
+6. **model4**: report synthesis
 
-Mock mode parity:
+Primary `predictions` dictionary is now expected to use:
 
-- In `NEXT_PUBLIC_USE_MOCK=true`, the mock returns pipeline-shaped outputs (`model1`, `model2`, `gate`, `model3`, `clinical_risk`, `model4`, `timing_ms`), so UI behavior matches real pipeline routing as closely as possible.
+- `Pneumonia`
+- `Lung Opacity`
+- `COVID-19`
 
-Cold-start warm-up:
+See [`docs/BACKEND_MODELS.md`](docs/BACKEND_MODELS.md) for detailed payload contracts.
 
-- The app silently triggers `GET ${NEXT_PUBLIC_API_URL}/health` on first load.
-- The call is fire-and-forget with no loading UI and no user-facing error on failure.
+## Manual Test Checklist
 
-## How to Update This Project
+### A) Mock mode test
 
-### A) Update UI pages/components
+Use:
 
-1. Edit route files under `src/app/*/page.tsx`.
-2. Keep reusable UI in `src/components/*`.
-3. Prefer adding logic to `src/lib/*` and keep pages relatively thin.
+- `NEXT_PUBLIC_USE_MOCK=true`
 
-### B) Update upload flow behavior
+Steps:
 
-- Flow state is managed in `src/store/useAppStore.ts`.
-- Step rendering shell: `src/components/upload/UploadFlowShell.tsx`.
-- Step components:
-  - doctor gate: `DoctorGateQuestion.tsx`
-  - privacy acknowledgment: `PrivacyNotice.tsx`
-  - upload/analyze: `ImageUploader.tsx`
-  - clinical questionnaire: `ClinicalQuestionnaire.tsx`
+1. Open `/upload`
+2. Complete doctor gate + privacy step
+3. Upload image and run analysis
+4. Verify `/results` renders:
+   - pipeline cards
+   - findings section with three-class labels only
+   - doctor questions section
+   - visible educational disclaimers
+5. Export PDF and confirm file downloads.
 
-### C) Update results logic
+Expected:
 
-- Main page: `src/app/results/page.tsx`
-- Notable findings threshold/tiering: `src/lib/findings-utils.ts`
-- Educational descriptions: `src/lib/constants.ts`
-- Generated doctor questions: `src/lib/doctor-questions.ts`
+- Findings badge may show `Mock Data`
+- Findings notice indicates demo/mock context.
 
-### D) Connect real ML model
+### B) Real backend test
 
-You only need to change integration behavior in one place:
+Use:
 
-- `src/lib/api.ts`
+- `NEXT_PUBLIC_USE_MOCK=false`
+- valid `BACKEND_API_BASE_URL` and `BACKEND_API_KEY`
 
-Current behavior:
+Steps:
 
-- `NEXT_PUBLIC_USE_MOCK=true` -> `mockAnalyze(file)` from `src/lib/mock.ts`
-- `NEXT_PUBLIC_USE_MOCK=false` -> POST file to frontend `/api/analyze`, which forwards server-side to real backend endpoint
+1. Repeat upload flow
+2. Open browser devtools -> Network
+3. Confirm browser calls Next routes (not backend directly):
+   - `POST /api/analyze`
+   - `POST /api/generate-questions`
+4. Verify findings section:
+   - explanations for `Pneumonia`, `Lung Opacity`, `COVID-19`
+   - provenance badge aligns with backend source metadata
+   - text: "These findings are generated directly from the AI models' primary classifications."
 
-Expected ML response shape:
+### C) Error handling test
 
-```json
-{
-  "success": true,
-  "predictions": {
-    "Atelectasis": 0.12
-  },
-  "gradcam": {
-    "heatmap_base64": "...",
-    "top_prediction": "Effusion",
-    "confidence": 0.78
-  }
-}
-```
+1. Stop backend and run with `NEXT_PUBLIC_USE_MOCK=false`
+2. Upload an image
+3. Confirm user-facing error is graceful and app does not crash.
 
-Tip: the app uses `/api/analyze` as the main browser entry point, so backend API keys stay server-side and are not exposed to browser clients.
-Tip: backend CORS is still recommended for local backend testing and direct tooling calls.
+### D) i18n smoke test
 
-## Quality Checks Before Pushing
+1. Switch language in UI
+2. Verify findings titles/descriptions and provenance messages render in selected locale.
+
+## Developer Quality Checks (before opening PR)
 
 Run:
 
 ```bash
+npx tsc --noEmit
+npm run lint
 npm run build
 ```
 
-Optional additional check:
+Optional:
 
 ```bash
-npm run lint
+npm audit --audit-level=high
+```
+
+Note: current audit may report high-severity advisories tied to Next.js/eslint-config-next major upgrade path; track separately if not upgrading framework in the same PR.
+
+## Key Files to Know
+
+```text
+src/app/results/page.tsx                 # Results orchestration and provenance summaries
+src/components/results/FindingsCard.tsx  # Findings UI + provenance notice
+src/lib/constants.ts                     # Finding labels and English explanations
+src/lib/i18n.ts                          # Localized copy
+src/lib/provenance-ui.ts                 # Badge normalization and provenance mapping
+src/app/api/analyze/route.ts             # Backend response normalization
+src/lib/high-attention-findings.ts       # Mapping to doctor-question triggers
+src/lib/mock.ts                          # Browser mock pipeline implementation
+src/types/index.ts                       # Shared API/types contract
+docs/BACKEND_MODELS.md                   # Backend payload expectations
 ```
 
 ## Deployment Notes
 
-- Frontend can be deployed to Vercel or other Next.js-compatible platforms.
-- ML service can run on Railway, Cloud Run, or another container host.
-- Set environment variables on your deployment platform:
+- Frontend: Vercel or any Next.js-compatible runtime
+- Backend: container host (Railway, Cloud Run, etc.)
+- Set platform env vars:
   - `NEXT_PUBLIC_USE_MOCK`
   - `NEXT_PUBLIC_API_URL`
   - `BACKEND_API_BASE_URL`
@@ -214,13 +232,11 @@ npm run lint
 
 ## License
 
-This project is licensed under the MIT License.
-
-- See [LICENSE](LICENSE)
+- MIT, see [LICENSE](LICENSE)
 - Copyright (c) 2026 Chung Him TSOI
 
-## Safety and Disclaimer
+## Safety Disclaimer
 
-- For educational and research purposes only.
-- Not a substitute for professional medical diagnosis.
-- Always consult a qualified healthcare professional.
+- Educational/research use only
+- Not a substitute for medical diagnosis
+- Always consult a qualified healthcare professional
