@@ -60,15 +60,6 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "BACKEND_API_KEY is not configured.",
-      },
-      { status: 500 },
-    );
-  }
 
   try {
     const incoming = await req.formData();
@@ -86,9 +77,7 @@ export async function POST(req: Request) {
 
     const res = await fetchWithTimeout(endpoint(base, "/predict/densenet"), {
       method: "POST",
-      headers: {
-        "X-API-Key": apiKey,
-      },
+      headers: apiKey ? { "X-API-Key": apiKey } : {},
       body: forward,
     });
 
