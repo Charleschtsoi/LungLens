@@ -244,7 +244,10 @@ function isDenseNetAnalyzeShape(rec: unknown): rec is JsonRecord {
   if (!isRecord(rec)) return false;
   const mn = rec.model_name;
   if (typeof mn === "string" && /densenet-121/i.test(mn.trim())) return true;
-  return typeof rec.prediction === "string" && isRecord(rec.probabilities);
+  return (
+    typeof rec.prediction === "string" &&
+    (isRecord(rec.probabilities) || isRecord(rec.all_probabilities))
+  );
 }
 
 /** Raw base64 for `gradcam.heatmap_base64` (strip `data:image/...;base64,` if present). */

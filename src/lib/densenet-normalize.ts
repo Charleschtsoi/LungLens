@@ -1,4 +1,4 @@
-export const DENSENET_LABELS = ["COVID-19", "Normal", "Pneumonia"] as const;
+export const DENSENET_LABELS = ["Normal", "Pneumonia-Bacteria", "Pneumonia-Virus"] as const;
 export type DenseNetClass = (typeof DENSENET_LABELS)[number];
 
 function isDenseNetClass(s: string): s is DenseNetClass {

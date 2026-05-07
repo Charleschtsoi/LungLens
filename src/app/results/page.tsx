@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResultsImageTabs } from "@/components/results/ResultsImageTabs";
 import { FindingsCard } from "@/components/results/FindingsCard";
@@ -225,6 +226,46 @@ export default function ResultsPage() {
   const stageLabel = (value: string) => t(`stage.${value}`, value);
   const gateLabel = (value: string) => t(`gate.${value}`, value);
   const riskLabel = (value: string) => t(`risk.${value}`, value);
+  const model3SummaryText = (() => {
+    // Preferred normalized display payload.
+    if (denseNetDisplay?.success && denseNetDisplay.prediction && Number.isFinite(denseNetDisplay.confidence)) {
+      return `${stageLabel(denseNetDisplay.prediction)} (${denseNetDisplay.confidence.toFixed(0)}%)`;
+    }
+
+    // Backward/forward compatibility: read from raw analyze model3 if present.
+    const m3 = analysis.model3 as
+      | {
+          prediction?: string | { class_name?: string; confidence_score?: number };
+          class_name?: string;
+          confidence_score?: number;
+          confidence?: number;
+        }
+      | null
+      | undefined;
+    if (!m3) return null;
+
+    const nestedPrediction =
+      m3.prediction && typeof m3.prediction === "object" && !Array.isArray(m3.prediction)
+        ? m3.prediction
+        : null;
+    const className =
+      (nestedPrediction && typeof nestedPrediction.class_name === "string" ? nestedPrediction.class_name : undefined) ??
+      (typeof m3.class_name === "string" ? m3.class_name : undefined) ??
+      (typeof m3.prediction === "string" ? m3.prediction : undefined);
+    const confidenceScore =
+      (nestedPrediction &&
+      typeof nestedPrediction.confidence_score === "number" &&
+      Number.isFinite(nestedPrediction.confidence_score)
+        ? nestedPrediction.confidence_score
+        : undefined) ??
+      (typeof m3.confidence_score === "number" && Number.isFinite(m3.confidence_score) ? m3.confidence_score : undefined) ??
+      (typeof m3.confidence === "number" && Number.isFinite(m3.confidence) ? m3.confidence : undefined);
+
+    if (!className || !Number.isFinite(confidenceScore)) return null;
+    const cs = confidenceScore as number;
+    const pct = cs <= 1 ? cs * 100 : cs;
+    return `${stageLabel(className)} (${pct.toFixed(0)}%)`;
+  })();
   const reportSummary =
     locale === "en"
       ? analysis.model4?.summary
@@ -459,7 +500,10 @@ export default function ResultsPage() {
                 return (
                   <div key={row.id} className="space-y-3 border-t border-border/60 pt-3">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="min-w-0 flex-1 font-medium text-foreground">{t(row.titleKey)}</p>
+                      <p className="min-w-0 flex-1">
+                        <span className="font-medium text-foreground">{t(row.titleKey)}: </span>
+                        {model3SummaryText ?? t("results.na")}
+                      </p>
                       {denseNetDisplay?.success ? <SectionSourceBadge source="model" /> : null}
                     </div>
                     <DenseNetPipelineBlock
@@ -491,6 +535,31 @@ export default function ResultsPage() {
                 {riskLabel(analysis.clinical_risk.risk_level)} /{" "}
                 {riskLabel(analysis.clinical_risk.severity)}
               </p>
+            )}
+            {analysis.copd_screening?.status === "success" && (
+              <div className="flex flex-wrap items-start justify-between gap-2 border-t border-border/60 pt-2">
+                <p className="min-w-0 flex-1">
+                  <span className="font-medium text-foreground">COPD Clinical Screening: </span>
+                  <span
+                    className={
+                      analysis.copd_screening.prediction === "High COPD Risk"
+                        ? "font-medium text-red-600"
+                        : "font-medium text-green-600"
+                    }
+                  >
+                    {analysis.copd_screening.prediction} (
+                    {(
+                      (typeof analysis.copd_screening.confidence === "number"
+                        ? analysis.copd_screening.confidence
+                        : 0) * 100
+                    ).toFixed(0)}
+                    % prob.)
+                  </span>
+                </p>
+                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                  Tabular NN ✓
+                </Badge>
+              </div>
             )}
           </CardContent>
         </Card>

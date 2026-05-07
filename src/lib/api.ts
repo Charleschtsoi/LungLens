@@ -204,12 +204,12 @@ export async function analyzeImageFile(
 const DENSENET_UNAVAILABLE = "__DENSENET_UNAVAILABLE__";
 
 /**
- * POST /api/predict/densenet → backend /predict/densenet (multipart `image`).
+ * POST /api/predict/densenet → backend /predict (multipart `file`) via Next proxy.
  * Does not use mock mode; requires Next proxy + backend configured.
  */
 export async function predictDenseNet(imageFile: File): Promise<DenseNetResponse> {
   const form = new FormData();
-  form.append("image", imageFile);
+  form.append("file", imageFile);
 
   const emptyError = (error: string): DenseNetResponse => ({
     success: false,
@@ -255,11 +255,31 @@ export async function predictDenseNet(imageFile: File): Promise<DenseNetResponse
       return emptyError(err);
     }
 
-    const rawPrediction = typeof rec.prediction === "string" ? rec.prediction : "";
-    const probs = rec.probabilities as Record<string, number>;
+    const predictionPayload =
+      rec.prediction && typeof rec.prediction === "object" && !Array.isArray(rec.prediction)
+        ? (rec.prediction as Record<string, unknown>)
+        : null;
+    const rawPrediction =
+      (predictionPayload && typeof predictionPayload.class_name === "string"
+        ? predictionPayload.class_name
+        : undefined) ??
+      (typeof rec.prediction === "string" ? rec.prediction : "");
+    const probs =
+      (predictionPayload && predictionPayload.all_probabilities && typeof predictionPayload.all_probabilities === "object"
+        ? (predictionPayload.all_probabilities as Record<string, number>)
+        : undefined) ??
+      (rec.all_probabilities && typeof rec.all_probabilities === "object"
+        ? (rec.all_probabilities as Record<string, number>)
+        : undefined) ??
+      (rec.probabilities && typeof rec.probabilities === "object"
+        ? (rec.probabilities as Record<string, number>)
+        : {});
     const prediction = normalizeDenseNetPrediction(rawPrediction, probs);
     const confidence = normalizeDenseNetConfidence(
-      typeof rec.confidence === "number" && Number.isFinite(rec.confidence) ? rec.confidence : NaN,
+      (predictionPayload && typeof predictionPayload.confidence_score === "number" && Number.isFinite(predictionPayload.confidence_score)
+        ? predictionPayload.confidence_score
+        : undefined) ??
+        (typeof rec.confidence === "number" && Number.isFinite(rec.confidence) ? rec.confidence : NaN),
     );
     const gradcam = typeof rec.gradcam === "string" ? rec.gradcam : "";
     const ipB64 = typeof rec.input_preview_base64 === "string" ? rec.input_preview_base64.trim() : "";
@@ -269,7 +289,7 @@ export async function predictDenseNet(imageFile: File): Promise<DenseNetResponse
       inputPreviewRaw = "";
     }
 
-    if (!isDenseNetProbabilities(rec.probabilities)) {
+    if (!isDenseNetProbabilities(probs)) {
       return emptyError("Invalid probabilities in response.");
     }
     if (!prediction) {

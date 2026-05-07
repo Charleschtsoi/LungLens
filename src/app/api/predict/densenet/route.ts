@@ -44,7 +44,8 @@ async function parseJsonBody(res: Response): Promise<JsonRecord | null> {
 }
 
 /**
- * Proxies multipart image to backend POST /predict/densenet (separate from /api/v1/analyze).
+ * Proxies multipart image to backend POST /predict.
+ * Accept backend contract with FormData key `file`.
  */
 export async function POST(req: Request) {
   const base = backendBaseUrl();
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
 
   try {
     const incoming = await req.formData();
-    const image = incoming.get("image");
+    const image = incoming.get("file") ?? incoming.get("image");
 
     if (!(image instanceof File)) {
       return NextResponse.json(
@@ -82,9 +83,9 @@ export async function POST(req: Request) {
     }
 
     const forward = new FormData();
-    forward.append("image", image, image.name);
+    forward.append("file", image, image.name);
 
-    const res = await fetchWithTimeout(endpoint(base, "/predict/densenet"), {
+    const res = await fetchWithTimeout(endpoint(base, "/predict"), {
       method: "POST",
       headers: {
         "X-API-Key": apiKey,

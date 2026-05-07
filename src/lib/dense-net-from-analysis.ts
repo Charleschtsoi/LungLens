@@ -14,8 +14,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isAnalyzeDenseNetBlock(m: DenseNetAnalyzeModel3): boolean {
   const name = typeof m.model_name === "string" ? m.model_name.trim() : "";
   if (name && /densenet/i.test(name)) return true;
-  if (typeof m.prediction === "string" && m.prediction.trim() && isRecord(m.probabilities)) {
-    return isDenseNetProbabilities(m.probabilities);
+  const probMap =
+    (isRecord(m.all_probabilities) ? m.all_probabilities : undefined) ??
+    (isRecord(m.probabilities) ? m.probabilities : undefined);
+  if (typeof m.prediction === "string" && m.prediction.trim() && probMap) {
+    return isDenseNetProbabilities(probMap);
   }
   if (typeof m.error === "string" && m.error.trim() && name && /densenet/i.test(name)) return true;
   return false;
@@ -31,10 +34,11 @@ export function denseNetResponseFromAnalyzeModel3(
   const m = analysis.model3;
   if (!m || !isAnalyzeDenseNetBlock(m)) return null;
 
-  const probs = (m.probabilities && isRecord(m.probabilities) ? m.probabilities : {}) as Record<
-    string,
-    number
-  >;
+  const probs = (
+    (m.all_probabilities && isRecord(m.all_probabilities) ? m.all_probabilities : undefined) ??
+    (m.probabilities && isRecord(m.probabilities) ? m.probabilities : undefined) ??
+    {}
+  ) as Record<string, number>;
   const rawPrediction = typeof m.prediction === "string" ? m.prediction : "";
   const prediction = normalizeDenseNetPrediction(rawPrediction, probs);
   const confRaw =

@@ -18,6 +18,8 @@ export interface DenseNetAnalyzeModel3 {
   prediction?: string;
   confidence?: number;
   probabilities?: Record<string, number>;
+  /** New backend alias for class probability map. */
+  all_probabilities?: Record<string, number>;
   gradcam?: string;
   /** Same 224×224 center crop as model input (PNG base64); aligns with `gradcam` framing. */
   input_preview_base64?: string;
@@ -37,6 +39,8 @@ export interface AnalyzeSuccessResponse {
   model2?: StageMultiClassResult;
   /** Clinical / questionnaire severity (backend `clinical_risk`; legacy: clinical-shaped `model3`). */
   clinical_risk?: StageClinicalResult | null;
+  /** Tabular Keras clinical model output (backend `copd_screening`). */
+  copd_screening?: CopdScreeningResult;
   /**
    * DenseNet-121 3-class + Grad-CAM (backend `model3`).
    * Separate from questionnaire clinical block.
@@ -104,6 +108,12 @@ export interface StageClinicalResult {
   severity: ClinicalSeverity;
   risk_level: ClinicalRiskLevel;
   recovery_outlook: ClinicalRecovery;
+}
+
+export interface CopdScreeningResult {
+  prediction: string;
+  confidence: number;
+  status: string;
 }
 
 export interface StageReportResult {

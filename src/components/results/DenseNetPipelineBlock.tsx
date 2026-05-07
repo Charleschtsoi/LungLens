@@ -5,23 +5,25 @@ import { isDistinctDenseNetInputPreview } from "@/lib/densenet-normalize";
 import { useI18n } from "@/hooks/useI18n";
 import type { DenseNetResponse } from "@/types";
 
-const CLASS_ORDER = ["COVID-19", "Normal", "Pneumonia"] as const;
+const CLASS_ORDER = ["Normal", "Pneumonia-Bacteria", "Pneumonia-Virus"] as const;
 
 function labelKeyForClass(c: string): string {
-  if (c === "COVID-19") return "densenet.label.covid";
   if (c === "Normal") return "densenet.label.normal";
-  if (c === "Pneumonia") return "densenet.label.pneumonia";
+  if (c === "Pneumonia-Bacteria") return "stage.Pneumonia-Bacteria";
+  if (c === "Pneumonia-Virus") return "stage.Pneumonia-Virus";
   return c;
 }
 
 function predictionTextClass(prediction: string): string {
   if (prediction === "Normal") return "text-emerald-600";
-  if (prediction === "COVID-19" || prediction === "Pneumonia") return "text-red-600";
+  if (prediction === "Pneumonia-Bacteria") return "text-amber-600";
+  if (prediction === "Pneumonia-Virus") return "text-red-600";
   return "text-foreground";
 }
 
 function barToneClass(className: string): string {
   if (className === "Normal") return "bg-emerald-500/90";
+  if (className === "Pneumonia-Bacteria") return "bg-amber-500/85";
   return "bg-red-500/85";
 }
 
