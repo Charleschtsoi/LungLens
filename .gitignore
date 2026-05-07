@@ -13,6 +13,11 @@ dist
 .env
 .env*.local
 
+# Model weights — store in shared Drive, not git
+*.pth
+*.h5
+*.pkl
+
 # Debug
 npm-debug.log*
 .DS_Store

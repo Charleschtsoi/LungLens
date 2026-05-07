@@ -440,26 +440,6 @@ export default function ResultsPage() {
           </AlertDescription>
         </Alert>
       )}
-      {specificSummary ? (
-        <Alert className="mt-4 border-amber-300 bg-amber-100/90 text-foreground shadow-sm">
-          <AlertDescription className="space-y-2 text-sm text-amber-950">
-            <p className="font-medium leading-relaxed">{specificSummary}</p>
-            {warningMessages.length > 0 && (
-              <p>
-                <span className="font-semibold">{t("results.warningsTitle")}:</span> {warningMessages.join(" ")}
-              </p>
-            )}
-          </AlertDescription>
-        </Alert>
-      ) : (
-        warningMessages.length > 0 && (
-          <Alert className="mt-4 border-amber-300 bg-amber-100/90 text-foreground shadow-sm">
-            <AlertDescription className="text-sm text-amber-950">
-              <span className="font-medium">{t("results.warningsTitle")}:</span> {warningMessages.join(" ")}
-            </AlertDescription>
-          </Alert>
-        )
-      )}
 
       <div className="mt-8">
         <ResultsImageTabs
