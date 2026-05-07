@@ -41,6 +41,8 @@ export interface AnalyzeSuccessResponse {
   clinical_risk?: StageClinicalResult | null;
   /** Tabular Keras clinical model output (backend `copd_screening`). */
   copd_screening?: CopdScreeningResult;
+  /** Swin-T Vision Transformer output from backend `model4_swint`. */
+  model4_swint?: SwinTScreeningResult;
   /**
    * DenseNet-121 3-class + Grad-CAM (backend `model3`).
    * Separate from questionnaire clinical block.
@@ -111,6 +113,12 @@ export interface StageClinicalResult {
 }
 
 export interface CopdScreeningResult {
+  prediction: string;
+  confidence: number;
+  status: string;
+}
+
+export interface SwinTScreeningResult {
   prediction: string;
   confidence: number;
   status: string;

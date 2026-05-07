@@ -65,8 +65,6 @@ export function ResultsImageTabs({
 
   const globalHeatmapBase64 = heatmapBase64ForDisplay(analysis.gradcam?.heatmap_base64);
 
-  const showModel1SoloCamFootnote = model1GradcamRaw.length > 0;
-
   const attentionFrameClass =
     "relative flex min-h-[400px] w-full items-center justify-center rounded-lg bg-slate-50/50 p-4 md:p-6";
 
@@ -119,7 +117,10 @@ export function ResultsImageTabs({
         </figure>
       </TabsContent>
 
-      <TabsContent value="attention" className="mt-4 space-y-2">
+      <TabsContent value="attention" className="mt-4 space-y-3">
+        <p className="text-sm text-muted-foreground">
+          This heatmap shows which areas of the lung the AI focused on the most when making its assessment.
+        </p>
         {!hasAnyAttention ? (
           <figure className="m-0">
             <div
@@ -225,12 +226,6 @@ export function ResultsImageTabs({
             ) : null}
           </div>
         )}
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground">{t("results.attentionNote")}</p>
-          {showModel1SoloCamFootnote ? (
-            <p className="text-xs text-muted-foreground">{t("results.attentionNoteSoloModelCam")}</p>
-          ) : null}
-        </div>
       </TabsContent>
 
       <TabsContent value="anatomy" className="mt-4">

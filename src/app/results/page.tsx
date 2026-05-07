@@ -40,7 +40,6 @@ import {
 } from "@/lib/provenance-ui";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 import { DenseNetPipelineBlock } from "@/components/results/DenseNetPipelineBlock";
-import { PIPELINE_MODEL_ROWS } from "@/lib/result-pipeline-models";
 import type { AnalyzeStageSource } from "@/types";
 
 /** Raw base64 for attention overlay (tabs + PDF); strips `data:image/...;base64,` if present. */
@@ -264,7 +263,28 @@ export default function ResultsPage() {
     if (!className || !Number.isFinite(confidenceScore)) return null;
     const cs = confidenceScore as number;
     const pct = cs <= 1 ? cs * 100 : cs;
-    return `${stageLabel(className)} (${pct.toFixed(0)}%)`;
+    return `${stageLabel(className)} (${pct.toFixed(0)}% Confidence)`;
+  })();
+  const model1SummaryText = analysis.model1
+    ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}% Confidence)`
+    : t("results.na");
+  const model2SummaryText = analysis.model2
+    ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}% Confidence)`
+    : t("results.na");
+  const model4SwintSummaryText =
+    analysis.model4_swint?.status === "success"
+      ? `${analysis.model4_swint.prediction} (${Math.round((analysis.model4_swint.confidence ?? 0) * 100)}% Confidence)`
+      : "Model Offline (Weights Missing)";
+  const copdSummaryText = (() => {
+    if (analysis.copd_screening?.status !== "success") return null;
+    const riskText =
+      analysis.copd_screening.prediction === "High COPD Risk"
+        ? "Elevated Risk Detected"
+        : analysis.copd_screening.prediction === "Low COPD Risk"
+          ? "Standard Risk Profile"
+          : analysis.copd_screening.prediction;
+    const confidence = Math.round((analysis.copd_screening.confidence ?? 0) * 100);
+    return { riskText, confidence };
   })();
   const reportSummary =
     locale === "en"
@@ -333,6 +353,22 @@ export default function ResultsPage() {
           status: t("results.impact.statusOk"),
         },
       ];
+  if (analysis.model4_swint?.status === "success") {
+    impactRows.push({
+      section: "Model 4 — Swin Transformer",
+      source: t("results.provenance.badge.model"),
+      sourceKind: "model",
+      status: t("results.impact.statusOk"),
+    });
+  }
+  if (analysis.copd_screening?.status === "success") {
+    impactRows.push({
+      section: "COPD Clinical Screening",
+      source: "Tabular NN",
+      sourceKind: "model",
+      status: t("results.impact.statusOk"),
+    });
+  }
 
   const exportPdf = async () => {
     if (isExportingPdf) return;
@@ -458,44 +494,94 @@ export default function ResultsPage() {
           <CardHeader>
             <CardTitle className="text-base">{t("results.pipelineTitle")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            {PIPELINE_MODEL_ROWS.map((row) => {
-              if (row.source === "analyze") {
-                if (row.id !== "model1" && row.id !== "model2") return null;
-                const model = row.id === "model1" ? analysis.model1 : analysis.model2;
-                const which = row.id === "model1" ? ("model1" as const) : ("model2" as const);
-                return (
-                  <div key={row.id} className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 flex-1">
-                      <span className="font-medium text-foreground">{t(row.titleKey)}: </span>
-                      {model
-                        ? `${stageLabel(model.label)} (${Math.round(model.confidence * 100)}%)`
+          <CardContent className="space-y-5 text-sm text-muted-foreground">
+            <section className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
+              <h3 className="text-sm font-semibold text-foreground">Visual X-Ray Analysis</h3>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">{model1SummaryText}</p>
+                    <p className="text-xs text-muted-foreground">Powered by Model 1 (ResNet-50)</p>
+                  </div>
+                  <SectionSourceBadge
+                    source={pipelineProvenanceSource(analysis.provenance, "model1")}
+                    className="px-2 py-0 text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">{model2SummaryText}</p>
+                    <p className="text-xs text-muted-foreground">Powered by Model 2 (ResNet-152V2)</p>
+                  </div>
+                  <SectionSourceBadge
+                    source={pipelineProvenanceSource(analysis.provenance, "model2")}
+                    className="px-2 py-0 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-2 border-b border-border/60 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground">{model3SummaryText ?? t("results.na")}</p>
+                      <p className="text-xs text-muted-foreground">Powered by Model 3 (DenseNet-121)</p>
+                    </div>
+                    {denseNetDisplay?.success ? (
+                      <SectionSourceBadge source="model" className="px-2 py-0 text-xs" />
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{t("results.model3DenseNet.unavailable")}</p>
+                    )}
+                  </div>
+                  <DenseNetPipelineBlock
+                    loading={denseNetLoadingEffective}
+                    result={denseNetDisplay}
+                    previewUrl={previewUrl}
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-start justify-between gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">{model4SwintSummaryText}</p>
+                    <p className="text-xs text-muted-foreground">Powered by Model 4 (Swin Transformer)</p>
+                  </div>
+                  {analysis.model4_swint?.status === "success" ? (
+                    <Badge variant="outline" className="border-violet-200 bg-violet-50 px-2 py-0 text-xs text-violet-700">
+                      ViT Model ✓
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
+              <h3 className="text-sm font-semibold text-foreground">Clinical Patient Assessment</h3>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-start justify-between gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={
+                        copdSummaryText
+                          ? analysis.copd_screening?.prediction === "High COPD Risk"
+                            ? "font-semibold text-red-600"
+                            : "font-semibold text-green-600"
+                          : "font-semibold text-foreground"
+                      }
+                    >
+                      {copdSummaryText
+                        ? `${copdSummaryText.riskText} (${copdSummaryText.confidence}% Confidence)`
                         : t("results.na")}
                     </p>
-                    <SectionSourceBadge source={pipelineProvenanceSource(analysis.provenance, which)} />
+                    <p className="text-xs text-muted-foreground">Powered by Chronic Lung Risk (COPD)</p>
                   </div>
-                );
-              }
-              if (row.supplementalKey === "densenet") {
-                return (
-                  <div key={row.id} className="space-y-3 border-t border-border/60 pt-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="min-w-0 flex-1">
-                        <span className="font-medium text-foreground">{t(row.titleKey)}: </span>
-                        {model3SummaryText ?? t("results.na")}
-                      </p>
-                      {denseNetDisplay?.success ? <SectionSourceBadge source="model" /> : null}
-                    </div>
-                    <DenseNetPipelineBlock
-                      loading={denseNetLoadingEffective}
-                      result={denseNetDisplay}
-                      previewUrl={previewUrl}
-                    />
-                  </div>
-                );
-              }
-              return null;
-            })}
+                  {copdSummaryText ? (
+                    <Badge variant="outline" className="border-blue-200 bg-blue-50 px-2 py-0 text-xs text-blue-700">
+                      Tabular NN ✓
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">
                 <span className="font-medium text-foreground">{t("results.gateDecision")}: </span>
@@ -515,31 +601,6 @@ export default function ResultsPage() {
                 {riskLabel(analysis.clinical_risk.risk_level)} /{" "}
                 {riskLabel(analysis.clinical_risk.severity)}
               </p>
-            )}
-            {analysis.copd_screening?.status === "success" && (
-              <div className="flex flex-wrap items-start justify-between gap-2 border-t border-border/60 pt-2">
-                <p className="min-w-0 flex-1">
-                  <span className="font-medium text-foreground">COPD Clinical Screening: </span>
-                  <span
-                    className={
-                      analysis.copd_screening.prediction === "High COPD Risk"
-                        ? "font-medium text-red-600"
-                        : "font-medium text-green-600"
-                    }
-                  >
-                    {analysis.copd_screening.prediction} (
-                    {(
-                      (typeof analysis.copd_screening.confidence === "number"
-                        ? analysis.copd_screening.confidence
-                        : 0) * 100
-                    ).toFixed(0)}
-                    % prob.)
-                  </span>
-                </p>
-                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                  Tabular NN ✓
-                </Badge>
-              </div>
             )}
           </CardContent>
         </Card>
