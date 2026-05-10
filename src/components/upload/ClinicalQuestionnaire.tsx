@@ -6,16 +6,19 @@ import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const MIN_BUTTON_LOADING_MS = 600;
+const GEMINI_KEY_STORAGE_KEY = "lunglens_gemini_api_key";
 
 export function ClinicalQuestionnaire() {
   const router = useRouter();
   const { t } = useI18n();
   const [submitUiLoading, setSubmitUiLoading] = useState(false);
+  const [geminiKey, setGeminiKey] = useState("");
   const imageFile = useAppStore((s) => s.imageFile);
   const analysisError = useAppStore((s) => s.analysisError);
   const questionnaire = useAppStore((s) => s.questionnaire);
@@ -28,13 +31,27 @@ export function ClinicalQuestionnaire() {
   const analysisLoading = useAppStore((s) => s.analysisLoading);
   const startSupplementalDensenet = useAppStore((s) => s.startSupplementalDensenet);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(GEMINI_KEY_STORAGE_KEY);
+    if (saved) setGeminiKey(saved);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(GEMINI_KEY_STORAGE_KEY, geminiKey);
+  }, [geminiKey]);
+
   const submit = async () => {
     if (!imageFile || analysisLoading || submitUiLoading) return;
     const startedAt = Date.now();
     setSubmitUiLoading(true);
     setAnalysisError(null);
     setAnalysisLoading(true);
-    const res = await analyzeImageFile(imageFile, { questionnaire });
+    const res = await analyzeImageFile(imageFile, {
+      questionnaire,
+      geminiApiKey: geminiKey.trim() || undefined,
+    });
     const elapsed = Date.now() - startedAt;
     if (elapsed < MIN_BUTTON_LOADING_MS) {
       await new Promise((resolve) => setTimeout(resolve, MIN_BUTTON_LOADING_MS - elapsed));
@@ -137,6 +154,20 @@ export function ClinicalQuestionnaire() {
             <option value="mild">{t("upload.q.mild")}</option>
             <option value="severe">{t("upload.q.severe")}</option>
           </select>
+        </label>
+
+        <label className="text-sm sm:col-span-2">
+          <span className="mb-1 block text-muted-foreground">Gemini API Key (Optional: For AI Clinical Summary)</span>
+          <Input
+            type="password"
+            value={geminiKey}
+            onChange={(e) => setGeminiKey(e.target.value)}
+            autoComplete="off"
+            placeholder="AIza..."
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            This key is stored only in your browser and sent only with your local analysis request. It is not saved by LungLens servers.
+          </p>
         </label>
 
         <div className="sm:col-span-2">

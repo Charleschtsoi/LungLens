@@ -50,6 +50,8 @@ export interface AnalyzeSuccessResponse {
   model3?: DenseNetAnalyzeModel3 | null;
   /** Report synthesis (backend `model4`; same shape as former `report`). */
   model4?: StageReportResult | null;
+  /** Optional BYOK Gemini evaluator output from backend. */
+  llm_evaluation?: LlmEvaluationResult;
   timing_ms?: StageTiming;
   requires_questionnaire?: boolean;
   warnings?: AnalyzeWarning[];
@@ -91,6 +93,7 @@ export interface StageBinaryResult {
 export interface StageMultiClassResult {
   label: "Normal" | "Lung Opacity" | "Viral Pneumonia" | "Other";
   confidence: number;
+  probabilities?: Record<string, number>;
 }
 
 export type ClinicalSeverity = "low" | "moderate" | "high";
@@ -128,6 +131,11 @@ export interface StageReportResult {
   summary: string;
   recommended_actions: string[];
   disclaimer: string;
+}
+
+export interface LlmEvaluationResult {
+  status: string;
+  text: string;
 }
 
 export interface StageTiming {

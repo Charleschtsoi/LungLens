@@ -88,7 +88,23 @@ function unwrapAnalyzeRoot(raw: JsonRecord): JsonRecord {
 
 function coerceStageRecord(rec: JsonRecord): JsonRecord {
   const out: JsonRecord = { ...rec };
-  if (typeof out.label === "string") out.label = out.label.trim();
+  const normalizeLabel = (raw: string): string => {
+    const t = raw.trim();
+    if (t === "Lung_Opacity") return "Lung Opacity";
+    if (t === "Viral_Pneumonia") return "Viral Pneumonia";
+    if (t === "Pneumonia_Bacteria") return "Pneumonia-Bacteria";
+    if (t === "Pneumonia_Virus") return "Pneumonia-Virus";
+    return t;
+  };
+  if (typeof out.label === "string") out.label = normalizeLabel(out.label);
+  if (isRecord(out.probabilities)) {
+    const p = out.probabilities as Record<string, unknown>;
+    const normalized: JsonRecord = {};
+    for (const [k, v] of Object.entries(p)) {
+      normalized[normalizeLabel(k)] = v;
+    }
+    out.probabilities = normalized;
+  }
   const c = out.confidence;
   if (typeof c === "string") {
     const n = Number(c);
@@ -420,6 +436,7 @@ export async function POST(req: Request) {
     const incoming = await req.formData();
     const image = incoming.get("image");
     const questionnaire = incoming.get("questionnaire");
+    const geminiApiKey = incoming.get("gemini_api_key");
 
     if (!(image instanceof File)) {
       return NextResponse.json(
@@ -439,6 +456,10 @@ export async function POST(req: Request) {
     const questionnaireRaw = typeof questionnaire === "string" ? questionnaire : null;
     if (questionnaireRaw?.trim()) {
       forward.append("questionnaire", questionnaireRaw);
+    }
+    const geminiApiKeyRaw = typeof geminiApiKey === "string" ? geminiApiKey : null;
+    if (geminiApiKeyRaw?.trim()) {
+      forward.append("gemini_api_key", geminiApiKeyRaw.trim());
     }
 
     const res = await fetchWithTimeout(endpoint(base, "/api/v1/analyze"), {

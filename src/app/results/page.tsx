@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResultsImageTabs } from "@/components/results/ResultsImageTabs";
+import { ClassProbabilitiesList } from "@/components/results/ClassProbabilitiesList";
 import { FindingsCard } from "@/components/results/FindingsCard";
 import { DoctorQuestions } from "@/components/results/DoctorQuestions";
 import { LearnMoreCards } from "@/components/results/LearnMoreCards";
@@ -17,6 +18,7 @@ import { getNotableFindings } from "@/lib/findings-utils";
 import { buildDoctorQuestions } from "@/lib/doctor-questions";
 import { buildEducationReportPdf } from "@/lib/pdf-report";
 import { FileDown, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useI18n } from "@/hooks/useI18n";
 import {
   denseNetResponseFromAnalyzeModel3,
@@ -489,6 +491,19 @@ export default function ResultsPage() {
         />
       </div>
 
+      {analysis.llm_evaluation?.status === "success" && analysis.llm_evaluation.text.trim() && (
+        <Card className="mt-6 border-blue-200/70 bg-blue-50/30 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base text-blue-900">AI Clinical Educator Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-sm max-w-none text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900">
+              <ReactMarkdown>{analysis.llm_evaluation.text}</ReactMarkdown>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -498,26 +513,36 @@ export default function ResultsPage() {
             <section className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
               <h3 className="text-sm font-semibold text-foreground">Visual X-Ray Analysis</h3>
               <div className="space-y-1.5">
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{model1SummaryText}</p>
-                    <p className="text-xs text-muted-foreground">Powered by Model 1 (ResNet-50)</p>
+                <div className="space-y-2 border-b border-border/60 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground">{model1SummaryText}</p>
+                      <p className="text-xs text-muted-foreground">Powered by Model 1 (ResNet-50)</p>
+                    </div>
+                    <SectionSourceBadge
+                      source={pipelineProvenanceSource(analysis.provenance, "model1")}
+                      className="px-2 py-0 text-xs"
+                    />
                   </div>
-                  <SectionSourceBadge
-                    source={pipelineProvenanceSource(analysis.provenance, "model1")}
-                    className="px-2 py-0 text-xs"
-                  />
+                  {analysis.model1?.probabilities ? (
+                    <ClassProbabilitiesList probabilities={analysis.model1.probabilities} />
+                  ) : null}
                 </div>
 
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{model2SummaryText}</p>
-                    <p className="text-xs text-muted-foreground">Powered by Model 2 (ResNet-152V2)</p>
+                <div className="space-y-2 border-b border-border/60 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground">{model2SummaryText}</p>
+                      <p className="text-xs text-muted-foreground">Powered by Model 2 (ResNet-152V2)</p>
+                    </div>
+                    <SectionSourceBadge
+                      source={pipelineProvenanceSource(analysis.provenance, "model2")}
+                      className="px-2 py-0 text-xs"
+                    />
                   </div>
-                  <SectionSourceBadge
-                    source={pipelineProvenanceSource(analysis.provenance, "model2")}
-                    className="px-2 py-0 text-xs"
-                  />
+                  {analysis.model2?.probabilities ? (
+                    <ClassProbabilitiesList probabilities={analysis.model2.probabilities} />
+                  ) : null}
                 </div>
 
                 <div className="space-y-2 border-b border-border/60 py-3">

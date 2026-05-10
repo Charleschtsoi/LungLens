@@ -26,6 +26,7 @@ function analyzeUrl(): string {
  */
 export interface AnalyzeOptions {
   questionnaire?: Stage3QuestionnaireInput | null;
+  geminiApiKey?: string;
 }
 
 function normalizeError(status: number, fallback?: string): string {
@@ -100,6 +101,9 @@ export async function analyzeImageFile(
   form.append("image", file);
   if (options?.questionnaire) {
     form.append("questionnaire", JSON.stringify(options.questionnaire));
+  }
+  if (options?.geminiApiKey?.trim()) {
+    form.append("gemini_api_key", options.geminiApiKey.trim());
   }
 
   try {
