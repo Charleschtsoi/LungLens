@@ -230,13 +230,14 @@ docs/BACKEND_MODELS.md                   # Backend payload expectations
   - `BACKEND_API_BASE_URL`
   - `BACKEND_API_KEY`
 
-## License
-
-- MIT, see [LICENSE](LICENSE)
-- Copyright (c) 2026 Chung Him TSOI
-
 ## Safety Disclaimer
 
 - Educational/research use only
 - Not a substitute for medical diagnosis
 - Always consult a qualified healthcare professional
+
+## ⚖️ License
+
+This frontend repository is released under the **MIT License**—a permissive open-source license that allows use, modification, and distribution with minimal requirements. See [`LICENSE`](LICENSE) for the full legal text.
+
+**Open core scope:** This repository is **only the user interface** (the Next.js web app). The core **machine learning engine**—including Swin-T attention, COPD screening, and the LLM clinical evaluator—lives in a **separate backend repository**, which is offered under a **dual license**: **GNU Affero General Public License v3 (AGPLv3)** for open-source use, or a **commercial license** for proprietary or closed deployments.
