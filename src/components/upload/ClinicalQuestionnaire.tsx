@@ -6,11 +6,10 @@ import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { GEMINI_API_KEY_STORAGE_KEY } from "@/lib/gemini-client-storage";
+import { useState } from "react";
+import { readStoredGeminiApiKey } from "@/lib/gemini-client-storage";
 
 const MIN_BUTTON_LOADING_MS = 600;
 
@@ -18,7 +17,6 @@ export function ClinicalQuestionnaire() {
   const router = useRouter();
   const { t } = useI18n();
   const [submitUiLoading, setSubmitUiLoading] = useState(false);
-  const [geminiKey, setGeminiKey] = useState("");
   const imageFile = useAppStore((s) => s.imageFile);
   const analysisError = useAppStore((s) => s.analysisError);
   const questionnaire = useAppStore((s) => s.questionnaire);
@@ -31,29 +29,16 @@ export function ClinicalQuestionnaire() {
   const analysisLoading = useAppStore((s) => s.analysisLoading);
   const startSupplementalDensenet = useAppStore((s) => s.startSupplementalDensenet);
 
-  const geminiHydrated = useRef(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
-    if (saved) setGeminiKey(saved);
-    geminiHydrated.current = true;
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !geminiHydrated.current) return;
-    window.localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, geminiKey);
-  }, [geminiKey]);
-
   const submit = async () => {
     if (!imageFile || analysisLoading || submitUiLoading) return;
     const startedAt = Date.now();
     setSubmitUiLoading(true);
     setAnalysisError(null);
     setAnalysisLoading(true);
+    const geminiApiKey = readStoredGeminiApiKey();
     const res = await analyzeImageFile(imageFile, {
       questionnaire,
-      geminiApiKey: geminiKey.trim() || undefined,
+      ...(geminiApiKey ? { geminiApiKey } : {}),
     });
     const elapsed = Date.now() - startedAt;
     if (elapsed < MIN_BUTTON_LOADING_MS) {
@@ -80,6 +65,7 @@ export function ClinicalQuestionnaire() {
       <CardHeader>
         <CardTitle>{t("upload.q.title")}</CardTitle>
         <CardDescription>{t("upload.q.subtitle")}</CardDescription>
+        <p className="mt-2 text-xs text-muted-foreground">{t("upload.q.geminiReuseNote")}</p>
       </CardHeader>
       {analysisError && (
         <p className="px-6 pb-2 text-sm text-destructive" role="alert">
@@ -157,18 +143,6 @@ export function ClinicalQuestionnaire() {
             <option value="mild">{t("upload.q.mild")}</option>
             <option value="severe">{t("upload.q.severe")}</option>
           </select>
-        </label>
-
-        <label className="text-sm sm:col-span-2">
-          <span className="mb-1 block text-muted-foreground">{t("upload.geminiOptional.label")}</span>
-          <Input
-            type="password"
-            value={geminiKey}
-            onChange={(e) => setGeminiKey(e.target.value)}
-            autoComplete="off"
-            placeholder={t("upload.geminiOptional.placeholder")}
-          />
-          <p className="mt-1 text-xs text-muted-foreground">{t("upload.geminiOptional.help")}</p>
         </label>
 
         <div className="sm:col-span-2">

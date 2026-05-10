@@ -132,6 +132,8 @@ const dictEn: Dict = {
   "upload.q.title": "Clinical questionnaire",
   "upload.q.subtitle":
     "Because findings were positive, please answer a few questions to generate contextual risk guidance.",
+  "upload.q.geminiReuseNote":
+    "If you entered an optional Gemini API key on the upload step, it is sent again automatically with this request (stored only in your browser).",
   "upload.q.age": "Age",
   "upload.q.fever": "Fever",
   "upload.q.coughDays": "Cough duration (days)",
@@ -168,7 +170,7 @@ const dictEn: Dict = {
   "results.llmFailedHint":
     "When this appears, the backend usually could not complete the Gemini call (invalid key, quota, model error, or network). Confirm your key on the upload step and check Google AI Studio.",
   "results.llmSkippedHint":
-    "Optional: add a Gemini API key on upload or in the questionnaire so the educator summary can run (BYOK).",
+    "Optional: add a Gemini API key on the upload step so the educator summary can run (BYOK).",
   "results.pdfSection.visualXray": "Visual X-Ray Analysis",
   "results.pdfSection.clinicalAssessment": "Clinical Patient Assessment",
   "results.poweredBy.model1": "Powered by Model 1 (ResNet-50)",
@@ -474,6 +476,8 @@ const dictHant: Dict = {
 
   "upload.q.title": "臨床問卷",
   "upload.q.subtitle": "由於出現陽性線索，請回答幾個問題以產生更完整的風險說明。",
+  "upload.q.geminiReuseNote":
+    "若你在上傳步驟填過選填的 Gemini API 金鑰，本次請求會自動一併送出（僅存在你的瀏覽器）。",
   "upload.q.age": "年齡",
   "upload.q.fever": "是否發燒",
   "upload.q.coughDays": "咳嗽天數",
@@ -507,7 +511,7 @@ const dictHant: Dict = {
   "results.llmEducatorTitle": "AI 臨床教育摘要",
   "results.llmFailedHint":
     "通常代表後端無法完成 Gemini 請求（金鑰無效、配額、模型或網路問題）。請在上傳步驟確認金鑰並查看 Google AI Studio。",
-  "results.llmSkippedHint": "選填：於上傳或問卷步驟加入 Gemini API 金鑰以啟用教育者摘要（BYOK）。",
+  "results.llmSkippedHint": "選填：於上傳步驟加入 Gemini API 金鑰以啟用教育者摘要（BYOK）。",
   "results.pdfSection.visualXray": "X 光影像分析",
   "results.pdfSection.clinicalAssessment": "臨床病患評估",
   "results.poweredBy.model1": "由模型 1（ResNet-50）提供",
@@ -745,6 +749,8 @@ const dictHans: Dict = {
 
   "upload.q.title": "临床问卷",
   "upload.q.subtitle": "由于出现阳性线索，请回答几个问题以生成更完整的风险说明。",
+  "upload.q.geminiReuseNote":
+    "若你在上传步骤填写过可选的 Gemini API 密钥，本次请求会自动一并发送（仅保存在你的浏览器）。",
   "upload.q.age": "年龄",
   "upload.q.fever": "是否发烧",
   "upload.q.coughDays": "咳嗽天数",
@@ -776,7 +782,7 @@ const dictHans: Dict = {
   "results.llmEducatorTitle": "AI 临床教育摘要",
   "results.llmFailedHint":
     "通常表示后端未能完成 Gemini 请求（密钥无效、配额、模型或网络问题）。请在上传步骤确认密钥并查看 Google AI Studio。",
-  "results.llmSkippedHint": "可选：在上传或问卷步骤添加 Gemini API 密钥以启用教育者摘要（BYOK）。",
+  "results.llmSkippedHint": "可选：在上传步骤添加 Gemini API 密钥以启用教育者摘要（BYOK）。",
   "results.pdfSection.visualXray": "X 光影像分析",
   "results.pdfSection.clinicalAssessment": "临床患者评估",
   "results.poweredBy.model1": "由模型 1（ResNet-50）提供",
