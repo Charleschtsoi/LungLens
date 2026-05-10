@@ -26,6 +26,7 @@ function analyzeUrl(): string {
  */
 export interface AnalyzeOptions {
   questionnaire?: Stage3QuestionnaireInput | null;
+  /** Forwarded as `gemini_api_key` on multipart POST (BYOK); server-only backend use. */
   geminiApiKey?: string;
 }
 

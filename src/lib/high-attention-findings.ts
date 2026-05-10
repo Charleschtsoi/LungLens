@@ -1,5 +1,6 @@
 import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 import type { AnalyzeSuccessResponse, DenseNetResponse } from "@/types";
+import { model3PredictionString } from "@/lib/dense-net-from-analysis";
 import { getNotableFindings } from "@/lib/findings-utils";
 
 const FINDING_SET = new Set<string>(FINDING_LABELS as readonly string[]);
@@ -44,8 +45,8 @@ export function isModel3DenseNetPositive(
 ): boolean {
   const pred = denseNetDisplay?.success
     ? denseNetDisplay.prediction
-    : analysis.model3?.prediction;
-  if (!pred || typeof pred !== "string") return false;
+    : model3PredictionString(analysis.model3);
+  if (!pred) return false;
   return pred !== "Normal";
 }
 
@@ -72,8 +73,10 @@ export function buildHighAttentionFindingKeys(
   }
 
   if (isModel3DenseNetPositive(analysis, denseNetDisplay)) {
-    const pred = denseNetDisplay?.success ? denseNetDisplay.prediction : analysis.model3?.prediction;
-    const n = typeof pred === "string" ? pred.trim() : "";
+    const pred = denseNetDisplay?.success
+      ? denseNetDisplay.prediction
+      : model3PredictionString(analysis.model3);
+    const n = pred.trim();
     if (n === "COVID-19") return ["COVID-19"];
     if (n === "Pneumonia") return ["Pneumonia"];
     return ["Pneumonia"];

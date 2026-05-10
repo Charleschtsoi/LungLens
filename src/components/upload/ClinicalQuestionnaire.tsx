@@ -9,10 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { GEMINI_API_KEY_STORAGE_KEY } from "@/lib/gemini-client-storage";
 
 const MIN_BUTTON_LOADING_MS = 600;
-const GEMINI_KEY_STORAGE_KEY = "lunglens_gemini_api_key";
 
 export function ClinicalQuestionnaire() {
   const router = useRouter();
@@ -31,15 +31,18 @@ export function ClinicalQuestionnaire() {
   const analysisLoading = useAppStore((s) => s.analysisLoading);
   const startSupplementalDensenet = useAppStore((s) => s.startSupplementalDensenet);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(GEMINI_KEY_STORAGE_KEY);
-    if (saved) setGeminiKey(saved);
-  }, []);
+  const geminiHydrated = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(GEMINI_KEY_STORAGE_KEY, geminiKey);
+    const saved = window.localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
+    if (saved) setGeminiKey(saved);
+    geminiHydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !geminiHydrated.current) return;
+    window.localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, geminiKey);
   }, [geminiKey]);
 
   const submit = async () => {
@@ -157,17 +160,15 @@ export function ClinicalQuestionnaire() {
         </label>
 
         <label className="text-sm sm:col-span-2">
-          <span className="mb-1 block text-muted-foreground">Gemini API Key (Optional: For AI Clinical Summary)</span>
+          <span className="mb-1 block text-muted-foreground">{t("upload.geminiOptional.label")}</span>
           <Input
             type="password"
             value={geminiKey}
             onChange={(e) => setGeminiKey(e.target.value)}
             autoComplete="off"
-            placeholder="AIza..."
+            placeholder={t("upload.geminiOptional.placeholder")}
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            This key is stored only in your browser and sent only with your local analysis request. It is not saved by LungLens servers.
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("upload.geminiOptional.help")}</p>
         </label>
 
         <div className="sm:col-span-2">

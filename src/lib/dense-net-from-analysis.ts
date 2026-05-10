@@ -10,6 +10,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+/** Top-level string, nested `{ class_name }`, or backend `class_name` field on `model3`. */
+function denseNetRawClassName(m: DenseNetAnalyzeModel3): string {
+  const p = m.prediction;
+  if (typeof p === "string" && p.trim()) return p;
+  if (isRecord(p) && typeof p.class_name === "string") return p.class_name;
+  if (typeof m.class_name === "string" && m.class_name.trim()) return m.class_name;
+  return "";
+}
+
+function denseNetNestedConfidence(m: DenseNetAnalyzeModel3): number | undefined {
+  const p = m.prediction;
+  if (isRecord(p) && typeof p.confidence_score === "number" && Number.isFinite(p.confidence_score)) {
+    return p.confidence_score;
+  }
+  return undefined;
+}
+
 /** True when `model3` is the DenseNet block (not questionnaire clinical risk). */
 function isAnalyzeDenseNetBlock(m: DenseNetAnalyzeModel3): boolean {
   const name = typeof m.model_name === "string" ? m.model_name.trim() : "";
@@ -17,8 +34,12 @@ function isAnalyzeDenseNetBlock(m: DenseNetAnalyzeModel3): boolean {
   const probMap =
     (isRecord(m.all_probabilities) ? m.all_probabilities : undefined) ??
     (isRecord(m.probabilities) ? m.probabilities : undefined);
-  if (typeof m.prediction === "string" && m.prediction.trim() && probMap) {
+  const raw = denseNetRawClassName(m);
+  if (raw.trim() && probMap) {
     return isDenseNetProbabilities(probMap);
+  }
+  if (probMap && isDenseNetProbabilities(probMap) && typeof m.gradcam === "string" && m.gradcam.trim()) {
+    return true;
   }
   if (typeof m.error === "string" && m.error.trim() && name && /densenet/i.test(name)) return true;
   return false;
@@ -39,10 +60,12 @@ export function denseNetResponseFromAnalyzeModel3(
     (m.probabilities && isRecord(m.probabilities) ? m.probabilities : undefined) ??
     {}
   ) as Record<string, number>;
-  const rawPrediction = typeof m.prediction === "string" ? m.prediction : "";
+  const rawPrediction = denseNetRawClassName(m);
   const prediction = normalizeDenseNetPrediction(rawPrediction, probs);
-  const confRaw =
+  const nestedConf = denseNetNestedConfidence(m);
+  let confRaw =
     typeof m.confidence === "number" && Number.isFinite(m.confidence) ? m.confidence : NaN;
+  if (!Number.isFinite(confRaw) && nestedConf !== undefined) confRaw = nestedConf;
   let confidence = normalizeDenseNetConfidence(confRaw);
   const gradcam = typeof m.gradcam === "string" ? m.gradcam : "";
   const fromBase64 =
@@ -93,9 +116,14 @@ export function denseNetResponseFromAnalyzeModel3(
   };
 }
 
+/** Canonical class label from `model3` (`prediction`, nested prediction, or top-level `class_name`). */
+export function model3PredictionString(m: AnalyzeSuccessResponse["model3"]): string {
+  if (!m) return "";
+  return denseNetRawClassName(m);
+}
+
 /**
  * Prefer DenseNet from `/analyze` when successful; fill Grad-CAM from supplemental fetch when analyze omits it.
- * If analyze DenseNet failed or is absent, use supplemental success when available.
  */
 export function mergeDenseNetDisplayForUi(
   fromAnalyze: DenseNetResponse | null,

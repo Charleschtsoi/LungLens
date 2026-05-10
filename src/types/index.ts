@@ -11,11 +11,22 @@ export interface GradcamResult {
   confidence: number;
 }
 
+/** Nested prediction object some production backends send instead of a top-level string. */
+export interface DenseNetNestedPrediction {
+  class_name?: string;
+  confidence_score?: number;
+}
+
 /** DenseNet-121 block inside `POST /api/v1/analyze` (`model3`). */
 export interface DenseNetAnalyzeModel3 {
   /** Backend typically sends `"DenseNet-121"`. */
   model_name?: string;
-  prediction?: string;
+  /** Plain string or nested `{ class_name, confidence_score }` (match `/api/v1/analyze` production). */
+  prediction?: string | DenseNetNestedPrediction;
+  /** Some backends send class metadata alongside or instead of `prediction` string. */
+  class_id?: number;
+  class_name?: string;
+  confidence_score?: number;
   confidence?: number;
   probabilities?: Record<string, number>;
   /** New backend alias for class probability map. */

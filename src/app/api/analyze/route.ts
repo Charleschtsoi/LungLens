@@ -3,6 +3,10 @@ import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 
 const BACKEND_TIMEOUT_MS = 30000;
 
+/** 1×1 PNG — used when backend omits heatmaps (healthy/demo runs) so normalization + client checks succeed. */
+const PLACEHOLDER_HEATMAP_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
 type JsonRecord = Record<string, unknown>;
 
 function backendBaseUrl(): string | null {
@@ -96,6 +100,9 @@ function coerceStageRecord(rec: JsonRecord): JsonRecord {
     if (t === "Pneumonia_Virus") return "Pneumonia-Virus";
     return t;
   };
+  if (typeof out.prediction === "string" && typeof out.label !== "string") {
+    out.label = normalizeLabel(out.prediction);
+  }
   if (typeof out.label === "string") out.label = normalizeLabel(out.label);
   if (isRecord(out.probabilities)) {
     const p = out.probabilities as Record<string, unknown>;
@@ -121,6 +128,43 @@ function resolveModelRecord(payload: JsonRecord, newKey: string, oldKey: string)
   const raw = pickModelRecord(payload, newKey, oldKey);
   if (!raw) return undefined;
   return coerceStageRecord(raw);
+}
+
+/** Model 1 ResNet-50: canonical probability keys (`Normal` / `Pneumonia-Bacteria` / `Pneumonia-Virus`). */
+function normalizeModel1ProbabilityKeys(rec: JsonRecord | undefined): JsonRecord | undefined {
+  if (!rec || !isRecord(rec.probabilities)) return rec;
+  const p = rec.probabilities as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(p)) {
+    const t = k.trim();
+    let nk = t;
+    if (t === "Pneumonia_Bacteria" || t === "Pneumonia Bacteria") nk = "Pneumonia-Bacteria";
+    else if (t === "Pneumonia_Virus" || t === "Pneumonia Virus") nk = "Pneumonia-Virus";
+    else if (t.toLowerCase() === "normal") nk = "Normal";
+    out[nk] = v;
+  }
+  return { ...rec, probabilities: out };
+}
+
+/** Temporary Model 2 label swap: Normal <-> Lung Opacity. */
+function swapModel2Labels(rec: JsonRecord | undefined): JsonRecord | undefined {
+  if (!rec) return rec;
+  const out: JsonRecord = { ...rec };
+  const swap = (label: string): string => {
+    if (label === "Normal") return "Lung Opacity";
+    if (label === "Lung Opacity") return "Normal";
+    return label;
+  };
+  if (typeof out.label === "string") out.label = swap(out.label);
+  if (isRecord(out.probabilities)) {
+    const p = out.probabilities as Record<string, unknown>;
+    const normalized: JsonRecord = {};
+    for (const [k, v] of Object.entries(p)) {
+      normalized[swap(k)] = v;
+    }
+    out.probabilities = normalized;
+  }
+  return out;
 }
 
 function pickModelRecordOrNull(
@@ -256,14 +300,48 @@ function isClinicalRiskShape(rec: unknown): rec is JsonRecord {
   return isRecord(rec) && typeof rec.enabled === "boolean" && typeof rec.severity === "string";
 }
 
+/** Whether `model3` looks like DenseNet-121 output (not questionnaire `clinical_risk`). */
 function isDenseNetAnalyzeShape(rec: unknown): rec is JsonRecord {
   if (!isRecord(rec)) return false;
   const mn = rec.model_name;
   if (typeof mn === "string" && /densenet-121/i.test(mn.trim())) return true;
-  return (
-    typeof rec.prediction === "string" &&
-    (isRecord(rec.probabilities) || isRecord(rec.all_probabilities))
-  );
+  const hasProbs = isRecord(rec.probabilities) || isRecord(rec.all_probabilities);
+  const pred = rec.prediction;
+  const predString = typeof pred === "string" && pred.trim().length > 0;
+  const predNested =
+    isRecord(pred) && typeof pred.class_name === "string" && pred.class_name.trim().length > 0;
+  const hasTopClassName = typeof rec.class_name === "string" && rec.class_name.trim().length > 0;
+  if (hasProbs && (predString || predNested || hasTopClassName)) return true;
+  // Grad-CAM + probability map without top-level string prediction (some deployments).
+  if (hasProbs && typeof rec.gradcam === "string" && rec.gradcam.trim().length > 0) return true;
+  return false;
+}
+
+/** Flatten nested DenseNet `prediction` / `class_name` so client code sees string `prediction` + 0–1 confidence. */
+function coerceDenseNetModel3ForClient(rec: JsonRecord): JsonRecord {
+  let out: JsonRecord = { ...rec };
+  const pred = out.prediction;
+  if (isRecord(pred)) {
+    const className = typeof pred.class_name === "string" ? pred.class_name : "";
+    const cs = pred.confidence_score;
+    out = { ...out, prediction: className };
+    if (typeof cs === "number" && Number.isFinite(cs) && out.confidence == null) {
+      out.confidence = cs;
+    }
+  }
+  const ps = out.prediction;
+  if ((typeof ps !== "string" || !ps.trim()) && typeof out.class_name === "string" && out.class_name.trim()) {
+    out.prediction = out.class_name.trim();
+  }
+  let c = out.confidence;
+  if (typeof c === "number" && Number.isFinite(c) && c > 1) {
+    out.confidence = Math.max(0, Math.min(1, c / 100));
+  }
+  if (out.confidence == null && typeof out.confidence_score === "number" && Number.isFinite(out.confidence_score)) {
+    const cs = out.confidence_score;
+    out.confidence = cs > 1 ? Math.max(0, Math.min(1, cs / 100)) : Math.max(0, Math.min(1, cs));
+  }
+  return out;
 }
 
 /** Raw base64 for `gradcam.heatmap_base64` (strip `data:image/...;base64,` if present). */
@@ -276,9 +354,14 @@ function heatmapBase64Payload(s: string): string {
 function normalizeGradcam(payload: JsonRecord, predictions: JsonRecord): JsonRecord | null {
   const gradcam = isRecord(payload.gradcam) ? payload.gradcam : null;
   const m1rec = firstRecord(payload.model1, payload.stage1);
+  const m3rec = firstRecord(payload.model3, payload.stage3);
   const m1Heat =
     m1rec && typeof m1rec.gradcam === "string" && m1rec.gradcam.trim().length > 0
       ? m1rec.gradcam.trim()
+      : null;
+  const m3Heat =
+    m3rec && typeof m3rec.gradcam === "string" && m3rec.gradcam.trim().length > 0
+      ? m3rec.gradcam.trim()
       : null;
   const heatmap =
     (gradcam && typeof gradcam.heatmap_base64 === "string" && gradcam.heatmap_base64) ||
@@ -287,20 +370,26 @@ function normalizeGradcam(payload: JsonRecord, predictions: JsonRecord): JsonRec
     (gradcam && typeof gradcam.model1_heatmap === "string" && gradcam.model1_heatmap) ||
     (gradcam && typeof gradcam.stage2_heatmap === "string" && gradcam.stage2_heatmap) ||
     (gradcam && typeof gradcam.stage1_heatmap === "string" && gradcam.stage1_heatmap) ||
+    m3Heat ||
     m1Heat;
 
-  if (!heatmap) return null;
-
-  const heatmapNorm = heatmapBase64Payload(heatmap);
-  if (!heatmapNorm) return null;
+  let heatmapNorm = heatmap ? heatmapBase64Payload(heatmap) : "";
+  if (!heatmapNorm) {
+    heatmapNorm = PLACEHOLDER_HEATMAP_BASE64;
+  }
 
   const top = pickTopPrediction(predictions);
   const topPrediction = gradcam?.top_prediction;
   const confidence = gradcam?.confidence;
-  const validTop =
-    typeof topPrediction === "string" && FINDING_LABELS.includes(topPrediction as FindingLabel)
-      ? (topPrediction as FindingLabel)
-      : top.label;
+  let validTop: FindingLabel = top.label;
+  if (typeof topPrediction === "string") {
+    const tp = topPrediction.trim();
+    if (FINDING_LABELS.includes(tp as FindingLabel)) {
+      validTop = tp as FindingLabel;
+    } else if (tp === "Normal") {
+      validTop = top.label;
+    }
+  }
 
   return {
     heatmap_base64: heatmapNorm,
@@ -315,8 +404,8 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   const gradcam = normalizeGradcam(root, predictions);
   if (!gradcam) return null;
 
-  const m1 = resolveModelRecord(root, "model1", "stage1");
-  const m2 = resolveModelRecord(root, "model2", "stage2");
+  const m1 = normalizeModel1ProbabilityKeys(resolveModelRecord(root, "model1", "stage1"));
+  const m2 = swapModel2Labels(resolveModelRecord(root, "model2", "stage2"));
   const m4Raw = pickModelRecordOrNull(root, "model4", "report");
   const m4 = m4Raw == null ? m4Raw : coerceStageRecord(m4Raw);
 
@@ -330,7 +419,9 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   }
 
   let model3DenseNet: JsonRecord | null = null;
-  if (isDenseNetAnalyzeShape(model3Raw)) model3DenseNet = model3Raw;
+  if (isDenseNetAnalyzeShape(model3Raw)) {
+    model3DenseNet = coerceDenseNetModel3ForClient(model3Raw as JsonRecord);
+  }
 
   const normalized: JsonRecord = {
     ...root,
@@ -414,6 +505,17 @@ async function parseJsonBody(res: Response): Promise<JsonRecord | null> {
   }
 }
 
+/**
+ * Proxies multipart `POST /api/v1/analyze` to the Python backend.
+ *
+ * **`Invalid response from backend API.`** (502) when:
+ * - Response body is empty, non-JSON, or JSON that isn’t an object (`parseJsonBody`).
+ * - HTTP 200 but `normalizeSuccessPayload` fails (unexpected — heatmaps fall back to a 1×1 placeholder if all sources are empty).
+ *
+ * There is **no Zod** here; validation is manual. Browser `analyzeImageFile` (`src/lib/api.ts`) may return
+ * **`Invalid ML server payload.`** when **predictions** (three finding scores) or **gradcam** fail `isPredictionMap` /
+ * `isValidGradcam` after proxy normalization.
+ */
 export async function POST(req: Request) {
   const base = backendBaseUrl();
   const apiKey = process.env.BACKEND_API_KEY?.trim();
@@ -436,7 +538,6 @@ export async function POST(req: Request) {
     const incoming = await req.formData();
     const image = incoming.get("image");
     const questionnaire = incoming.get("questionnaire");
-    const geminiApiKey = incoming.get("gemini_api_key");
 
     if (!(image instanceof File)) {
       return NextResponse.json(
@@ -457,9 +558,9 @@ export async function POST(req: Request) {
     if (questionnaireRaw?.trim()) {
       forward.append("questionnaire", questionnaireRaw);
     }
-    const geminiApiKeyRaw = typeof geminiApiKey === "string" ? geminiApiKey : null;
-    if (geminiApiKeyRaw?.trim()) {
-      forward.append("gemini_api_key", geminiApiKeyRaw.trim());
+    const geminiKey = incoming.get("gemini_api_key");
+    if (typeof geminiKey === "string" && geminiKey.trim()) {
+      forward.append("gemini_api_key", geminiKey.trim());
     }
 
     const res = await fetchWithTimeout(endpoint(base, "/api/v1/analyze"), {

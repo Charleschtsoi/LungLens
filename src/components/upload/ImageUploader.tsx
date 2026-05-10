@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { FileImage, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeImageFile } from "@/lib/api";
+import { GEMINI_API_KEY_STORAGE_KEY } from "@/lib/gemini-client-storage";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -38,6 +40,20 @@ export function ImageUploader() {
   const router = useRouter();
   const { t } = useI18n();
   const [rejectError, setRejectError] = useState<string | null>(null);
+  const [geminiKey, setGeminiKey] = useState("");
+  const geminiHydrated = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
+    if (saved) setGeminiKey(saved);
+    geminiHydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !geminiHydrated.current) return;
+    window.localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, geminiKey);
+  }, [geminiKey]);
 
   const imageFile = useAppStore((s) => s.imageFile);
   const previewUrl = useAppStore((s) => s.previewUrl);
@@ -97,7 +113,7 @@ export function ImageUploader() {
     if (!file || analysisLoading) return;
     setAnalysisError(null);
     setAnalysisLoading(true);
-    const res = await analyzeImageFile(file);
+    const res = await analyzeImageFile(file, geminiKey.trim() ? { geminiApiKey: geminiKey.trim() } : undefined);
     setAnalysisLoading(false);
     if (!res.success) {
       setAnalysisError(res.error || t("upload.error.analysisFailed"));
@@ -184,6 +200,19 @@ export function ImageUploader() {
               <p className="text-xs">{imageFile.name}</p>
             </div>
           )}
+
+          <label className="block space-y-1.5">
+            <span className="text-sm text-muted-foreground">{t("upload.geminiOptional.label")}</span>
+            <Input
+              type="password"
+              value={geminiKey}
+              onChange={(e) => setGeminiKey(e.target.value)}
+              autoComplete="off"
+              placeholder={t("upload.geminiOptional.placeholder")}
+              disabled={analysisLoading}
+            />
+            <span className="block text-xs text-muted-foreground">{t("upload.geminiOptional.help")}</span>
+          </label>
 
           <Button type="button" className="w-full sm:w-auto" size="lg" disabled={analysisLoading} onClick={runAnalyze}>
             {t("upload.analyze")}

@@ -23,6 +23,7 @@ import { useI18n } from "@/hooks/useI18n";
 import {
   denseNetResponseFromAnalyzeModel3,
   mergeDenseNetDisplayForUi,
+  model3PredictionString,
 } from "@/lib/dense-net-from-analysis";
 import { mapModelSignalsToHighAttentionFindings } from "@/lib/high-attention-findings";
 import type { FindingLabel, SuggestedDoctorQuestion } from "@/types";
@@ -114,8 +115,9 @@ export default function ResultsPage() {
     if (analysis.model1?.label && analysis.model1.label !== "Normal") {
       findings.push(analysis.model1.label);
     }
-    if (analysis.model3?.prediction && analysis.model3.prediction !== "Normal") {
-      findings.push(analysis.model3.prediction);
+    const m3pred = model3PredictionString(analysis.model3);
+    if (m3pred && m3pred !== "Normal") {
+      findings.push(m3pred);
     }
 
     console.log("Q&A Extracted Findings:", findings);
@@ -379,30 +381,45 @@ export default function ResultsPage() {
     try {
       await buildEducationReportPdf({
         filename: "lunglens-education-report",
-        title: t("results.title"),
-        subtitle: t("results.subtitle"),
+        reportHeaderTitle: t("results.pdfReportHeaderTitle"),
         generatedAtLabel: t("results.pdfGeneratedAt"),
         generatedAtValue: new Date().toLocaleString(),
-        disclaimer: t("results.sticky"),
+        documentSubtitle: t("results.subtitle"),
+        llmSectionTitle: t("results.llmEducatorTitle"),
+        llmMarkdown:
+          analysis.llm_evaluation?.status === "success" && analysis.llm_evaluation.text.trim()
+            ? analysis.llm_evaluation.text
+            : null,
         pipelineTitle: t("results.pipelineTitle"),
-        stage1Label: t("results.model1"),
-        stage1Value: analysis.model1
-          ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}%)`
-          : t("results.na"),
-        stage2Label: t("results.model2"),
-        stage2Value: analysis.model2
-          ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}%)`
-          : t("results.na"),
-        gateDecisionLabel: t("results.gateDecision"),
-        gateDecisionValue: analysis.gate
-          ? `${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
-          : t("results.na"),
-        stage3RiskLabel: t("results.model3Risk"),
-        stage3RiskValue: analysis.clinical_risk?.enabled
-          ? `${riskLabel(analysis.clinical_risk.risk_level)} / ${riskLabel(analysis.clinical_risk.severity)}`
-          : t("results.na"),
-        totalLatencyLabel: t("results.totalLatency"),
-        totalLatencyValue: analysis.timing_ms ? `${analysis.timing_ms.total} ms` : t("results.na"),
+        pipelineSections: [
+          {
+            heading: t("results.pdfSection.visualXray"),
+            rows: [
+              { primary: model1SummaryText, poweredBy: t("results.poweredBy.model1") },
+              { primary: model2SummaryText, poweredBy: t("results.poweredBy.model2") },
+              { primary: model3SummaryText ?? t("results.na"), poweredBy: t("results.poweredBy.model3") },
+              { primary: model4SwintSummaryText, poweredBy: t("results.poweredBy.model4") },
+            ],
+          },
+          {
+            heading: t("results.pdfSection.clinicalAssessment"),
+            rows: [
+              {
+                primary: copdSummaryText
+                  ? `${copdSummaryText.riskText} (${copdSummaryText.confidence}% Confidence)`
+                  : t("results.na"),
+                poweredBy: t("results.poweredBy.copd"),
+              },
+            ],
+          },
+        ],
+        gateLine: analysis.gate
+          ? `${t("results.gateDecision")}: ${gateLabel(analysis.gate.route)} (${gateLabel(analysis.gate.reason)})`
+          : null,
+        clinicalRiskLine:
+          analysis.clinical_risk?.enabled
+            ? `${t("results.model3Risk")}: ${riskLabel(analysis.clinical_risk.risk_level)} / ${riskLabel(analysis.clinical_risk.severity)}`
+            : null,
         reportSummaryLabel: t("results.reportSummary"),
         reportSummaryValue: reportSummary ?? t("results.questionnaireRequired"),
         findingsTitle: t("results.anatomyHeader"),
@@ -413,12 +430,9 @@ export default function ResultsPage() {
         noFindingsText: t("results.noSignificant"),
         doctorQuestionsTitle: t("results.questionsTitle"),
         doctorQuestions,
-        runModeTitle: t("results.runModeTitle"),
-        runModeValue: runModeLabel,
         warningsTitle: t("results.warningsTitle"),
         warnings: warningMessages,
-        impactMapTitle: t("results.impact.title"),
-        impactRows,
+        footerDisclaimer: t("results.sticky"),
         xrayTitle: t("results.pdfXray"),
         attentionMapTitle: t("results.pdfAttentionMap"),
         xrayUrl: previewUrl,
@@ -491,18 +505,41 @@ export default function ResultsPage() {
         />
       </div>
 
-      {analysis.llm_evaluation?.status === "success" && analysis.llm_evaluation.text.trim() && (
-        <Card className="mt-6 border-blue-200/70 bg-blue-50/30 shadow-sm">
+      {analysis.llm_evaluation?.text?.trim() ? (
+        <Card
+          className={
+            analysis.llm_evaluation.status === "success"
+              ? "mt-6 border-blue-200/70 bg-blue-50/30 shadow-sm"
+              : "mt-6 border-muted bg-muted/30 shadow-sm"
+          }
+        >
           <CardHeader>
-            <CardTitle className="text-base text-blue-900">AI Clinical Educator Summary</CardTitle>
+            <CardTitle
+              className={
+                analysis.llm_evaluation.status === "success" ? "text-base text-blue-900" : "text-base"
+              }
+            >
+              {t("results.llmEducatorTitle")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-sm max-w-none text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900">
-              <ReactMarkdown>{analysis.llm_evaluation.text}</ReactMarkdown>
-            </div>
+            {analysis.llm_evaluation.status === "success" ? (
+              <div className="prose prose-sm max-w-none text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900">
+                <ReactMarkdown>{analysis.llm_evaluation.text}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">{analysis.llm_evaluation.text}</p>
+                {analysis.llm_evaluation.status === "failed" ? (
+                  <p className="text-xs text-muted-foreground">{t("results.llmFailedHint")}</p>
+                ) : analysis.llm_evaluation.status === "skipped" ? (
+                  <p className="text-xs text-muted-foreground">{t("results.llmSkippedHint")}</p>
+                ) : null}
+              </div>
+            )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
