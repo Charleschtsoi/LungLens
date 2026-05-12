@@ -178,6 +178,7 @@ const dictEn: Dict = {
   "results.poweredBy.model3": "Powered by Model 3 (DenseNet-121)",
   "results.poweredBy.model4": "Powered by Model 4 (Swin Transformer)",
   "results.poweredBy.copd": "Powered by Chronic Lung Risk (COPD)",
+  "results.classProbabilitiesTitle": "Class Probabilities",
   "results.pdfXray": "Original X-ray",
   "results.pdfAttentionMap": "AI attention map",
   "results.noDoctor":
@@ -519,6 +520,7 @@ const dictHant: Dict = {
   "results.poweredBy.model3": "由模型 3（DenseNet-121）提供",
   "results.poweredBy.model4": "由模型 4（Swin Transformer）提供",
   "results.poweredBy.copd": "由慢性肺部風險（COPD）模組提供",
+  "results.classProbabilitiesTitle": "類別機率",
   "results.pdfXray": "原始 X 光",
   "results.pdfAttentionMap": "AI 注意力熱圖",
   "results.noDoctor": "你表示尚未有醫生檢視此 X 光。請儘快諮詢醫護人員作正規診斷。",
@@ -790,6 +792,7 @@ const dictHans: Dict = {
   "results.poweredBy.model3": "由模型 3（DenseNet-121）提供",
   "results.poweredBy.model4": "由模型 4（Swin Transformer）提供",
   "results.poweredBy.copd": "由慢性肺部风险（COPD）模块提供",
+  "results.classProbabilitiesTitle": "类别概率",
   "results.pdfXray": "原始 X 光",
   "results.pdfAttentionMap": "AI 注意力热图",
   "results.learnMore": "延伸阅读",

@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { isDistinctDenseNetInputPreview } from "@/lib/densenet-normalize";
+import { ProbabilityBarList } from "@/components/results/ProbabilityBarList";
 import { useI18n } from "@/hooks/useI18n";
 import type { DenseNetResponse } from "@/types";
 
@@ -12,19 +12,6 @@ function labelKeyForClass(c: string): string {
   if (c === "Pneumonia-Bacteria") return "stage.Pneumonia-Bacteria";
   if (c === "Pneumonia-Virus") return "stage.Pneumonia-Virus";
   return c;
-}
-
-function predictionTextClass(prediction: string): string {
-  if (prediction === "Normal") return "text-emerald-600";
-  if (prediction === "Pneumonia-Bacteria") return "text-amber-600";
-  if (prediction === "Pneumonia-Virus") return "text-red-600";
-  return "text-foreground";
-}
-
-function barToneClass(className: string): string {
-  if (className === "Normal") return "bg-emerald-500/90";
-  if (className === "Pneumonia-Bacteria") return "bg-amber-500/85";
-  return "bg-red-500/85";
 }
 
 export function DenseNetPipelineBlock({
@@ -40,7 +27,7 @@ export function DenseNetPipelineBlock({
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-sm text-muted-foreground">
+      <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-sm text-muted-foreground">
         {t("results.model3DenseNet.loading")}
       </div>
     );
@@ -84,15 +71,16 @@ export function DenseNetPipelineBlock({
     captionKey = "densenet.caption.fullUploadPreview";
   }
 
+  const probabilityRows = CLASS_ORDER.map((key) => {
+    const p = result.probabilities[key] ?? 0;
+    const pct = Math.min(100, Math.max(0, p * 100));
+    return { key, label: t(labelKeyForClass(key)), pct };
+  });
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="space-y-1">
-        <p
-          className={cn(
-            "text-lg font-semibold tracking-tight md:text-xl",
-            predictionTextClass(result.prediction),
-          )}
-        >
+        <p className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
           {t(labelKeyForClass(result.prediction))}
         </p>
         <p className="text-sm text-muted-foreground">
@@ -101,38 +89,14 @@ export function DenseNetPipelineBlock({
         </p>
       </div>
 
-      <div className="space-y-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {t("densenet.probabilities")}
-        </p>
-        <ul className="space-y-2">
-          {CLASS_ORDER.map((key) => {
-            const p = result.probabilities[key] ?? 0;
-            const pct = Math.min(100, Math.max(0, p * 100));
-            return (
-              <li key={key} className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span>{t(labelKeyForClass(key))}</span>
-                  <span className="tabular-nums text-muted-foreground">{pct.toFixed(2)}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn("h-full rounded-full transition-all", barToneClass(key))}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      <ProbabilityBarList title={t("results.classProbabilitiesTitle")} rows={probabilityRows} />
 
       <div className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {t("densenet.gradcam.sectionTitle")}
         </p>
         <p className="text-[11px] leading-snug text-muted-foreground/90">{t(captionKey)}</p>
-        <div className="overflow-hidden rounded-lg border bg-muted/20">
+        <div className="overflow-hidden rounded-md border border-border/50 bg-muted/20">
           {previewSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
