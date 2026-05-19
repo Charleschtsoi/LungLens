@@ -146,6 +146,28 @@ function normalizeModel1ProbabilityKeys(rec: JsonRecord | undefined): JsonRecord
   return { ...rec, probabilities: out };
 }
 
+function isModel2TabularShape(rec: JsonRecord): boolean {
+  return rec.input_type === "tabular";
+}
+
+function resolveCopdScreeningRecord(root: JsonRecord): JsonRecord | undefined {
+  const legacy = pickModelRecord(root, "copd_screening", "copd_screening");
+  if (legacy) {
+    const coerced = coerceStageRecord(legacy);
+    return {
+      ...coerced,
+      input_type: "tabular",
+      model_name:
+        typeof coerced.model_name === "string" ? coerced.model_name : "Chronic Lung Risk (COPD)",
+    };
+  }
+  const fromModel2 = pickModelRecord(root, "model2", "stage2");
+  if (!fromModel2) return undefined;
+  const coerced = coerceStageRecord(fromModel2);
+  if (!isModel2TabularShape(coerced)) return undefined;
+  return coerced;
+}
+
 function pickModelRecordOrNull(
   payload: JsonRecord,
   newKey: string,
@@ -251,14 +273,17 @@ function normalizePredictions(payload: JsonRecord): JsonRecord {
   const m1 = firstRecord(payload.model1, payload.stage1);
   const m2 = firstRecord(payload.model2, payload.stage2);
   const m1Label = m1?.label;
-  const m2Label = m2?.label;
   const m1Confidence = score(m1?.confidence);
-  const m2Confidence = score(m2?.confidence);
 
   const s1Finding = labelToFindingLabel(m1Label);
-  const s2Finding = labelToFindingLabel(m2Label);
   if (s1Finding) normalized[s1Finding] = Math.max(score(normalized[s1Finding]), m1Confidence);
-  if (s2Finding) normalized[s2Finding] = Math.max(score(normalized[s2Finding]), m2Confidence);
+
+  if (m2 && m2.input_type !== "tabular") {
+    const m2Label = m2.label;
+    const m2Confidence = score(m2.confidence);
+    const s2Finding = labelToFindingLabel(m2Label);
+    if (s2Finding) normalized[s2Finding] = Math.max(score(normalized[s2Finding]), m2Confidence);
+  }
   return normalized;
 }
 
@@ -330,6 +355,40 @@ function heatmapBase64Payload(s: string): string {
   return m && m[1] ? m[1] : t;
 }
 
+function trimStr(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+/** Coerce `llm_evaluation` aliases and ensure `text` is populated when per-locale markdown exists. */
+function normalizeLlmEvaluationField(raw: JsonRecord): JsonRecord {
+  const out: JsonRecord = { ...raw };
+  const alias = out.text_by_locale ?? out.textByLocale ?? out.translations;
+  const textByLocale: JsonRecord = {};
+  if (isRecord(alias)) {
+    const en = trimStr(alias.en);
+    const zhHans = trimStr(alias["zh-Hans"] ?? alias.zh_Hans ?? alias.zhHans);
+    const zhHant = trimStr(alias["zh-Hant"] ?? alias.zh_Hant ?? alias.zhHant);
+    if (en) textByLocale.en = en;
+    if (zhHans) textByLocale["zh-Hans"] = zhHans;
+    if (zhHant) textByLocale["zh-Hant"] = zhHant;
+  }
+  if (Object.keys(textByLocale).length > 0) {
+    out.text_by_locale = textByLocale;
+  } else {
+    delete out.text_by_locale;
+  }
+  delete out.textByLocale;
+  delete out.translations;
+
+  const primary =
+    trimStr(out.text) ||
+    trimStr(textByLocale.en) ||
+    trimStr(textByLocale["zh-Hant"]) ||
+    trimStr(textByLocale["zh-Hans"]);
+  out.text = primary;
+  return out;
+}
+
 function normalizeGradcam(payload: JsonRecord, predictions: JsonRecord): JsonRecord | null {
   const gradcam = isRecord(payload.gradcam) ? payload.gradcam : null;
   const m1rec = firstRecord(payload.model1, payload.stage1);
@@ -384,7 +443,7 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   if (!gradcam) return null;
 
   const m1 = normalizeModel1ProbabilityKeys(resolveModelRecord(root, "model1", "stage1"));
-  const m2 = resolveModelRecord(root, "model2", "stage2");
+  const copdScreening = resolveCopdScreeningRecord(root);
   const m4SwintRaw = pickModelRecord(root, "model4_swint", "model4_swint");
   const m4Swint = m4SwintRaw ? coerceStageRecord(m4SwintRaw) : undefined;
   const m5DenseNetRaw = pickModelRecord(root, "model5_densenet", "model5_densenet");
@@ -412,14 +471,16 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     predictions,
     gradcam,
     model1: m1,
-    model2: m2,
+    model2: copdScreening,
+    copd_screening: copdScreening,
     clinical_risk: clinicalRisk,
     model3: model3DenseNet,
+    model4: m4,
     model4_swint: m4Swint,
     model5_densenet: m5DenseNet,
-    model4: m4,
   };
 
+  if (!copdScreening) delete normalized.copd_screening;
   delete normalized.stage1;
   delete normalized.stage2;
   delete normalized.stage3;
@@ -447,7 +508,7 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     normalized.provenance = {
       run_mode: "hybrid",
       model1: { source: "model", status: m1 ? "fallback" : "skipped" },
-      model2: { source: "model", status: m2 ? "fallback" : "skipped" },
+      model2: { source: "model", status: copdScreening ? "fallback" : "skipped" },
       model3: { source: "model", status: model3DenseNet != null ? "fallback" : "skipped" },
       clinical_risk: { source: "rule", status: clinicalRisk != null ? "fallback" : "skipped" },
       model4: { source: "llm", status: m4 != null ? "fallback" : "skipped" },
@@ -462,6 +523,11 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
       },
     ];
   }
+
+  if (isRecord(normalized.llm_evaluation)) {
+    normalized.llm_evaluation = normalizeLlmEvaluationField(normalized.llm_evaluation as JsonRecord);
+  }
+
   return normalized;
 }
 

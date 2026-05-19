@@ -1,10 +1,18 @@
 import type {
+  AnalyzeSuccessResponse,
   AnalyzeProvenance,
   AnalyzeStageSource,
   AnalyzeStageStatus,
   ProvenanceSectionSource,
   StageProvenance,
 } from "@/types";
+
+export type ImpactRow = {
+  section: string;
+  source: string;
+  sourceKind: AnalyzeStageSource | null;
+  status: string;
+};
 import type { Locale } from "@/store/useLocaleStore";
 
 export const FLAT_PROVENANCE_KEYS = [
@@ -64,9 +72,9 @@ function classifierSourceIsModel(
   return normalizeToBadgeSource(pipelineProvenanceSource(provenance, which)) === "model";
 }
 
-/** True when both classifier models ran as live `source: "model"` (no hybrid disclaimer needed for them). */
+/** True when primary X-ray classifier (Model 1) ran as live `source: "model"`. */
 export function bothClassifierModelsLive(provenance: AnalyzeProvenance | undefined): boolean {
-  return classifierSourceIsModel(provenance, "model1") && classifierSourceIsModel(provenance, "model2");
+  return classifierSourceIsModel(provenance, "model1");
 }
 
 export function hybridRunModeBannerMessage(
@@ -264,7 +272,7 @@ export function buildNestedProvenanceSummary(
 export function flatProvenanceImpactRows(
   provenance: AnalyzeProvenance,
   t: (key: string, fallback?: string) => string,
-): { section: string; source: string; sourceKind: AnalyzeStageSource | null; status: string }[] {
+): ImpactRow[] {
   const rec = provenance as unknown as Record<string, unknown>;
   return FLAT_PROVENANCE_KEYS.map((key) => {
     const src = normalizeToBadgeSource(rec[key]);
@@ -286,11 +294,45 @@ function statusLabel(st: AnalyzeStageStatus, t: (key: string, fallback?: string)
   return t("results.impact.statusOk");
 }
 
+/** X-ray expansion slots — separate from `provenance.model4` (report synthesis). */
+function visionExpansionImpactRows(
+  analysis: Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet"> | undefined,
+  t: (key: string, fallback?: string) => string,
+): ImpactRow[] {
+  const rows: ImpactRow[] = [];
+  const m4Swint = analysis?.model4_swint;
+  if (m4Swint) {
+    const live = m4Swint.status === "success";
+    rows.push({
+      section: t("results.provenance.impact.model4_swint", "Model 4 — Swin Transformer"),
+      source: live
+        ? t("results.provenance.badge.model", "model")
+        : t("results.provenance.sourceUnknown"),
+      sourceKind: live ? "model" : null,
+      status: live ? t("results.impact.statusOk") : t("results.impact.statusSkipped"),
+    });
+  }
+  const m5 = analysis?.model5_densenet;
+  if (m5) {
+    const live = m5.status === "success";
+    rows.push({
+      section: t("results.provenance.impact.model5", "Model 5 — DenseNet-121 (H5)"),
+      source: live
+        ? t("results.provenance.badge.model", "model")
+        : t("results.provenance.sourceUnknown"),
+      sourceKind: live ? "model" : null,
+      status: live ? t("results.impact.statusOk") : t("results.impact.statusSkipped"),
+    });
+  }
+  return rows;
+}
+
 export function nestedProvenanceImpactRows(
   provenance: AnalyzeProvenance,
   t: (key: string, fallback?: string) => string,
-): { section: string; source: string; sourceKind: AnalyzeStageSource | null; status: string }[] {
-  const rows: { section: string; source: string; sourceKind: AnalyzeStageSource | null; status: string }[] = [];
+  analysis?: Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet">,
+): ImpactRow[] {
+  const rows: ImpactRow[] = [];
   const earlyStages: { key: "model1" | "model2"; titleKey: string }[] = [
     { key: "model1", titleKey: "results.provenance.impact.model1" },
     { key: "model2", titleKey: "results.provenance.impact.model2" },
@@ -318,21 +360,18 @@ export function nestedProvenanceImpactRows(
     });
   }
 
-  const lateStages: { key: "model3" | "model4"; titleKey: string }[] = [
-    { key: "model3", titleKey: "results.provenance.impact.model3" },
-    { key: "model4", titleKey: "results.provenance.impact.model4" },
-  ];
-  for (const { key, titleKey } of lateStages) {
-    const sp = provenance[key];
-    if (!sp) continue;
-    const src = normalizeToBadgeSource(sp.source);
+  const m3 = provenance.model3;
+  if (m3) {
+    const src = normalizeToBadgeSource(m3.source);
     rows.push({
-      section: t(titleKey, key),
+      section: t("results.provenance.impact.model3", "Model 3 — DenseNet-121"),
       source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
       sourceKind: src,
-      status: statusLabel(sp.status, t),
+      status: statusLabel(m3.status, t),
     });
   }
+
+  rows.push(...visionExpansionImpactRows(analysis, t));
 
   const findingsSrc = resolveFindingsBadgeSource(provenance);
   rows.push({

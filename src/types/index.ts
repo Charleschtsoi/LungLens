@@ -2,19 +2,17 @@ import type { FindingLabel } from "@/lib/constants";
 
 export type { FindingLabel };
 
-/** Subtype for “What the AI noticed” when pipeline classes distinguish bacterial vs viral pneumonia patterns. */
+/** Per-condition model scores (educational / technical, not a diagnosis). */
+export type Predictions = Record<FindingLabel, number>;
+
 export type PneumoniaNoticeKind = "default" | "pneumonia_bacterial" | "pneumonia_viral";
 
-/** One row in the merged AI-notice list (fusion + per-model thresholds). */
 export interface AiNoticeFindingRow {
   id: string;
   label: FindingLabel;
   score: number;
   noticeKind: PneumoniaNoticeKind;
 }
-
-/** Per-condition model scores (educational / technical, not a diagnosis). */
-export type Predictions = Record<FindingLabel, number>;
 
 export interface GradcamResult {
   heatmap_base64: string;
@@ -57,12 +55,15 @@ export interface AnalyzeSuccessResponse {
   gate?: GateDecision;
   /** Model 1 output: PyTorch ResNet-50 3-class (backend `model1`). */
   model1?: StageBinaryResult;
-  /** Model 2 output: Keras ResNet-152V2 3-class (backend `model2`). */
-  model2?: StageMultiClassResult;
+  /**
+   * Model 2 — tabular Chronic Lung Risk (COPD) from questionnaire (`model2` or `copd_screening`).
+   * Shown under Clinical Patient Assessment, not in the visual X-ray pipeline.
+   */
+  model2?: Model2TabularResult | CopdScreeningResult;
   /** Clinical / questionnaire severity (backend `clinical_risk`; legacy: clinical-shaped `model3`). */
   clinical_risk?: StageClinicalResult | null;
-  /** Tabular Keras clinical model output (backend `copd_screening`). */
-  copd_screening?: CopdScreeningResult;
+  /** Alias for Model 2 tabular output when backend uses `copd_screening` instead of `model2`. */
+  copd_screening?: CopdScreeningResult | Model2TabularResult;
   /** Swin-T Vision Transformer output from backend `model4_swint`. */
   model4_swint?: SwinTScreeningResult;
   /** Expansion DenseNet-121 ensemble slot from backend `model5_densenet`. */
@@ -113,9 +114,21 @@ export interface StageBinaryResult {
   probabilities?: Record<string, number>;
 }
 
+/** Model 2 — tabular COPD classifier (questionnaire + scaler). */
+export interface Model2TabularResult {
+  prediction: string;
+  /** P(High COPD Risk), even when displayed label is Low. */
+  confidence: number;
+  status: string;
+  input_type: "tabular";
+  model_name?: string;
+  label?: string;
+  probabilities?: Record<string, number>;
+}
+
 /** Model 2 row shape: 3-class ResNet-152V2 (Keras H5) — `H5_MODEL2_LABELS`. */
 export interface StageMultiClassResult {
-  label: "Normal" | "Lung Opacity" | "Viral Pneumonia";
+  label: "Normal" | "Lung Opacity" | "Viral Pneumonia" | "Other";
   confidence: number;
   probabilities?: Record<string, number>;
 }
@@ -150,14 +163,12 @@ export interface ClassifierModelBlock {
   prediction: string;
   confidence: number;
   status: string;
-  probabilities: Record<string, number>;
+  probabilities?: Record<string, number>;
   model_name?: string;
 }
 
-/** Swin-T block from backend `model4_swint`. */
 export type SwinTScreeningResult = ClassifierModelBlock;
 
-/** Model 5 expansion DenseNet-121 from backend `model5_densenet`. */
 export type Model5DenseNetResult = ClassifierModelBlock;
 
 export interface StageReportResult {
@@ -166,9 +177,18 @@ export interface StageReportResult {
   disclaimer: string;
 }
 
+/** Optional per-locale educator markdown from the backend (`text_by_locale` or aliases). */
+export interface LlmEvaluationTextByLocale {
+  en?: string;
+  "zh-Hans"?: string;
+  "zh-Hant"?: string;
+}
+
 export interface LlmEvaluationResult {
   status: string;
   text: string;
+  /** When set, the UI can show EN / 繁中 / 簡中 tabs; `text` remains the legacy single string. */
+  text_by_locale?: LlmEvaluationTextByLocale;
 }
 
 export interface StageTiming {

@@ -4,54 +4,42 @@
 
 **Endpoints:** `POST /api/v1/analyze` and `POST /pipeline/analyze` (same handler on the backend).
 
-| Slot | Architecture | JSON field | Default classes (confirm via `GET /health`) |
-|------|----------------|------------|-----------------------------------------------|
-| **Model 1** | PyTorch **ResNet-50** | `model1` | Normal / Pneumonia-Bacteria / Pneumonia-Virus |
-| **Model 2** | Keras H5 **ResNet-152V2** | `model2` | Normal / Lung Opacity / Viral Pneumonia (API uses spaces) |
-| **Model 3** | PyTorch **DenseNet-121** | `model3` | COVID-19 / Normal / Pneumonia; **`gradcam`** + **`input_preview_base64`** (224×224 center crop matching model input) |
-| **Model 4 (Swin-T)** | **Swin Transformer** | `model4_swint` | 6-class probabilities + `prediction` / `confidence` / `status` |
-| **Model 5 (DenseNet)** | **DenseNet-121** expansion | `model5_densenet` | Same block shape as `model4_swint`; up to ~14 classes at inference |
-| **COPD screen** | Tabular Keras | `copd_screening` | When `patient_data` is present on analyze |
-| **Gemini educator** | BYOK optional | `llm_evaluation` | `{ status, text }` — English markdown in `text` |
+| Slot | Architecture | JSON field | Notes |
+|------|----------------|------------|--------|
+| **Model 1** | PyTorch **ResNet-50** | `model1` | Normal / Pneumonia-Bacteria / Pneumonia-Virus — **Visual X-Ray** |
+| **Model 2** | Tabular **Chronic Lung Risk (COPD)** | `model2` or `copd_screening` | Questionnaire inputs; `input_type: "tabular"` — **Clinical Patient Assessment** (not an X-ray classifier) |
+| **Model 3** | PyTorch **DenseNet-121** | `model3` | COVID-19 / Normal / Pneumonia; **`gradcam`** + **`input_preview_base64`** — **Visual X-Ray** |
+| **Model 4 (report)** | Rule / LLM synthesis | `model4` | Educational report text — **not** Swin-T |
+| **Model 4 (vision)** | **Swin-T** | `model4_swint` | 6-class chest X-ray — **Visual X-Ray** |
+| **Model 5** | DenseNet-121 **H5** | `model5_densenet` | Expansion classifier (~2–14 classes depending on weights) — **Visual X-Ray** |
 
-- **`clinical_risk`**: questionnaire-derived severity (not the DenseNet block).
-- **`model4`**: questionnaire / rules educational report (not Swin-T; do not confuse with `model4_swint`).
-
-Canonical successful analyze example: [`sample_response.json`](../sample_response.json) at repo root (copy from backend when updating contract).
-- Mock **14-class** `predictions` + pipeline **heatmap** may still be educational scaffolding; they are not the same as the three classifier outputs above.
+- **`clinical_risk`**: rule-based questionnaire severity (separate from Model 2 COPD score).
+- **Legacy:** backends may send tabular COPD on `model2` with `input_type: "tabular"` or on `copd_screening`. The Next proxy normalizes both to `model2` + `copd_screening` for the client.
+- **Do not** show Model 2 in the Visual X-Ray pipeline card list (Models 1, 3, 4, 5 only).
+- Reference payload: backend repo `sample_response.json`.
 
 ## 2. DenseNet-121 standalone (`POST /predict/densenet`)
 
-The backend **also** exposes DenseNet on its own for debugging or thin clients. Same trained weights as **`model3`** in analyze when both run (`GET /debug` notes this alignment).
+Same trained weights as **`model3`** in analyze when both run (`GET /debug`).
 
-**Multipart:** field name `image` (same idea as analyze).
+**Multipart:** field name `image`. **Auth:** `X-API-Key` when `REQUIRE_API_KEY=true`.
 
-**Auth:** `X-API-Key` when `REQUIRE_API_KEY=true`.
-
-**Success JSON (200):** `success`, `prediction`, `confidence`, `probabilities`, `gradcam` (base64 PNG), and **`input_preview_base64`** (same 224×224 center crop as model input, for side-by-side UI alignment with Grad-CAM).
-
-**Errors:** `{"success": false, "error": "..."}`.
-
-**Discovery:**
-
-- `GET /health` → `models.densenet121_pt`
-- `GET /debug` → `densenet121_pt`, `predict_endpoint: "/predict/densenet"`
+**Success JSON (200):** `success`, `prediction`, `confidence`, `probabilities`, `gradcam`, `input_preview_base64`.
 
 ## 3. What frontend should verify
 
 | Check | Detail |
 |--------|--------|
-| Analyze payload | Expect **`model1`**, **`model2`**, **`model3`** (DenseNet), **`clinical_risk`**, **`model4`** when enabled on the backend. |
-| UI naming | Use **Model 1 — ResNet-50**, **Model 2 — ResNet-152V2**, **Model 3 — DenseNet-121** (i18n keys `results.model1`, `results.model2`, `results.model3DenseNet`). |
-| Supplemental DenseNet call | This Next app may still call `POST /api/predict/densenet` to refresh Grad-CAM if analyze did not return overlay; merge logic lives in `dense-net-from-analysis.ts`. |
-| Base URL | Server-side proxy uses `BACKEND_API_BASE_URL`. |
+| Analyze payload | Expect **`model1`**, tabular **`model2`** (or **`copd_screening`**), **`model3`**, **`model4_swint`**, **`model5_densenet`**, **`clinical_risk`**, **`model4`** report when enabled. |
+| Visual pipeline UI | Show **Model 1, 3, 4 (Swin), 5** only — **not** Model 2. |
+| Clinical UI (Model 2) | Show when `status === "success"` and tabular COPD data is present (`input_type: "tabular"` or legacy `copd_screening` shape). Badge: **Model 2 ✓**. |
+| `model2.confidence` | Always **P(High COPD Risk)** (display % even when the label is Low risk). Copy: “probability of high COPD risk”, not multi-class “highest probability”. |
+| Base URL | Server proxy: `BACKEND_API_BASE_URL`. |
 
-## 4. Input geometry (backend only — QA mental model)
+## 4. Input geometry (backend only)
 
-ResNet-50 and DenseNet **do not** apply a stretched `Resize((224, 224))` on arbitrary aspect ratios. They use **`Resize(256)` + `CenterCrop(224)`** so class logits and Grad-CAM stay aligned with the **same** spatial crop.
-
-The Next.js app **does not** reimplement this; it only displays whatever the backend sends. For DenseNet, **`input_preview_base64`** is a PNG of that **224×224 center crop** so the “original vs Grad-CAM” columns match framing.
+ResNet-50 and DenseNet use **`Resize(256)` + `CenterCrop(224)`**. The Next.js app displays backend-provided overlays and `input_preview_base64`.
 
 ## 5. One-line for PM/design
 
-Three neural stages in analyze: **ResNet-50**, **ResNet-152V2 (H5)**, **DenseNet-121**, plus rule-based **clinical risk** (questionnaire) and **report** text.
+**Four** X-ray models (ResNet-50, DenseNet PyTorch, Swin-T, DenseNet H5) plus **Model 2 tabular COPD** from the questionnaire, rule-based **clinical_risk**, and **report** text.

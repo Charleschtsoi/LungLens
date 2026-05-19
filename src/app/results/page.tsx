@@ -41,7 +41,9 @@ import {
   pipelineProvenanceSource,
   provenanceBadgeClassName,
   resolveFindingsBadgeSource,
+  type ImpactRow,
 } from "@/lib/provenance-ui";
+import { PipelineModelBadge } from "@/components/results/PipelineModelBadge";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 import { DenseNetPipelineBlock } from "@/components/results/DenseNetPipelineBlock";
 import { EnsembleArchitectureAccordion } from "@/components/results/EnsembleArchitectureAccordion";
@@ -50,7 +52,9 @@ import {
   type VisualPipelineRowView,
 } from "@/components/results/VisualXrayPipelineSection";
 import type { VisualPipelineModelSlot } from "@/lib/ensemble-architecture";
-import type { AnalyzeStageSource } from "@/types";
+import { formatClassifierSummaryLine } from "@/lib/model-summary-display";
+import { Model2ClinicalSection } from "@/components/results/Model2ClinicalSection";
+import { formatModel2ClinicalHeadline, model2TabularFromAnalysis } from "@/lib/model2-tabular";
 
 /** Raw base64 for attention overlay (tabs + PDF); strips `data:image/...;base64,` if present. */
 function heatmapBase64ForDisplay(raw: string | null | undefined): string {
@@ -59,13 +63,6 @@ function heatmapBase64ForDisplay(raw: string | null | undefined): string {
   const m = /^data:image\/\w+;base64,(.+)$/i.exec(t);
   return m && m[1] ? m[1] : t;
 }
-
-type ImpactRow = {
-  section: string;
-  source: string;
-  status: string;
-  sourceKind?: AnalyzeStageSource | null;
-};
 
 export default function ResultsPage() {
   const { t, locale } = useI18n();
@@ -246,16 +243,8 @@ export default function ResultsPage() {
     model1GradcamRaw ?? analysis.gradcam.heatmap_base64,
   );
   const notable = getNotableFindings(predictions);
-  const model2Fallback: Array<{ label: FindingLabel; score: number }> =
-    analysis.model2?.label && analysis.model2.label !== "Normal"
-      ? [
-          {
-            label: analysis.model2.label === "Viral Pneumonia" ? "Pneumonia" : "Lung Opacity",
-            score: analysis.model2.confidence,
-          }
-        ]
-      : [];
-  const findingsForSections = notable.length > 0 ? notable : model2Fallback;
+  const findingsForSections = notable;
+  const model2Tabular = model2TabularFromAnalysis(analysis);
   const learnMoreFindings = findingsForSections.map((f) => ({
     label: f.label,
     sectionKey: "id" in f && typeof f.id === "string" ? f.id : `finding-${f.label}`,
@@ -272,18 +261,21 @@ export default function ResultsPage() {
   const gateLabel = (value: string) => t(`gate.${value}`, value);
   const riskLabel = (value: string) => t(`risk.${value}`, value);
   const model3SummaryText = (() => {
-    // Preferred normalized display payload.
     if (denseNetDisplay?.success && denseNetDisplay.prediction && Number.isFinite(denseNetDisplay.confidence)) {
-      return `${stageLabel(denseNetDisplay.prediction)} (${denseNetDisplay.confidence.toFixed(0)}%)`;
+      return formatClassifierSummaryLine(stageLabel, denseNetDisplay.prediction, {
+        confidence: denseNetDisplay.confidence,
+        probabilities: denseNetDisplay.probabilities,
+        t,
+      });
     }
 
-    // Backward/forward compatibility: read from raw analyze model3 if present.
     const m3 = analysis.model3 as
       | {
           prediction?: string | { class_name?: string; confidence_score?: number };
           class_name?: string;
           confidence_score?: number;
           confidence?: number;
+          probabilities?: Record<string, number>;
         }
       | null
       | undefined;
@@ -307,35 +299,38 @@ export default function ResultsPage() {
       (typeof m3.confidence === "number" && Number.isFinite(m3.confidence) ? m3.confidence : undefined);
 
     if (!className || !Number.isFinite(confidenceScore)) return null;
-    const cs = confidenceScore as number;
-    const pct = cs <= 1 ? cs * 100 : cs;
-    return `${stageLabel(className)} (${pct.toFixed(0)}% Confidence)`;
+    return formatClassifierSummaryLine(stageLabel, className, {
+      confidence: confidenceScore as number,
+      probabilities: m3.probabilities,
+      t,
+    });
   })();
   const model1SummaryText = analysis.model1
-    ? `${stageLabel(analysis.model1.label)} (${Math.round(analysis.model1.confidence * 100)}% Confidence)`
-    : t("results.na");
-  const model2SummaryText = analysis.model2
-    ? `${stageLabel(analysis.model2.label)} (${Math.round(analysis.model2.confidence * 100)}% Confidence)`
+    ? formatClassifierSummaryLine(stageLabel, analysis.model1.label, {
+        confidence: analysis.model1.confidence,
+        probabilities: analysis.model1.probabilities,
+        t,
+      })
     : t("results.na");
   const model4SwintSummaryText =
     analysis.model4_swint?.status === "success"
-      ? `${stageLabel(analysis.model4_swint.prediction)} (${Math.round((analysis.model4_swint.confidence ?? 0) * 100)}% Confidence)`
+      ? formatClassifierSummaryLine(stageLabel, analysis.model4_swint.prediction, {
+          confidence: analysis.model4_swint.confidence,
+          probabilities: analysis.model4_swint.probabilities,
+          t,
+        })
       : t("results.na");
   const model5DenseNetSummaryText =
     analysis.model5_densenet?.status === "success"
-      ? `${stageLabel(analysis.model5_densenet.prediction)} (${Math.round((analysis.model5_densenet.confidence ?? 0) * 100)}% Confidence)`
+      ? formatClassifierSummaryLine(stageLabel, analysis.model5_densenet.prediction, {
+          confidence: analysis.model5_densenet.confidence,
+          probabilities: analysis.model5_densenet.probabilities,
+          t,
+        })
       : t("results.na");
-  const copdSummaryText = (() => {
-    if (analysis.copd_screening?.status !== "success") return null;
-    const riskText =
-      analysis.copd_screening.prediction === "High COPD Risk"
-        ? "Elevated Risk Detected"
-        : analysis.copd_screening.prediction === "Low COPD Risk"
-          ? "Standard Risk Profile"
-          : analysis.copd_screening.prediction;
-    const confidence = Math.round((analysis.copd_screening.confidence ?? 0) * 100);
-    return { riskText, confidence };
-  })();
+  const model2ClinicalLine = model2Tabular
+    ? formatModel2ClinicalHeadline(model2Tabular, t)
+    : t("results.model2Clinical.unavailable");
   const reportSummary =
     locale === "en"
       ? analysis.model4?.summary
@@ -369,13 +364,14 @@ export default function ResultsPage() {
 
   const impactRows: ImpactRow[] =
     nestedProv && analysis.provenance
-      ? nestedProvenanceImpactRows(analysis.provenance, t)
+      ? nestedProvenanceImpactRows(analysis.provenance, t, analysis)
       : flatProv && analysis.provenance
         ? flatProvenanceImpactRows(analysis.provenance, t)
         : [
         {
           section: t("results.impact.pipelineSection"),
           source: t("results.impact.sourceModel"),
+          sourceKind: "model",
           status:
             analysis.provenance?.model1?.status === "failed" || analysis.provenance?.model2?.status === "failed"
               ? t("results.impact.statusFailed")
@@ -384,49 +380,29 @@ export default function ResultsPage() {
         {
           section: t("results.impact.findingsSection"),
           source: t("results.impact.sourceRulesModel"),
+          sourceKind: "rule",
           status:
             findingsForSections.length > 0 ? t("results.impact.statusOk") : t("results.impact.statusFallback"),
         },
         {
           section: t("results.impact.questionsSection"),
           source: t("results.impact.sourceRulesModel"),
+          sourceKind: "rule",
           status: t("results.impact.statusOk"),
         },
         {
           section: t("results.impact.reportSection"),
           source: t("results.impact.sourceLlm"),
+          sourceKind: "llm",
           status: analysis.model4 ? t("results.impact.statusOk") : t("results.impact.statusSkipped"),
         },
         {
           section: t("results.impact.anatomySection"),
           source: t("results.impact.sourceStatic"),
+          sourceKind: "static",
           status: t("results.impact.statusOk"),
         },
       ];
-  if (analysis.model4_swint?.status === "success") {
-    impactRows.push({
-      section: "Model 4 — Swin Transformer",
-      source: t("results.provenance.badge.model"),
-      sourceKind: "model",
-      status: t("results.impact.statusOk"),
-    });
-  }
-  if (analysis.model5_densenet?.status === "success") {
-    impactRows.push({
-      section: "Model 5 — DenseNet-121 (H5)",
-      source: t("results.provenance.badge.model"),
-      sourceKind: "model",
-      status: t("results.impact.statusOk"),
-    });
-  }
-  if (analysis.copd_screening?.status === "success") {
-    impactRows.push({
-      section: "COPD Clinical Screening",
-      source: "Tabular NN",
-      sourceKind: "model",
-      status: t("results.impact.statusOk"),
-    });
-  }
 
   const model3Probabilities =
     denseNetDisplay?.success && denseNetDisplay.probabilities
@@ -436,32 +412,25 @@ export default function ResultsPage() {
   const visualPipelineRows: Record<VisualPipelineModelSlot, VisualPipelineRowView> = {
     model1: {
       summary: model1SummaryText,
+      available: Boolean(analysis.model1),
       poweredByKey: "results.poweredBy.model1",
       probabilities: analysis.model1?.probabilities ?? null,
       trailing: (
-        <SectionSourceBadge
-          source={pipelineProvenanceSource(analysis.provenance, "model1")}
-          className="px-2 py-0 text-xs"
-        />
-      ),
-    },
-    model2: {
-      summary: model2SummaryText,
-      poweredByKey: "results.poweredBy.model2",
-      probabilities: analysis.model2?.probabilities ?? null,
-      trailing: (
-        <SectionSourceBadge
-          source={pipelineProvenanceSource(analysis.provenance, "model2")}
+        <PipelineModelBadge
+          modelNumber={1}
+          live={Boolean(analysis.model1)}
+          provenanceSource={pipelineProvenanceSource(analysis.provenance, "model1")}
           className="px-2 py-0 text-xs"
         />
       ),
     },
     model3: {
-      summary: model3SummaryText ?? t("results.na"),
+      summary: model3SummaryText ?? t("results.model3DenseNet.unavailable"),
+      available: Boolean(model3SummaryText || denseNetDisplay?.success),
       poweredByKey: "results.poweredBy.model3",
       probabilities: model3Probabilities,
       trailing: denseNetDisplay?.success ? (
-        <SectionSourceBadge source="model" className="px-2 py-0 text-xs" />
+        <PipelineModelBadge modelNumber={3} live className="px-2 py-0 text-xs" />
       ) : (
         <p className="text-xs text-muted-foreground">{t("results.model3DenseNet.unavailable")}</p>
       ),
@@ -476,25 +445,29 @@ export default function ResultsPage() {
     },
     model4_swint: {
       summary: model4SwintSummaryText,
+      available: analysis.model4_swint?.status === "success",
       poweredByKey: "results.poweredBy.model4",
       probabilities: analysis.model4_swint?.probabilities ?? null,
-      trailing:
-        analysis.model4_swint?.status === "success" ? (
-          <Badge variant="outline" className="border-violet-200 bg-violet-50 px-2 py-0 text-xs text-violet-700">
-            ViT Model ✓
-          </Badge>
-        ) : null,
+      trailing: (
+        <PipelineModelBadge
+          modelNumber={4}
+          live={analysis.model4_swint?.status === "success"}
+          className="px-2 py-0 text-xs"
+        />
+      ),
     },
     model5_densenet: {
       summary: model5DenseNetSummaryText,
+      available: analysis.model5_densenet?.status === "success",
       poweredByKey: "results.poweredBy.model5",
       probabilities: analysis.model5_densenet?.probabilities ?? null,
-      trailing:
-        analysis.model5_densenet?.status === "success" ? (
-          <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-2 py-0 text-xs text-emerald-800">
-            Model 5 ✓
-          </Badge>
-        ) : null,
+      trailing: (
+        <PipelineModelBadge
+          modelNumber={5}
+          live={analysis.model5_densenet?.status === "success"}
+          className="px-2 py-0 text-xs"
+        />
+      ),
     },
   };
 
@@ -523,8 +496,10 @@ export default function ResultsPage() {
             heading: t("results.pdfSection.visualXray"),
             rows: [
               { primary: model1SummaryText, poweredBy: t("results.poweredBy.model1") },
-              { primary: model2SummaryText, poweredBy: t("results.poweredBy.model2") },
-              { primary: model3SummaryText ?? t("results.na"), poweredBy: t("results.poweredBy.model3") },
+              {
+                primary: model3SummaryText ?? t("results.model3DenseNet.unavailable"),
+                poweredBy: t("results.poweredBy.model3"),
+              },
               { primary: model4SwintSummaryText, poweredBy: t("results.poweredBy.model4") },
               { primary: model5DenseNetSummaryText, poweredBy: t("results.poweredBy.model5") },
             ],
@@ -533,10 +508,8 @@ export default function ResultsPage() {
             heading: t("results.pdfSection.clinicalAssessment"),
             rows: [
               {
-                primary: copdSummaryText
-                  ? `${copdSummaryText.riskText} (${copdSummaryText.confidence}% Confidence)`
-                  : t("results.na"),
-                poweredBy: t("results.poweredBy.copd"),
+                primary: model2ClinicalLine,
+                poweredBy: t("results.poweredBy.model2"),
               },
             ],
           },
@@ -651,34 +624,7 @@ export default function ResultsPage() {
           <CardContent className="space-y-5 text-sm text-muted-foreground">
             <VisualXrayPipelineSection rows={visualPipelineRows} />
 
-            <section className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
-              <h3 className="text-sm font-semibold text-foreground">Clinical Patient Assessment</h3>
-              <div className="space-y-1.5">
-                <div className="flex flex-wrap items-start justify-between gap-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={
-                        copdSummaryText
-                          ? analysis.copd_screening?.prediction === "High COPD Risk"
-                            ? "font-semibold text-red-600"
-                            : "font-semibold text-green-600"
-                          : "font-semibold text-foreground"
-                      }
-                    >
-                      {copdSummaryText
-                        ? `${copdSummaryText.riskText} (${copdSummaryText.confidence}% Confidence)`
-                        : t("results.na")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{t("results.poweredBy.copd")}</p>
-                  </div>
-                  {copdSummaryText ? (
-                    <Badge variant="outline" className="border-blue-200 bg-blue-50 px-2 py-0 text-xs text-blue-700">
-                      Tabular NN ✓
-                    </Badge>
-                  ) : null}
-                </div>
-              </div>
-            </section>
+            <Model2ClinicalSection tabular={model2Tabular} provenance={analysis.provenance} />
 
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">
@@ -761,7 +707,6 @@ export default function ResultsPage() {
       <div className="mt-10 space-y-10">
         <FindingsCard
           predictions={predictions}
-          model2={analysis.model2}
           findingsBadgeSource={resolveFindingsBadgeSource(analysis.provenance)}
         />
         <DoctorQuestions

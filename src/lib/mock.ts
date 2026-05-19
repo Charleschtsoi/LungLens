@@ -2,6 +2,7 @@ import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 import { PIPELINE } from "@/lib/constants";
 import type {
   AnalyzeSuccessResponse,
+  Model2TabularResult,
   Predictions,
   Stage3QuestionnaireInput,
   StageClinicalResult,
@@ -145,6 +146,27 @@ function gateFromStages(stage1: StageBinaryResult, stage2: StageMultiClassResult
   return positive
     ? { route: "continue" as const, reason: "positive_detected" as const }
     : { route: "early_stop" as const, reason: "both_negative" as const };
+}
+
+function model2TabularFromQuestionnaire(q: Stage3QuestionnaireInput): Model2TabularResult {
+  const clinical = stage3FromQuestionnaire(q);
+  const high =
+    clinical.risk_level === "high" ||
+    (clinical.risk_level === "medium" && clinical.severity === "high");
+  const pHigh = high ? 0.72 : 0.18;
+  const prediction = high ? "High COPD Risk" : "Low COPD Risk";
+  return {
+    prediction,
+    confidence: Number(pHigh.toFixed(2)),
+    status: "success",
+    input_type: "tabular",
+    model_name: "Chronic Lung Risk (COPD)",
+    label: prediction,
+    probabilities: {
+      "High COPD Risk": pHigh,
+      "Low COPD Risk": Number((1 - pHigh).toFixed(2)),
+    },
+  };
 }
 
 function stage3FromQuestionnaire(q: Stage3QuestionnaireInput): StageClinicalResult {
@@ -320,8 +342,8 @@ export async function mockAnalyze(
   const { label, confidence } = topFinding(predictions);
   const heatmap_base64 = await createPlaceholderHeatmapBase64(image, scenario);
   const stage1 = stage1FromPredictions(predictions);
-  const stage2 = stage2FromPredictions(predictions);
-  const gate = gateFromStages(stage1, stage2);
+  const visionStage2 = stage2FromPredictions(predictions);
+  const gate = gateFromStages(stage1, visionStage2);
   const top = topThree(predictions);
 
   const needsQuestionnaire =
@@ -339,7 +361,8 @@ export async function mockAnalyze(
       confidence,
     },
     model1: stage1,
-    model2: stage2,
+    model2: opts?.questionnaire ? model2TabularFromQuestionnaire(opts.questionnaire) : undefined,
+    copd_screening: opts?.questionnaire ? model2TabularFromQuestionnaire(opts.questionnaire) : undefined,
     gate,
     clinical_risk: stage3,
     model3: {

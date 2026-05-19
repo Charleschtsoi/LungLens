@@ -127,7 +127,12 @@ function collectModelNoticeAggregate(
 ): ModelNoticeAgg {
   const agg = emptyAgg();
   absorbProbs(agg, analysis.model1?.probabilities);
-  absorbProbs(agg, analysis.model2?.probabilities);
+  const m2 = analysis.model2;
+  if (m2 && typeof m2 === "object" && "probabilities" in m2 && m2.probabilities) {
+    absorbProbs(agg, m2.probabilities);
+  }
+  absorbProbs(agg, analysis.model4_swint?.probabilities);
+  absorbProbs(agg, analysis.model5_densenet?.probabilities);
   if (denseNetDisplay?.success && denseNetDisplay.probabilities) {
     absorbProbs(agg, denseNetDisplay.probabilities);
   } else {
@@ -144,7 +149,6 @@ function fusionPneumoniaNoticeKind(analysis: AnalyzeSuccessResponse): PneumoniaN
   const m1 = analysis.model1?.label;
   if (m1 === "Pneumonia-Bacteria") return "pneumonia_bacterial";
   if (m1 === "Pneumonia-Virus") return "pneumonia_viral";
-  if (analysis.model2?.label === "Viral Pneumonia") return "pneumonia_viral";
   return "default";
 }
 

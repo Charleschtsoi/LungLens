@@ -1,6 +1,6 @@
 "use client";
 
-import type { AiNoticeFindingRow, AnalyzeStageSource, FindingLabel, Predictions, StageMultiClassResult } from "@/types";
+import type { AiNoticeFindingRow, AnalyzeStageSource, FindingLabel, Predictions } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
@@ -54,12 +54,10 @@ function legacyNotableToRows(
 
 export function FindingsCard({
   predictions,
-  model2,
   findingsBadgeSource,
   notableFindings,
 }: {
   predictions: Predictions | null;
-  model2?: StageMultiClassResult;
   /** When set (e.g. merged fusion + per-model >50%), drives notice rows instead of fusion-only scores. */
   notableFindings?: AiNoticeFindingRow[] | null;
   /** Resolved badge source (mock / rule / …) from provenance. */
@@ -75,11 +73,6 @@ export function FindingsCard({
   const findingsAreMock = findingsBadgeSource === "mock";
   const showDemoFindingsNotice = findingsAreMock;
   const showPrimaryClassNotice = !showDemoFindingsNotice;
-  const model2Hint =
-    model2 && model2.label !== "Normal"
-      ? `${t("results.stage2")}: ${t(`stage.${model2.label}`, model2.label)} (${Math.round(model2.confidence * 100)}%).`
-      : null;
-
   return (
     <Card id="what-ai-noticed">
       <CardHeader>
@@ -111,7 +104,6 @@ export function FindingsCard({
         {notable.length === 0 ? (
           <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
             <p>{t("results.noSignificant")}</p>
-            {model2Hint && <p>{model2Hint}</p>}
           </div>
         ) : (
           notable.map((row) => {

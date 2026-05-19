@@ -2,12 +2,16 @@
 
 import type { ReactNode } from "react";
 import { ClassProbabilitiesList } from "@/components/results/ClassProbabilitiesList";
-import { VISUAL_PIPELINE_MODEL_SLOTS, type VisualPipelineModelSlot } from "@/lib/ensemble-architecture";
+import type { VisualPipelineModelSlot } from "@/lib/ensemble-architecture";
+import { sortVisualPipelineSlots } from "@/lib/model-summary-display";
+import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
 
 export type VisualPipelineRowView = {
   summary: string;
   poweredByKey: string;
+  /** When false, row is sorted to the bottom and summary uses muted styling. */
+  available?: boolean;
   probabilities?: Record<string, number> | null;
   trailing?: ReactNode;
   extra?: ReactNode;
@@ -19,14 +23,16 @@ type VisualXrayPipelineSectionProps = {
 
 export function VisualXrayPipelineSection({ rows }: VisualXrayPipelineSectionProps) {
   const { t } = useI18n();
+  const orderedSlots = sortVisualPipelineSlots(rows);
 
   return (
     <section className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
       <h3 className="text-sm font-semibold text-foreground">{t("results.pdfSection.visualXray")}</h3>
       <div className="space-y-0">
-        {VISUAL_PIPELINE_MODEL_SLOTS.map((slot, index) => {
+        {orderedSlots.map((slot, index) => {
           const row = rows[slot];
-          const isLast = index === VISUAL_PIPELINE_MODEL_SLOTS.length - 1;
+          const isLast = index === orderedSlots.length - 1;
+          const live = row.available !== false;
           return (
             <div
               key={slot}
@@ -34,7 +40,14 @@ export function VisualXrayPipelineSection({ rows }: VisualXrayPipelineSectionPro
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-foreground">{row.summary}</p>
+                  <p
+                    className={cn(
+                      "font-semibold",
+                      live ? "text-foreground" : "text-sm font-medium text-muted-foreground",
+                    )}
+                  >
+                    {row.summary}
+                  </p>
                   <p className="text-xs text-muted-foreground">{t(row.poweredByKey)}</p>
                 </div>
                 {row.trailing}

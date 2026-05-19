@@ -1,7 +1,6 @@
-/** Visual X-Ray Analysis slots — exactly five backend classifier fields. */
+/** Visual X-Ray Analysis slots — four image classifiers (Model 2 is tabular COPD, clinical section only). */
 export const VISUAL_PIPELINE_MODEL_SLOTS = [
   "model1",
-  "model2",
   "model3",
   "model4_swint",
   "model5_densenet",
@@ -28,9 +27,9 @@ export const ENSEMBLE_ARCHITECTURE_ROWS: readonly EnsembleArchitectureRow[] = [
     trainedBy: "Casper Lee",
   },
   {
-    displayName: "Model 2 (ResNet-152V2)",
-    architecture: "ResNet-152V2 (Keras H5)",
-    apiField: "model2",
+    displayName: "Model 2 (Chronic Lung Risk)",
+    architecture: "Tabular neural network (clinical questionnaire)",
+    apiField: "model2 / copd_screening",
     trainedBy: "Edward Choi",
   },
   {
