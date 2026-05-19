@@ -1,30 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
+import { readPersistedAnalyzeSuccessFromSession } from "@/lib/analysis-session-storage";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResultsImageTabs } from "@/components/results/ResultsImageTabs";
-import { ClassProbabilitiesList } from "@/components/results/ClassProbabilitiesList";
+import { LlmEducatorCard } from "@/components/results/LlmEducatorCard";
 import { FindingsCard } from "@/components/results/FindingsCard";
 import { DoctorQuestions } from "@/components/results/DoctorQuestions";
 import { LearnMoreCards } from "@/components/results/LearnMoreCards";
 import { ResultsStickyDisclaimer } from "@/components/results/ResultsStickyDisclaimer";
-import { getMergedNotableFindingsForAiNotice } from "@/lib/findings-utils";
+import { getNotableFindings } from "@/lib/findings-utils";
 import { buildDoctorQuestions } from "@/lib/doctor-questions";
 import { buildEducationReportPdf } from "@/lib/pdf-report";
+import { pickLlmMarkdownForLocale } from "@/lib/llm-evaluation-display";
 import { FileDown, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 import { useI18n } from "@/hooks/useI18n";
 import {
   denseNetResponseFromAnalyzeModel3,
   mergeDenseNetDisplayForUi,
+  model3PredictionString,
 } from "@/lib/dense-net-from-analysis";
-import { buildHighAttentionFindingKeys } from "@/lib/high-attention-findings";
+import { mapModelSignalsToHighAttentionFindings } from "@/lib/high-attention-findings";
 import type { AiNoticeFindingRow, FindingLabel, SuggestedDoctorQuestion } from "@/types";
 import { aiNoticeRowHeadline, conditionName } from "@/lib/i18n";
 import {
@@ -42,6 +44,12 @@ import {
 } from "@/lib/provenance-ui";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 import { DenseNetPipelineBlock } from "@/components/results/DenseNetPipelineBlock";
+import { EnsembleArchitectureAccordion } from "@/components/results/EnsembleArchitectureAccordion";
+import {
+  VisualXrayPipelineSection,
+  type VisualPipelineRowView,
+} from "@/components/results/VisualXrayPipelineSection";
+import type { VisualPipelineModelSlot } from "@/lib/ensemble-architecture";
 import type { AnalyzeStageSource } from "@/types";
 
 /** Raw base64 for attention overlay (tabs + PDF); strips `data:image/...;base64,` if present. */
@@ -78,16 +86,29 @@ export default function ResultsPage() {
 
   const [suggestedQuestions, setSuggestedQuestions] = useState<SuggestedDoctorQuestion[] | null>(null);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
+  const [sessionRestored, setSessionRestored] = useState(false);
   const hasFetchedQuestions = useRef(false);
   const prevAnalysisRef = useRef<typeof analysis>(undefined);
-  const prevDenseNetResultRef = useRef(denseNetResult);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    if (analysis) {
+      setSessionRestored(true);
+      return;
+    }
+    const restored = readPersistedAnalyzeSuccessFromSession();
+    if (restored) {
+      useAppStore.getState().setAnalysis(restored);
+    }
+    setSessionRestored(true);
+  }, [analysis]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !sessionRestored) return;
     if (!analysis) {
       router.replace("/upload");
     }
-  }, [analysis, loading, router]);
+  }, [analysis, loading, router, sessionRestored]);
 
   useEffect(() => {
     console.log("Q&A Hook Triggered. Analysis exists:", !!analysis);
@@ -96,12 +117,7 @@ export default function ResultsPage() {
       console.log("Q&A: Analysis identity changed; resetting fetch guard and loading.");
       hasFetchedQuestions.current = false;
       prevAnalysisRef.current = analysis;
-      prevDenseNetResultRef.current = denseNetResult;
       setIsQuestionsLoading(false);
-    } else if (prevDenseNetResultRef.current !== denseNetResult) {
-      console.log("Q&A: DenseNet supplemental result updated; resetting fetch guard.");
-      hasFetchedQuestions.current = false;
-      prevDenseNetResultRef.current = denseNetResult;
     }
 
     if (!analysis) {
@@ -116,15 +132,30 @@ export default function ResultsPage() {
       return;
     }
 
-    const denseNetForKeys = mergeDenseNetDisplayForUi(
-      denseNetResponseFromAnalyzeModel3(analysis),
-      denseNetResult,
-    );
-    const high_attention_findings = buildHighAttentionFindingKeys(analysis, denseNetForKeys);
-    console.log("Q&A high_attention_findings:", high_attention_findings);
+    const findings: string[] = [];
+    if (analysis.model1?.label && analysis.model1.label !== "Normal") {
+      findings.push(analysis.model1.label);
+    }
+    const m3pred = model3PredictionString(analysis.model3);
+    if (m3pred && m3pred !== "Normal") {
+      findings.push(m3pred);
+    }
+
+    console.log("Q&A Extracted Findings:", findings);
+
+    if (findings.length === 0) {
+      console.log("Q&A: No abnormal findings, skipping fetch.");
+      setSuggestedQuestions([]);
+      setIsQuestionsLoading(false);
+      hasFetchedQuestions.current = true;
+      return;
+    }
+
+    const high_attention_findings = mapModelSignalsToHighAttentionFindings(findings);
+    console.log("Q&A Mapped high_attention_findings:", high_attention_findings);
 
     if (high_attention_findings.length === 0) {
-      console.log("Q&A: No high-attention findings; skipping fetch.");
+      console.log("Q&A: No mappable finding keys after normalization; skipping fetch.");
       setSuggestedQuestions([]);
       setIsQuestionsLoading(false);
       hasFetchedQuestions.current = true;
@@ -178,9 +209,18 @@ export default function ResultsPage() {
     };
 
     fetchQuestions();
-  }, [analysis, denseNetResult]);
+  }, [analysis]);
 
   if (!analysis && loading) {
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden />
+        <p className="text-sm">{t("results.loading")}</p>
+      </div>
+    );
+  }
+
+  if (!analysis && !sessionRestored) {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden />
@@ -205,27 +245,29 @@ export default function ResultsPage() {
   const attentionHeatmapBase64 = heatmapBase64ForDisplay(
     model1GradcamRaw ?? analysis.gradcam.heatmap_base64,
   );
-  const notable = getMergedNotableFindingsForAiNotice(predictions, analysis, denseNetDisplay);
-  const model2Fallback: AiNoticeFindingRow[] =
+  const notable = getNotableFindings(predictions);
+  const model2Fallback: Array<{ label: FindingLabel; score: number }> =
     analysis.model2?.label && analysis.model2.label !== "Normal"
       ? [
           {
-            id: "model2-fallback",
             label: analysis.model2.label === "Viral Pneumonia" ? "Pneumonia" : "Lung Opacity",
             score: analysis.model2.confidence,
-            noticeKind: analysis.model2.label === "Viral Pneumonia" ? "pneumonia_viral" : "default",
-          },
+          }
         ]
       : [];
   const findingsForSections = notable.length > 0 ? notable : model2Fallback;
-  const doctorQuestionFindings = findingsForSections.map((f) => ({
-    label: f.label,
-    displayName: aiNoticeRowHeadline(locale, f.label, f.noticeKind),
-  }));
   const learnMoreFindings = findingsForSections.map((f) => ({
     label: f.label,
-    sectionKey: f.id,
+    sectionKey: "id" in f && typeof f.id === "string" ? f.id : `finding-${f.label}`,
   }));
+  const doctorQuestionFindings = findingsForSections.map((f) => {
+    const row = f as AiNoticeFindingRow | { label: FindingLabel; score: number };
+    const displayName =
+      "noticeKind" in row
+        ? aiNoticeRowHeadline(locale, row.label, row.noticeKind)
+        : conditionName(locale, row.label);
+    return { label: row.label, displayName };
+  });
   const stageLabel = (value: string) => t(`stage.${value}`, value);
   const gateLabel = (value: string) => t(`gate.${value}`, value);
   const riskLabel = (value: string) => t(`risk.${value}`, value);
@@ -278,6 +320,10 @@ export default function ResultsPage() {
   const model4SwintSummaryText =
     analysis.model4_swint?.status === "success"
       ? `${stageLabel(analysis.model4_swint.prediction)} (${Math.round((analysis.model4_swint.confidence ?? 0) * 100)}% Confidence)`
+      : t("results.na");
+  const model5DenseNetSummaryText =
+    analysis.model5_densenet?.status === "success"
+      ? `${stageLabel(analysis.model5_densenet.prediction)} (${Math.round((analysis.model5_densenet.confidence ?? 0) * 100)}% Confidence)`
       : t("results.na");
   const copdSummaryText = (() => {
     if (analysis.copd_screening?.status !== "success") return null;
@@ -365,6 +411,14 @@ export default function ResultsPage() {
       status: t("results.impact.statusOk"),
     });
   }
+  if (analysis.model5_densenet?.status === "success") {
+    impactRows.push({
+      section: "Model 5 — DenseNet-121 (H5)",
+      source: t("results.provenance.badge.model"),
+      sourceKind: "model",
+      status: t("results.impact.statusOk"),
+    });
+  }
   if (analysis.copd_screening?.status === "success") {
     impactRows.push({
       section: "COPD Clinical Screening",
@@ -373,6 +427,76 @@ export default function ResultsPage() {
       status: t("results.impact.statusOk"),
     });
   }
+
+  const model3Probabilities =
+    denseNetDisplay?.success && denseNetDisplay.probabilities
+      ? denseNetDisplay.probabilities
+      : null;
+
+  const visualPipelineRows: Record<VisualPipelineModelSlot, VisualPipelineRowView> = {
+    model1: {
+      summary: model1SummaryText,
+      poweredByKey: "results.poweredBy.model1",
+      probabilities: analysis.model1?.probabilities ?? null,
+      trailing: (
+        <SectionSourceBadge
+          source={pipelineProvenanceSource(analysis.provenance, "model1")}
+          className="px-2 py-0 text-xs"
+        />
+      ),
+    },
+    model2: {
+      summary: model2SummaryText,
+      poweredByKey: "results.poweredBy.model2",
+      probabilities: analysis.model2?.probabilities ?? null,
+      trailing: (
+        <SectionSourceBadge
+          source={pipelineProvenanceSource(analysis.provenance, "model2")}
+          className="px-2 py-0 text-xs"
+        />
+      ),
+    },
+    model3: {
+      summary: model3SummaryText ?? t("results.na"),
+      poweredByKey: "results.poweredBy.model3",
+      probabilities: model3Probabilities,
+      trailing: denseNetDisplay?.success ? (
+        <SectionSourceBadge source="model" className="px-2 py-0 text-xs" />
+      ) : (
+        <p className="text-xs text-muted-foreground">{t("results.model3DenseNet.unavailable")}</p>
+      ),
+      extra: (
+        <DenseNetPipelineBlock
+          compact
+          loading={denseNetLoadingEffective}
+          result={denseNetDisplay}
+          previewUrl={previewUrl}
+        />
+      ),
+    },
+    model4_swint: {
+      summary: model4SwintSummaryText,
+      poweredByKey: "results.poweredBy.model4",
+      probabilities: analysis.model4_swint?.probabilities ?? null,
+      trailing:
+        analysis.model4_swint?.status === "success" ? (
+          <Badge variant="outline" className="border-violet-200 bg-violet-50 px-2 py-0 text-xs text-violet-700">
+            ViT Model ✓
+          </Badge>
+        ) : null,
+    },
+    model5_densenet: {
+      summary: model5DenseNetSummaryText,
+      poweredByKey: "results.poweredBy.model5",
+      probabilities: analysis.model5_densenet?.probabilities ?? null,
+      trailing:
+        analysis.model5_densenet?.status === "success" ? (
+          <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-2 py-0 text-xs text-emerald-800">
+            Model 5 ✓
+          </Badge>
+        ) : null,
+    },
+  };
 
   const exportPdf = async () => {
     if (isExportingPdf) return;
@@ -387,8 +511,11 @@ export default function ResultsPage() {
         documentSubtitle: t("results.subtitle"),
         llmSectionTitle: t("results.llmEducatorTitle"),
         llmMarkdown:
-          analysis.llm_evaluation?.status === "success" && analysis.llm_evaluation.text.trim()
-            ? analysis.llm_evaluation.text
+          analysis.llm_evaluation?.status === "success"
+            ? (() => {
+                const md = pickLlmMarkdownForLocale(analysis.llm_evaluation, locale);
+                return md.trim() ? md : null;
+              })()
             : null,
         pipelineTitle: t("results.pipelineTitle"),
         pipelineSections: [
@@ -399,6 +526,7 @@ export default function ResultsPage() {
               { primary: model2SummaryText, poweredBy: t("results.poweredBy.model2") },
               { primary: model3SummaryText ?? t("results.na"), poweredBy: t("results.poweredBy.model3") },
               { primary: model4SwintSummaryText, poweredBy: t("results.poweredBy.model4") },
+              { primary: model5DenseNetSummaryText, poweredBy: t("results.poweredBy.model5") },
             ],
           },
           {
@@ -424,7 +552,7 @@ export default function ResultsPage() {
         reportSummaryValue: reportSummary ?? t("results.questionnaireRequired"),
         findingsTitle: t("results.anatomyHeader"),
         findings: findingsForSections.map((f) => ({
-          label: aiNoticeRowHeadline(locale, f.label, f.noticeKind),
+          label: conditionName(locale, f.label),
           scorePct: Math.round(f.score * 100),
         })),
         noFindingsText: t("results.noSignificant"),
@@ -485,8 +613,14 @@ export default function ResultsPage() {
       </div>
       {exportError && <p className="mt-3 text-sm text-destructive">{exportError}</p>}
 
+      <Alert className="mt-6 border-amber-400 bg-amber-50 text-foreground shadow-md" role="alert">
+        <AlertDescription className="text-sm font-semibold leading-relaxed text-amber-950">
+          <span className="font-bold">{t("results.complianceImportant")}:</span> {t("results.sticky")}
+        </AlertDescription>
+      </Alert>
+
       {doctorReviewed === false && (
-        <Alert className="mt-6 border-amber-300 bg-amber-100/90 text-foreground shadow-sm">
+        <Alert className="mt-4 border-amber-300 bg-amber-100/90 text-foreground shadow-sm">
           <AlertDescription className="text-sm font-medium text-amber-950">
             ⚠️ {t("results.noDoctor")}
           </AlertDescription>
@@ -506,39 +640,7 @@ export default function ResultsPage() {
       </div>
 
       {analysis.llm_evaluation?.text?.trim() ? (
-        <Card
-          className={
-            analysis.llm_evaluation.status === "success"
-              ? "mt-6 border-blue-200/70 bg-blue-50/30 shadow-sm"
-              : "mt-6 border-muted bg-muted/30 shadow-sm"
-          }
-        >
-          <CardHeader>
-            <CardTitle
-              className={
-                analysis.llm_evaluation.status === "success" ? "text-base text-blue-900" : "text-base"
-              }
-            >
-              {t("results.llmEducatorTitle")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {analysis.llm_evaluation.status === "success" ? (
-              <div className="prose prose-sm max-w-none text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900">
-                <ReactMarkdown>{analysis.llm_evaluation.text}</ReactMarkdown>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">{analysis.llm_evaluation.text}</p>
-                {analysis.llm_evaluation.status === "failed" ? (
-                  <p className="text-xs text-muted-foreground">{t("results.llmFailedHint")}</p>
-                ) : analysis.llm_evaluation.status === "skipped" ? (
-                  <p className="text-xs text-muted-foreground">{t("results.llmSkippedHint")}</p>
-                ) : null}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <LlmEducatorCard llm={analysis.llm_evaluation} locale={locale} t={t} />
       ) : null}
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -547,78 +649,7 @@ export default function ResultsPage() {
             <CardTitle className="text-base">{t("results.pipelineTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5 text-sm text-muted-foreground">
-            <section className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
-              <h3 className="text-sm font-semibold text-foreground">Visual X-Ray Analysis</h3>
-              <div className="space-y-1.5">
-                <div className="space-y-2 border-b border-border/60 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{model1SummaryText}</p>
-                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model1")}</p>
-                    </div>
-                    <SectionSourceBadge
-                      source={pipelineProvenanceSource(analysis.provenance, "model1")}
-                      className="px-2 py-0 text-xs"
-                    />
-                  </div>
-                  {analysis.model1?.probabilities ? (
-                    <ClassProbabilitiesList probabilities={analysis.model1.probabilities} />
-                  ) : null}
-                </div>
-
-                <div className="space-y-2 border-b border-border/60 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{model2SummaryText}</p>
-                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model2")}</p>
-                    </div>
-                    <SectionSourceBadge
-                      source={pipelineProvenanceSource(analysis.provenance, "model2")}
-                      className="px-2 py-0 text-xs"
-                    />
-                  </div>
-                  {analysis.model2?.probabilities ? (
-                    <ClassProbabilitiesList probabilities={analysis.model2.probabilities} />
-                  ) : null}
-                </div>
-
-                <div className="space-y-2 border-b border-border/60 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{model3SummaryText ?? t("results.na")}</p>
-                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model3")}</p>
-                    </div>
-                    {denseNetDisplay?.success ? (
-                      <SectionSourceBadge source="model" className="px-2 py-0 text-xs" />
-                    ) : (
-                      <p className="text-xs text-muted-foreground">{t("results.model3DenseNet.unavailable")}</p>
-                    )}
-                  </div>
-                  <DenseNetPipelineBlock
-                    loading={denseNetLoadingEffective}
-                    result={denseNetDisplay}
-                    previewUrl={previewUrl}
-                  />
-                </div>
-
-                <div className="space-y-2 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{model4SwintSummaryText}</p>
-                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model4")}</p>
-                    </div>
-                    {analysis.model4_swint?.status === "success" ? (
-                      <Badge variant="outline" className="border-violet-200 bg-violet-50 px-2 py-0 text-xs text-violet-700">
-                        ViT Model ✓
-                      </Badge>
-                    ) : null}
-                  </div>
-                  {analysis.model4_swint?.probabilities ? (
-                    <ClassProbabilitiesList probabilities={analysis.model4_swint.probabilities} />
-                  ) : null}
-                </div>
-              </div>
-            </section>
+            <VisualXrayPipelineSection rows={visualPipelineRows} />
 
             <section className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
               <h3 className="text-sm font-semibold text-foreground">Clinical Patient Assessment</h3>
@@ -638,7 +669,7 @@ export default function ResultsPage() {
                         ? `${copdSummaryText.riskText} (${copdSummaryText.confidence}% Confidence)`
                         : t("results.na")}
                     </p>
-                    <p className="text-xs text-muted-foreground">Powered by Chronic Lung Risk (COPD)</p>
+                    <p className="text-xs text-muted-foreground">{t("results.poweredBy.copd")}</p>
                   </div>
                   {copdSummaryText ? (
                     <Badge variant="outline" className="border-blue-200 bg-blue-50 px-2 py-0 text-xs text-blue-700">
@@ -696,11 +727,21 @@ export default function ResultsPage() {
         </Card>
       </div>
 
+      <div className="mt-6">
+        <EnsembleArchitectureAccordion />
+      </div>
+
       <Card className="mt-6">
         <CardHeader>
           <CardTitle className="text-base">{t("results.impact.title")}</CardTitle>
+          <CardDescription className="text-sm">{t("results.impact.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
+          <div className="hidden gap-1 border-b pb-2 font-medium text-muted-foreground md:grid md:grid-cols-3">
+            <span>{t("results.impact.colSection")}</span>
+            <span>{t("results.impact.colSource")}</span>
+            <span className="text-right md:text-left">{t("results.impact.colRun")}</span>
+          </div>
           {impactRows.map((row) => (
             <div key={row.section} className="grid grid-cols-1 gap-1 border-b pb-2 last:border-b-0 md:grid-cols-3">
               <p className="font-medium text-foreground">{row.section}</p>
@@ -711,7 +752,7 @@ export default function ResultsPage() {
                   <span className="text-muted-foreground">{row.source}</span>
                 )}
               </p>
-              <p className="text-muted-foreground">{row.status}</p>
+              <p className="text-muted-foreground md:text-left">{row.status}</p>
             </div>
           ))}
         </CardContent>
@@ -720,12 +761,11 @@ export default function ResultsPage() {
       <div className="mt-10 space-y-10">
         <FindingsCard
           predictions={predictions}
-          notableFindings={notable}
           model2={analysis.model2}
           findingsBadgeSource={resolveFindingsBadgeSource(analysis.provenance)}
         />
         <DoctorQuestions
-          findings={doctorQuestionFindings}
+          findings={findingsForSections}
           doctorQuestionsProvenance={
             analysis.provenance?.doctor_questions ??
             analysis.provenance?.clinical_risk?.source ??

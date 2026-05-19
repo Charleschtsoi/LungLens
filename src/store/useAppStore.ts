@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { clearPersistedAnalyzeSuccessSession } from "@/lib/analysis-session-storage";
 import type { AnalyzeSuccessResponse, DenseNetResponse, Stage3QuestionnaireInput } from "@/types";
 import { predictDenseNet } from "@/lib/api";
 
@@ -98,8 +99,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ denseNetLoading: true, denseNetResult: null });
     void predictDenseNet(file).then((r) => set({ denseNetLoading: false, denseNetResult: r }));
   },
-  resetUploadSession: () =>
-    set((state) => {
+  resetUploadSession: () => {
+    clearPersistedAnalyzeSuccessSession();
+    return set((state) => {
       revokePreview(state.previewUrl);
       return {
         imageFile: null,
@@ -112,15 +114,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         denseNetLoading: false,
         denseNetResult: null,
       };
-    }),
-  resetUploadFlow: () =>
-    set((state) => {
+    });
+  },
+  resetUploadFlow: () => {
+    clearPersistedAnalyzeSuccessSession();
+    return set((state) => {
       revokePreview(state.previewUrl);
       return { ...baseInitial };
-    }),
-  resetAll: () =>
-    set((state) => {
+    });
+  },
+  resetAll: () => {
+    clearPersistedAnalyzeSuccessSession();
+    return set((state) => {
       revokePreview(state.previewUrl);
       return { ...baseInitial };
-    }),
+    });
+  },
 }));

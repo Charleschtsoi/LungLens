@@ -1,22 +1,28 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { analyzeImageFile, probeGeminiApiKey } from "@/lib/api";
+import { persistAnalyzeSuccessToSession } from "@/lib/analysis-session-storage";
+import { ANALYSIS_PIPELINE_COMPLETE_HOLD_MS } from "@/lib/analysis-pipeline-loading";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
+import { readStoredGeminiApiKey } from "@/lib/gemini-client-storage";
 import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { readStoredGeminiApiKey } from "@/lib/gemini-client-storage";
+import { AnalysisPipelineLoader } from "@/components/upload/AnalysisPipelineLoader";
+import { UploadDestructiveAlert } from "@/components/upload/UploadDestructiveAlert";
 
-const MIN_BUTTON_LOADING_MS = 600;
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 export function ClinicalQuestionnaire() {
   const router = useRouter();
   const { t } = useI18n();
-  const [submitUiLoading, setSubmitUiLoading] = useState(false);
+  const [pipelineFinishing, setPipelineFinishing] = useState(false);
+
   const imageFile = useAppStore((s) => s.imageFile);
   const analysisError = useAppStore((s) => s.analysisError);
   const questionnaire = useAppStore((s) => s.questionnaire);
@@ -29,50 +35,71 @@ export function ClinicalQuestionnaire() {
   const analysisLoading = useAppStore((s) => s.analysisLoading);
   const startSupplementalDensenet = useAppStore((s) => s.startSupplementalDensenet);
 
-  const submit = async () => {
-    if (!imageFile || analysisLoading || submitUiLoading) return;
-    const startedAt = Date.now();
-    setSubmitUiLoading(true);
-    setAnalysisError(null);
-    setAnalysisLoading(true);
-    const geminiApiKey = readStoredGeminiApiKey();
-    const probe = await probeGeminiApiKey(geminiApiKey ?? "");
-    if (!probe.ok) {
-      const elapsed = Date.now() - startedAt;
-      if (elapsed < MIN_BUTTON_LOADING_MS) {
-        await new Promise((resolve) => setTimeout(resolve, MIN_BUTTON_LOADING_MS - elapsed));
-      }
-      setAnalysisLoading(false);
-      setSubmitUiLoading(false);
-      const msg = probe.error_code
-        ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
-        : probe.error || t("upload.geminiHealth.failed");
-      setAnalysisError(msg);
-      return;
-    }
-    const res = await analyzeImageFile(imageFile, {
-      questionnaire,
-      ...(geminiApiKey ? { geminiApiKey } : {}),
-    });
-    const elapsed = Date.now() - startedAt;
-    if (elapsed < MIN_BUTTON_LOADING_MS) {
-      await new Promise((resolve) => setTimeout(resolve, MIN_BUTTON_LOADING_MS - elapsed));
-    }
+  const showPipelineLoader = analysisLoading || pipelineFinishing;
+
+  const stopPipeline = () => {
+    setPipelineFinishing(false);
     setAnalysisLoading(false);
-    setSubmitUiLoading(false);
-    if (!res.success) {
-      setAnalysisError(res.error);
-      return;
-    }
-    setQuestionnaireSubmitted(true);
-    setPreQuestionnaireAnalysis(null);
-    setAnalysis(res);
-    const dn = denseNetResponseFromAnalyzeModel3(res);
-    if (!(dn?.success === true && Boolean(dn.gradcam?.trim()))) {
-      startSupplementalDensenet();
-    }
-    router.push("/results");
   };
+
+  const finishPipelineSuccess = async () => {
+    setPipelineFinishing(true);
+    await delay(ANALYSIS_PIPELINE_COMPLETE_HOLD_MS);
+    stopPipeline();
+  };
+
+  const submit = async () => {
+    if (!imageFile || showPipelineLoader) return;
+    setAnalysisError(null);
+    setPipelineFinishing(false);
+    setAnalysisLoading(true);
+
+    try {
+      const geminiApiKey = readStoredGeminiApiKey();
+      const probe = await probeGeminiApiKey(geminiApiKey ?? "");
+      if (!probe.ok) {
+        const msg = probe.error_code
+          ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
+          : probe.error || t("upload.geminiHealth.failed");
+        setAnalysisError(msg);
+        stopPipeline();
+        return;
+      }
+
+      const res = await analyzeImageFile(imageFile, {
+        questionnaire,
+        ...(geminiApiKey ? { geminiApiKey } : {}),
+      });
+
+      if (!res.success) {
+        setAnalysisError(res.error || t("upload.error.analysisFailed"));
+        stopPipeline();
+        return;
+      }
+
+      await finishPipelineSuccess();
+      setQuestionnaireSubmitted(true);
+      setPreQuestionnaireAnalysis(null);
+      setAnalysis(res);
+      persistAnalyzeSuccessToSession(res);
+      const dn = denseNetResponseFromAnalyzeModel3(res);
+      if (!(dn?.success === true && Boolean(dn.gradcam?.trim()))) {
+        startSupplementalDensenet();
+      }
+      router.push("/results");
+    } catch {
+      setAnalysisError(t("upload.error.analysisFailed"));
+      stopPipeline();
+    }
+  };
+
+  if (showPipelineLoader) {
+    return (
+      <div className="space-y-4">
+        <AnalysisPipelineLoader active complete={pipelineFinishing} />
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -82,9 +109,12 @@ export function ClinicalQuestionnaire() {
         <p className="mt-2 text-xs text-muted-foreground">{t("upload.q.geminiReuseNote")}</p>
       </CardHeader>
       {analysisError && (
-        <p className="px-6 pb-2 text-sm text-destructive" role="alert">
-          {analysisError}
-        </p>
+        <div className="px-6 pb-2">
+          <UploadDestructiveAlert
+            title={t("upload.error.analysisFailed")}
+            description={analysisError}
+          />
+        </div>
       )}
       <CardContent className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm">
@@ -160,20 +190,11 @@ export function ClinicalQuestionnaire() {
         </label>
 
         <div className="sm:col-span-2">
-          <Button
-            type="button"
-            onClick={submit}
-            disabled={analysisLoading || submitUiLoading}
-            aria-busy={analysisLoading || submitUiLoading}
-          >
-            {(analysisLoading || submitUiLoading) && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-            )}
-            {analysisLoading || submitUiLoading ? t("upload.q.generating") : t("upload.q.submit")}
+          <Button type="button" onClick={submit}>
+            {t("upload.q.submit")}
           </Button>
         </div>
       </CardContent>
     </Card>
   );
 }
-

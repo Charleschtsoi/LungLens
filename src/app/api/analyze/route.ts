@@ -387,6 +387,8 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   const m2 = resolveModelRecord(root, "model2", "stage2");
   const m4SwintRaw = pickModelRecord(root, "model4_swint", "model4_swint");
   const m4Swint = m4SwintRaw ? coerceStageRecord(m4SwintRaw) : undefined;
+  const m5DenseNetRaw = pickModelRecord(root, "model5_densenet", "model5_densenet");
+  const m5DenseNet = m5DenseNetRaw ? coerceStageRecord(m5DenseNetRaw) : undefined;
   const m4Raw = pickModelRecordOrNull(root, "model4", "report");
   const m4 = m4Raw == null ? m4Raw : coerceStageRecord(m4Raw);
 
@@ -414,6 +416,7 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     clinical_risk: clinicalRisk,
     model3: model3DenseNet,
     model4_swint: m4Swint,
+    model5_densenet: m5DenseNet,
     model4: m4,
   };
 

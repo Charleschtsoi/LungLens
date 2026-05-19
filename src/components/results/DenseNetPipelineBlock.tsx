@@ -5,12 +5,12 @@ import { ProbabilityBarList } from "@/components/results/ProbabilityBarList";
 import { useI18n } from "@/hooks/useI18n";
 import type { DenseNetResponse } from "@/types";
 
-const CLASS_ORDER = ["Normal", "Pneumonia-Bacteria", "Pneumonia-Virus"] as const;
+const CLASS_ORDER = ["COVID-19", "Normal", "Pneumonia"] as const;
 
 function labelKeyForClass(c: string): string {
   if (c === "Normal") return "densenet.label.normal";
-  if (c === "Pneumonia-Bacteria") return "stage.Pneumonia-Bacteria";
-  if (c === "Pneumonia-Virus") return "stage.Pneumonia-Virus";
+  if (c === "COVID-19") return "densenet.label.covid";
+  if (c === "Pneumonia") return "densenet.label.pneumonia";
   return c;
 }
 
@@ -18,10 +18,13 @@ export function DenseNetPipelineBlock({
   loading,
   result,
   previewUrl,
+  /** When true, only loading/error/gradcam preview — summary + bars live in the parent card. */
+  compact = false,
 }: {
   loading: boolean;
   result: DenseNetResponse | null;
   previewUrl: string | null;
+  compact?: boolean;
 }) {
   const { t } = useI18n();
 
@@ -54,7 +57,6 @@ export function DenseNetPipelineBlock({
       : `data:image/png;base64,${rawInputPreview}`
     : null;
 
-  /** 224×224 crop or full upload — never `model3.gradcam` (attention maps live in ResultsImageTabs). */
   let previewSrc = inputPreviewSrc ?? (previewUrl ?? "");
   let captionKey = useInputCrop
     ? "densenet.caption.modelInputCrop"
@@ -79,17 +81,20 @@ export function DenseNetPipelineBlock({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-1">
-        <p className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
-          {t(labelKeyForClass(result.prediction))}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {t("densenet.confidence")}:{" "}
-          <span className="font-medium text-foreground">{result.confidence.toFixed(2)}%</span>
-        </p>
-      </div>
-
-      <ProbabilityBarList title={t("results.classProbabilitiesTitle")} rows={probabilityRows} />
+      {!compact ? (
+        <>
+          <div className="space-y-1">
+            <p className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
+              {t(labelKeyForClass(result.prediction))}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("densenet.confidence")}:{" "}
+              <span className="font-medium text-foreground">{result.confidence.toFixed(2)}%</span>
+            </p>
+          </div>
+          <ProbabilityBarList title={t("results.classProbabilitiesTitle")} rows={probabilityRows} />
+        </>
+      ) : null}
 
       <div className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

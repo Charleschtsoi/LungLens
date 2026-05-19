@@ -10,6 +10,7 @@
 | **Model 2** | Keras H5 **ResNet-152V2** | `model2` | Normal / Lung Opacity / Viral Pneumonia (API uses spaces) |
 | **Model 3** | PyTorch **DenseNet-121** | `model3` | COVID-19 / Normal / Pneumonia; **`gradcam`** + **`input_preview_base64`** (224×224 center crop matching model input) |
 | **Model 4 (Swin-T)** | **Swin Transformer** | `model4_swint` | 6-class probabilities + `prediction` / `confidence` / `status` |
+| **Model 5 (DenseNet)** | **DenseNet-121** expansion | `model5_densenet` | Same block shape as `model4_swint`; up to ~14 classes at inference |
 | **COPD screen** | Tabular Keras | `copd_screening` | When `patient_data` is present on analyze |
 | **Gemini educator** | BYOK optional | `llm_evaluation` | `{ status, text }` — English markdown in `text` |
 

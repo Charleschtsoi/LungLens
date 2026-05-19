@@ -344,7 +344,13 @@ export async function mockAnalyze(
     clinical_risk: stage3,
     model3: {
       model_name: "DenseNet-121",
-      error: "Model not available",
+      prediction: "Normal",
+      confidence_score: 0.86,
+      probabilities: {
+        "COVID-19": 0.04,
+        Normal: 0.86,
+        Pneumonia: 0.1,
+      },
     },
     model4,
     model4_swint: {
@@ -361,9 +367,27 @@ export async function mockAnalyze(
         Normal: 0.91,
       },
     },
+    model5_densenet: {
+      prediction: "No Finding",
+      confidence: 0.78,
+      status: "success",
+      model_name: "DenseNet-121",
+      probabilities: {
+        "No Finding": 0.78,
+        Atelectasis: 0.04,
+        Cardiomegaly: 0.03,
+        Effusion: 0.03,
+        Infiltration: 0.04,
+        Mass: 0.02,
+        Nodule: 0.02,
+        Pneumonia: 0.02,
+        Pneumothorax: 0.01,
+        Consolidation: 0.01,
+      },
+    },
     llm_evaluation: {
       status: "success",
-      text: "### 🩺 Clinical Observation\n\nThis is **mock** educational output for local testing. Imaging models did not flag a dominant abnormality in this demo run.\n\n### 📋 Suggested Next Steps\n\n- Share your official radiology report with your clinician.\n- Discuss any symptoms that worry you, even when automated scores look low.",
+      text: "### 🩺 Clinical Observation\n\nThis is **mock** educational output for local testing. Imaging models did not flag a dominant abnormality in this demo run.\n\n### 📋 Suggested Next Steps\n\n- Share your official radiology report with your clinician.\n- Discuss any symptoms that worry you, even when automated scores look low.\n\n### Questions to ask your doctor\n\n- What did my official radiology report conclude?\n- Could these patterns match infection, inflammation, or something else?\n- Do I need follow-up imaging or labs based on my symptoms?",
     },
     requires_questionnaire: needsQuestionnaire,
     timing_ms: {

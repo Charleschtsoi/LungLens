@@ -9,45 +9,50 @@ import { useI18n } from "@/hooks/useI18n";
 const CONTRIBUTORS = [
   {
     id: "charles",
-    name: "Charles",
-    initials: "CH",
+    name: "Charles Tsoi",
+    initials: "CT",
     roleKey: "about.member.charles.role",
+    detailKey: "about.member.charles.detail",
     ringClass: "ring-sky-200/80",
     avatarClass: "bg-gradient-to-br from-sky-500 to-teal-600 text-white",
     cardClass: "border-sky-100/90 bg-gradient-to-br from-white to-sky-50/40",
   },
   {
     id: "casper",
-    name: "Casper",
-    initials: "CA",
+    name: "Casper Lee",
+    initials: "CL",
     roleKey: "about.member.casper.role",
+    detailKey: "about.member.casper.detail",
     ringClass: "ring-violet-200/80",
     avatarClass: "bg-gradient-to-br from-violet-500 to-indigo-600 text-white",
     cardClass: "border-violet-100/90 bg-gradient-to-br from-white to-violet-50/40",
   },
   {
     id: "edward",
-    name: "Edward",
-    initials: "ED",
+    name: "Edward Choi",
+    initials: "EC",
     roleKey: "about.member.edward.role",
+    detailKey: "about.member.edward.detail",
     ringClass: "ring-emerald-200/80",
     avatarClass: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white",
     cardClass: "border-emerald-100/90 bg-gradient-to-br from-white to-emerald-50/40",
   },
   {
     id: "jina",
-    name: "Jina",
-    initials: "JI",
+    name: "Jina Tse",
+    initials: "JT",
     roleKey: "about.member.jina.role",
+    detailKey: "about.member.jina.detail",
     ringClass: "ring-amber-200/80",
     avatarClass: "bg-gradient-to-br from-amber-500 to-orange-600 text-white",
     cardClass: "border-amber-100/90 bg-gradient-to-br from-white to-amber-50/40",
   },
   {
     id: "dicky",
-    name: "Dicky",
-    initials: "DI",
+    name: "Dicky Ng",
+    initials: "DN",
     roleKey: "about.member.dicky.role",
+    detailKey: "about.member.dicky.detail",
     ringClass: "ring-slate-200/80",
     avatarClass: "bg-gradient-to-br from-slate-600 to-slate-800 text-white",
     cardClass: "border-slate-200/90 bg-gradient-to-br from-white to-slate-50/60",
@@ -105,8 +110,9 @@ export default function AboutPage() {
                   <CardTitle className="text-lg leading-tight">{member.name}</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-sm leading-relaxed text-muted-foreground">{t(member.roleKey)}</p>
+              <CardContent className="space-y-2 pt-0">
+                <p className="text-sm font-medium leading-snug text-foreground">{t(member.roleKey)}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{t(member.detailKey)}</p>
               </CardContent>
             </Card>
           ))}
@@ -150,10 +156,10 @@ export default function AboutPage() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="mailto:your-email@example.com">{t("about.email")}</Link>
+              <Link href="mailto:charleschtsoi@gmail.com">{t("about.email")}</Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="https://www.linkedin.com/" target="_blank" rel="noopener noreferrer">
+              <Link href="https://www.linkedin.com/in/charleschtsoi/" target="_blank" rel="noopener noreferrer">
                 {t("about.linkedin")}
               </Link>
             </Button>
@@ -163,3 +169,4 @@ export default function AboutPage() {
     </div>
   );
 }
+

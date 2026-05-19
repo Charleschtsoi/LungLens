@@ -65,6 +65,8 @@ export interface AnalyzeSuccessResponse {
   copd_screening?: CopdScreeningResult;
   /** Swin-T Vision Transformer output from backend `model4_swint`. */
   model4_swint?: SwinTScreeningResult;
+  /** Expansion DenseNet-121 ensemble slot from backend `model5_densenet`. */
+  model5_densenet?: Model5DenseNetResult;
   /**
    * DenseNet-121 3-class + Grad-CAM (backend `model3`).
    * Separate from questionnaire clinical block.
@@ -143,14 +145,20 @@ export interface CopdScreeningResult {
   status: string;
 }
 
-/** Swin-T 6-class block from backend `model4_swint` (see `sample_response.json`). */
-export interface SwinTScreeningResult {
+/** Standard classifier block (`model4_swint`, `model5_densenet`; see `sample_response.json`). */
+export interface ClassifierModelBlock {
   prediction: string;
   confidence: number;
   status: string;
   probabilities: Record<string, number>;
   model_name?: string;
 }
+
+/** Swin-T block from backend `model4_swint`. */
+export type SwinTScreeningResult = ClassifierModelBlock;
+
+/** Model 5 expansion DenseNet-121 from backend `model5_densenet`. */
+export type Model5DenseNetResult = ClassifierModelBlock;
 
 export interface StageReportResult {
   summary: string;

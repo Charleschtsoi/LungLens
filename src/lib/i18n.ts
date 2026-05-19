@@ -69,8 +69,7 @@ const dictEn: Dict = {
     "If you have chest pain, trouble breathing, fever, or other concerning symptoms, seek appropriate medical care rather than relying on this website.",
 
   "upload.title": "Upload your X-ray",
-  "upload.subtitle":
-    "Three quick steps - all on this page. Your answers help us show the right disclaimers.",
+  "upload.subtitle": "Upload your chest X-ray to begin the analysis pipeline.",
   "upload.step1": "Doctor gate",
   "upload.step2": "Privacy",
   "upload.step3": "Upload",
@@ -104,6 +103,15 @@ const dictEn: Dict = {
     "Preview unavailable for this file in the browser.",
   "upload.preview.noType": "No image preview for this file type.",
   "upload.analyze": "Analyze",
+  "upload.pipeline.init": "Initializing diagnostic pipeline...",
+  "upload.pipeline.model1": "Running Model 1 (ResNet-50) pattern matching...",
+  "upload.pipeline.model2": "Extracting features with Model 2 (ResNet-152V2)...",
+  "upload.pipeline.model3": "Applying Model 3 (DenseNet-121) visual interpretability...",
+  "upload.pipeline.model4": "Engaging Model 4 (Swin Transformer) deep analysis...",
+  "upload.pipeline.model5": "Validating consensus with Model 5 (DenseNet-121)...",
+  "upload.pipeline.gemini": "Consulting Gemini AI for clinical education summary...",
+  "upload.pipeline.finalize": "Finalizing personalized report...",
+  "upload.pipeline.progressLabel": "Analysis progress",
   "upload.analyzing":
     "Our AI is studying your X-ray... (usually takes 5-10 seconds)",
   "upload.fileError.type": "Use JPEG, PNG, or WEBP.",
@@ -154,15 +162,6 @@ const dictEn: Dict = {
   "upload.geminiOptional.help":
     "Stored only in this browser and sent with your analyze request as multipart field gemini_api_key; LungLens servers do not retain it.",
   "upload.geminiOptional.placeholder": "Paste your Google AI Studio key for BYOK",
-  "upload.geminiHealth.failed":
-    "We could not verify your Gemini API key. Fix the issue below, or clear the field to continue without an AI clinical summary.",
-  "upload.geminiHealth.invalid_api_key":
-    "That Gemini API key was rejected (invalid or expired). Check Google AI Studio and paste again.",
-  "upload.geminiHealth.timeout": "Gemini key check timed out. Try again.",
-  "upload.geminiHealth.network_error": "Network error while verifying your Gemini key. Check your connection and retry.",
-  "upload.geminiHealth.backend_unavailable":
-    "Could not reach the AI backend to verify your key. Confirm the server is running and BACKEND_API_BASE_URL.",
-  "upload.geminiHealth.internal_error": "Gemini key check returned an invalid response. Try again or skip BYOK.",
 
   "results.loading": "Loading results...",
   "results.redirecting": "Redirecting to upload...",
@@ -180,14 +179,27 @@ const dictEn: Dict = {
     "When this appears, the backend usually could not complete the Gemini call (invalid key, quota, model error, or network). Confirm your key on the upload step and check Google AI Studio.",
   "results.llmSkippedHint":
     "Optional: add a Gemini API key on the upload step so the educator summary can run (BYOK).",
+  "results.llmLocaleUnavailable": "No educator summary text was returned for this language.",
+  "results.llmHowGeneratedTrigger": "How this summary was produced",
+  "results.llmHowGeneratedBodyEn":
+    "This section uses a large language model (LLM) on the server to turn model outputs and educational context into plain-language notes. It is for learning only: it does not diagnose disease, confirm that you are healthy, or replace your clinician or radiologist. Always discuss imaging with your care team.",
+  "results.llmHowGeneratedBodyHant":
+    "此區塊由伺服端的大型語言模型（LLM）將模型輸出與教育脈絡整理成較易讀的文字，僅供學習參考：不作疾病診斷、不保證身體狀況，也不能取代醫師或放射科醫師。影像判讀請務必與醫護團隊討論。",
+  "results.llmHowGeneratedBodyHans":
+    "此区块由服务器端的大型语言模型（LLM）将模型输出与教育语境整理成较易读的文字，仅供学习参考：不作疾病诊断、不保证身体状况，也不能替代医师或放射科医生。影像解读请务必与医护团队讨论。",
   "results.pdfSection.visualXray": "Visual X-Ray Analysis",
+  "results.ensembleArchitecture.title": "View Ensemble Architecture Details",
+  "results.ensembleArchitecture.colDisplayName": "Display Name",
+  "results.ensembleArchitecture.colArchitecture": "Architecture",
+  "results.ensembleArchitecture.colApiField": "API Field",
+  "results.ensembleArchitecture.colTrainedBy": "Trained By",
   "results.pdfSection.clinicalAssessment": "Clinical Patient Assessment",
   "results.poweredBy.model1": "Powered by Model 1 (ResNet-50) • Trained by Casper",
   "results.poweredBy.model2": "Powered by Model 2 (ResNet-152V2) • Trained by Edward",
   "results.poweredBy.model3": "Powered by Model 3 (DenseNet-121) • Trained by Charles",
   "results.poweredBy.model4": "Powered by Model 4 (Swin Transformer) • Trained by Casper",
+  "results.poweredBy.model5": "Powered by Model 5 (DenseNet-121) • Trained by Dicky",
   "results.poweredBy.copd": "Powered by Chronic Lung Risk (COPD)",
-  "results.classProbabilitiesTitle": "Class Probabilities",
   "results.pdfXray": "Original X-ray",
   "results.pdfAttentionMap": "AI attention map",
   "results.noDoctor":
@@ -209,14 +221,16 @@ const dictEn: Dict = {
   "results.anatomyPlaceholder":
     "Typical label positions on a standard PA chest film (educational schematic).",
   "results.anatomyHeader": "What the AI noticed",
+  "results.notice.pneumoniaBacterialTitle": "Pneumonia (bacterial pattern)",
+  "results.notice.pneumoniaViralTitle": "Pneumonia (viral pattern)",
+  "results.notice.pneumoniaBacterialBody":
+    "Educationally, bacterial pneumonia is often described as air-space consolidation (sometimes lobar); pleural fluid may appear. Patterns overlap on X-ray and cannot confirm the germ alone. This is a model-score hint—your clinician interprets it with symptoms and tests.",
+  "results.notice.pneumoniaViralBody":
+    "Viral pneumonia is often described with more interstitial change and later patchy opacities; ground-glass or small nodules may appear on advanced imaging but can resemble other pneumonias. Educational output only—not a substitute for viral testing or clinical judgment.",
   "results.anatomySub":
     "Educational model scores-not a diagnosis. Only a radiologist can confirm what your film shows.",
   "results.noSignificant":
     "The AI did not highlight any significant areas. This is generally consistent with a normal chest X-ray, but only a radiologist can confirm.",
-  "results.notice.pneumoniaBacterialBody":
-    "In teaching radiology, bacterial pneumonia is often described as airspace (alveolar) consolidation—sometimes in a lobar or segmental distribution—and pleural fluid can appear. In real patients, many infections overlap on a plain chest X-ray, and some atypical organisms can look mixed. This label reflects model class scores for education, not a confirmed organism. Only your clinician can interpret this film with your symptoms, exam, and any tests.",
-  "results.notice.pneumoniaViralBody":
-    "Viral pneumonias are often discussed as starting with more interstitial involvement and sometimes progressing to patchy airspace opacities; on CT, patterns like ground-glass opacity or small nodules may appear—but several viruses (and some bacterial infections) can look similar on X-ray. This label is an educational model output, not a viral test result. Discuss what this means for you with your healthcare team.",
   "results.attentionLevel": "Attention level",
   "results.low": "Low",
   "results.moderate": "Moderate",
@@ -250,6 +264,7 @@ const dictEn: Dict = {
     "Appears on the left side of the image in a standard PA view.",
   "anatomy.desc.diaphragm":
     "Domed muscle below the lungs; position helps assess lung volume.",
+  "results.complianceImportant": "Important",
   "results.sticky":
     "LungLens is an educational tool only. This is not a medical diagnosis. Always consult a qualified healthcare professional for medical advice.",
   "results.pipelineTitle": "Pipeline model summary",
@@ -317,6 +332,11 @@ const dictEn: Dict = {
   "results.provenance.impact.model3": "Model 3",
   "results.provenance.impact.model4": "Model 4",
   "results.impact.title": "Model impact map",
+  "results.impact.subtitle":
+    "Each row is part of this educational report. The right column shows whether that part ran in this session—not a clinical verdict.",
+  "results.impact.colSection": "Section",
+  "results.impact.colSource": "How it is produced",
+  "results.impact.colRun": "This session",
   "results.impact.pipelineSection": "Pipeline model summary",
   "results.impact.findingsSection": "Findings explanation",
   "results.impact.questionsSection": "Doctor questions",
@@ -326,10 +346,10 @@ const dictEn: Dict = {
   "results.impact.sourceRulesModel": "Rules + model data",
   "results.impact.sourceLlm": "LLM synthesis",
   "results.impact.sourceStatic": "Static educational content",
-  "results.impact.statusOk": "ok",
-  "results.impact.statusFallback": "fallback",
-  "results.impact.statusFailed": "failed",
-  "results.impact.statusSkipped": "skipped",
+  "results.impact.statusOk": "Completed for this report",
+  "results.impact.statusFallback": "Partial / limited",
+  "results.impact.statusFailed": "Could not complete",
+  "results.impact.statusSkipped": "Not used this run",
   "stage.Normal": "Normal",
   "stage.Pneumonia-Bacteria": "Pneumonia (bacterial pattern)",
   "stage.Pneumonia-Virus": "Pneumonia (viral pattern)",
@@ -376,15 +396,7 @@ const dictEn: Dict = {
     "The machine learning model behind LungLens was developed as part of an MSc group project at CUHK Chinese University Hong Kong.",
   "about.story2":
     "I then built this web application independently so the tool could be freely accessible to everyone in a clean, easy-to-use format.",
-  "about.team": "Meet the Team",
-  "about.teamSub":
-    "Engineers, researchers, and builders who trained the models and shaped the LungLens experience.",
-  "about.member.charles.role":
-    "Solution Architect & Full-Stack Lead (Frontend, Backend, Integration) & Model 3 (DenseNet-121)",
-  "about.member.casper.role": "Vision AI Engineer (Model 1: ResNet-50 & Model 4: Swin Transformer)",
-  "about.member.edward.role": "Vision AI Engineer (Model 2: ResNet-152V2)",
-  "about.member.jina.role": "Software Engineer (Code Enhancement, Reporting, & Presentation Strategy)",
-  "about.member.dicky.role": "Research & Strategy (Reporting & Future Model 5 Architecture)",
+  "about.team": "Team Credits",
   "about.disclaimerTitle": "Medical Disclaimer",
   "about.disclaimer1": "This tool is for educational and research purposes only.",
   "about.disclaimer2":
@@ -449,7 +461,7 @@ const dictHant: Dict = {
   "landing.disclaimer.p2":
     "如有胸痛、呼吸困難、發燒或其他警訊症狀，請立即就醫，不要只依賴本網站。",
   "upload.title": "上傳你的 X 光",
-  "upload.subtitle": "同一頁三步驟完成，你的選擇會影響免責提示內容。",
+  "upload.subtitle": "上傳胸肺 X 光以開始分析流程。",
   "upload.step1": "醫師確認",
   "upload.step2": "隱私提示",
   "upload.step3": "上傳影像",
@@ -475,6 +487,15 @@ const dictHant: Dict = {
   "upload.preview.noInline": "瀏覽器暫不支援此檔案預覽。",
   "upload.preview.noType": "此檔案類型暫不支援預覽。",
   "upload.analyze": "開始分析",
+  "upload.pipeline.init": "正在初始化診斷流程…",
+  "upload.pipeline.model1": "執行模型 1（ResNet-50）模式比對…",
+  "upload.pipeline.model2": "以模型 2（ResNet-152V2）擷取特徵…",
+  "upload.pipeline.model3": "套用模型 3（DenseNet-121）視覺可解釋性…",
+  "upload.pipeline.model4": "啟動模型 4（Swin Transformer）深度分析…",
+  "upload.pipeline.model5": "以模型 5（DenseNet-121）驗證共識結果…",
+  "upload.pipeline.gemini": "諮詢 Gemini AI 產生臨床教育摘要…",
+  "upload.pipeline.finalize": "正在完成個人化報告…",
+  "upload.pipeline.progressLabel": "分析進度",
   "upload.analyzing": "AI 正在分析你的 X 光…（通常需時 5-10 秒）",
   "upload.fileError.type": "請使用 JPEG、PNG 或 WEBP。",
   "upload.fileError.size": "檔案大於 10MB。",
@@ -520,13 +541,6 @@ const dictHant: Dict = {
   "upload.geminiOptional.help":
     "僅存在此瀏覽器，並以 multipart 欄位 gemini_api_key 與分析請求一併送出；LungLens 伺服端不會保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，請貼上 Google AI Studio 金鑰",
-  "upload.geminiHealth.failed":
-    "無法驗證 Gemini API 金鑰。請修正下方問題，或清空欄位以略過 AI 臨床摘要。",
-  "upload.geminiHealth.invalid_api_key": "此 Gemini 金鑰被拒絕（無效或已過期）。請至 Google AI Studio 確認後重新貼上。",
-  "upload.geminiHealth.timeout": "驗證金鑰逾時，請再試一次。",
-  "upload.geminiHealth.network_error": "驗證金鑰時發生網路錯誤，請檢查連線後重試。",
-  "upload.geminiHealth.backend_unavailable": "無法連線至後端以驗證金鑰，請確認伺服器與 BACKEND_API_BASE_URL。",
-  "upload.geminiHealth.internal_error": "驗證金鑰回應異常，請重試或略過 BYOK。",
   "results.loading": "結果載入中…",
   "results.redirecting": "正在返回上傳頁…",
   "results.title": "你的教育報告",
@@ -541,14 +555,28 @@ const dictHant: Dict = {
   "results.llmFailedHint":
     "通常代表後端無法完成 Gemini 請求（金鑰無效、配額、模型或網路問題）。請在上傳步驟確認金鑰並查看 Google AI Studio。",
   "results.llmSkippedHint": "選填：於上傳步驟加入 Gemini API 金鑰以啟用教育者摘要（BYOK）。",
+  "results.llmLocaleUnavailable": "此語言未回傳教育者摘要文字。",
+  "results.llmHowGeneratedTrigger": "此摘要如何產生",
+  "results.llmHowGeneratedBodyEn":
+    "This section uses a large language model (LLM) on the server to turn model outputs and educational context into plain-language notes. It is for learning only: it does not diagnose disease, confirm that you are healthy, or replace your clinician or radiologist. Always discuss imaging with your care team.",
+  "results.llmHowGeneratedBodyHant":
+    "此區塊由伺服端的大型語言模型（LLM）將模型輸出與教育脈絡整理成較易讀的文字，僅供學習參考：不作疾病診斷、不保證身體狀況，也不能取代醫師或放射科醫師。影像判讀請務必與醫護團隊討論。",
+  "results.llmHowGeneratedBodyHans":
+    "此区块由服务器端的大型语言模型（LLM）将模型输出与教育语境整理成较易读的文字，仅供学习参考：不作疾病诊断、不保证身体状况，也不能替代医师或放射科医生。影像解读请务必与医护团队讨论。",
   "results.pdfSection.visualXray": "X 光影像分析",
+  "results.ensembleArchitecture.title": "查看集成架構詳情",
+  "results.ensembleArchitecture.colDisplayName": "顯示名稱",
+  "results.ensembleArchitecture.colArchitecture": "架構",
+  "results.ensembleArchitecture.colApiField": "API 欄位",
+  "results.ensembleArchitecture.colTrainedBy": "訓練者",
   "results.pdfSection.clinicalAssessment": "臨床病患評估",
   "results.poweredBy.model1": "由模型 1（ResNet-50）提供 · Casper 訓練",
   "results.poweredBy.model2": "由模型 2（ResNet-152V2）提供 · Edward 訓練",
   "results.poweredBy.model3": "由模型 3（DenseNet-121）提供 · Charles 訓練",
   "results.poweredBy.model4": "由模型 4（Swin Transformer）提供 · Casper 訓練",
+  "results.poweredBy.model5": "由模型 5（DenseNet-121）提供 · Dicky 訓練",
   "results.poweredBy.copd": "由慢性肺部風險（COPD）模組提供",
-  "results.classProbabilitiesTitle": "類別機率",
+  "results.complianceImportant": "重要提示",
   "results.pdfXray": "原始 X 光",
   "results.pdfAttentionMap": "AI 注意力熱圖",
   "results.noDoctor": "你表示尚未有醫生檢視此 X 光。請儘快諮詢醫護人員作正規診斷。",
@@ -568,10 +596,6 @@ const dictHant: Dict = {
   "results.anatomyHeader": "AI 注意到的內容",
   "results.anatomySub": "以下為教育用途分數，不代表診斷，最終仍需由放射科醫師確認。",
   "results.noSignificant": "AI 未標示明顯重點區域。這一般可能接近正常 X 光表現，但仍需放射科醫師確認。",
-  "results.notice.pneumoniaBacterialBody":
-    "教學上常把細菌性肺炎描述為肺泡實變（可呈葉段分布），有時可見肋膜積液；但實際影像常互相重疊，不能單靠 X 光確認病原。此為模型分數的教育性提示，需由醫師結合症狀、理學檢查與檢驗解讀。",
-  "results.notice.pneumoniaViralBody":
-    "病毒肺炎在教學上常提到較多間質性變化，之後可能出現斑片狀陰影；進階影像可能見毛玻璃樣改變或小結節，但與細菌性或其他肺炎仍可能相似。此為教育性輸出，不能取代病毒檢測或醫師判讀。",
   "results.attentionLevel": "關注程度",
   "results.low": "低",
   "results.moderate": "中",
@@ -597,7 +621,8 @@ const dictHant: Dict = {
   "anatomy.desc.left-lung": "在標準 PA 視圖中，左肺常顯示於影像右側。",
   "anatomy.desc.right-lung": "在標準 PA 視圖中，右肺常顯示於影像左側。",
   "anatomy.desc.diaphragm": "位於肺下方的拱形肌肉，其位置可反映肺容量。",
-  "results.sticky": "LungLens 僅供教育用途，並非醫療診斷。請務必諮詢合資格醫護人員。",
+  "results.sticky":
+    "LungLens 僅供教育用途，並非醫療診斷。請務必就醫並諮詢合資格醫護專業人員以取得醫療建議。",
   "results.pipelineTitle": "模型流程摘要",
   "results.model1": "模型 1 — ResNet-50",
   "results.model2": "模型 2 — ResNet-152V2",
@@ -663,6 +688,10 @@ const dictHant: Dict = {
   "results.provenance.impact.model3": "模型 3",
   "results.provenance.impact.model4": "模型 4",
   "results.impact.title": "模型影響對照",
+  "results.impact.subtitle": "每一列是此教育報告的一部分；最右欄表示該部分是否於本次執行，並非臨床診斷結論。",
+  "results.impact.colSection": "區塊",
+  "results.impact.colSource": "產製方式",
+  "results.impact.colRun": "本次執行",
   "results.impact.pipelineSection": "模型流程摘要",
   "results.impact.findingsSection": "發現解讀",
   "results.impact.questionsSection": "醫生提問建議",
@@ -672,10 +701,10 @@ const dictHant: Dict = {
   "results.impact.sourceRulesModel": "規則 + 模型資料",
   "results.impact.sourceLlm": "LLM 彙整",
   "results.impact.sourceStatic": "固定教育內容",
-  "results.impact.statusOk": "正常",
-  "results.impact.statusFallback": "降級",
-  "results.impact.statusFailed": "失敗",
-  "results.impact.statusSkipped": "略過",
+  "results.impact.statusOk": "本次已執行",
+  "results.impact.statusFallback": "部分／有限",
+  "results.impact.statusFailed": "未能完成",
+  "results.impact.statusSkipped": "本次未使用",
   "stage.Normal": "正常",
   "stage.Pneumonia-Bacteria": "肺炎（細菌性型態）",
   "stage.Pneumonia-Virus": "肺炎（病毒性型態）",
@@ -717,14 +746,7 @@ const dictHant: Dict = {
     "LungLens 背後的機器學習模型，源自 CUHK Chinese University Hong Kong 碩士小組專案。",
   "about.story2":
     "其後我獨立開發此網頁應用，讓更多人可以免費使用並更容易理解 X 光資訊。",
-  "about.team": "認識團隊",
-  "about.teamSub": "訓練模型、打造產品與推動研究的 LungLens 成員。",
-  "about.member.charles.role":
-    "解決方案架構師與全端負責人（前端、後端、整合）及模型 3（DenseNet-121）",
-  "about.member.casper.role": "視覺 AI 工程師（模型 1：ResNet-50 與模型 4：Swin Transformer）",
-  "about.member.edward.role": "視覺 AI 工程師（模型 2：ResNet-152V2）",
-  "about.member.jina.role": "軟體工程師（程式優化、報告與簡報策略）",
-  "about.member.dicky.role": "研究與策略（報告與未來模型 5 架構）",
+  "about.team": "團隊名單",
   "about.disclaimerTitle": "醫療免責聲明",
   "about.disclaimer1": "本工具僅供教育與研究用途。",
   "about.disclaimer2": "本工具不能取代專業醫療診斷。",
@@ -756,6 +778,7 @@ const dictHans: Dict = {
   "landing.expect.title": "先明确定位",
   "landing.disclaimer.title": "医疗免责声明",
   "upload.title": "上传你的 X 光",
+  "upload.subtitle": "上传胸肺 X 光以开始分析流程。",
   "upload.step1": "医生确认",
   "upload.step3": "上传影像",
   "upload.step4": "问卷",
@@ -769,6 +792,15 @@ const dictHans: Dict = {
   "upload.preview": "预览",
   "upload.preview.noInline": "浏览器暂不支持此文件预览。",
   "upload.analyze": "开始分析",
+  "upload.pipeline.init": "正在初始化诊断流程…",
+  "upload.pipeline.model1": "运行模型 1（ResNet-50）模式匹配…",
+  "upload.pipeline.model2": "使用模型 2（ResNet-152V2）提取特征…",
+  "upload.pipeline.model3": "应用模型 3（DenseNet-121）视觉可解释性…",
+  "upload.pipeline.model4": "启动模型 4（Swin Transformer）深度分析…",
+  "upload.pipeline.model5": "使用模型 5（DenseNet-121）验证共识结果…",
+  "upload.pipeline.gemini": "咨询 Gemini AI 生成临床教育摘要…",
+  "upload.pipeline.finalize": "正在完成个性化报告…",
+  "upload.pipeline.progressLabel": "分析进度",
   "upload.fileError.type": "请使用 JPEG、PNG 或 WEBP。",
 
   "densenet.confidence": "置信度",
@@ -812,13 +844,6 @@ const dictHans: Dict = {
   "upload.geminiOptional.help":
     "仅保存在本浏览器，并以 multipart 字段 gemini_api_key 随分析请求发送；LungLens 服务端不会保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，请粘贴 Google AI Studio 密钥",
-  "upload.geminiHealth.failed":
-    "无法验证 Gemini API 密钥。请修正下方问题，或清空字段以跳过 AI 临床摘要。",
-  "upload.geminiHealth.invalid_api_key": "此 Gemini 密钥被拒绝（无效或已过期）。请到 Google AI Studio 确认后重新粘贴。",
-  "upload.geminiHealth.timeout": "验证密钥超时，请重试。",
-  "upload.geminiHealth.network_error": "验证密钥时出现网络错误，请检查连接后重试。",
-  "upload.geminiHealth.backend_unavailable": "无法连接后端以验证密钥，请确认服务与 BACKEND_API_BASE_URL。",
-  "upload.geminiHealth.internal_error": "验证密钥响应异常，请重试或跳过 BYOK。",
   "results.title": "你的教育报告",
   "results.subtitle": "查看影像、注意力热图与解剖提示，再把问题带回给医护团队。",
   "results.newUpload": "重新上传",
@@ -831,14 +856,28 @@ const dictHans: Dict = {
   "results.llmFailedHint":
     "通常表示后端未能完成 Gemini 请求（密钥无效、配额、模型或网络问题）。请在上传步骤确认密钥并查看 Google AI Studio。",
   "results.llmSkippedHint": "可选：在上传步骤添加 Gemini API 密钥以启用教育者摘要（BYOK）。",
+  "results.llmLocaleUnavailable": "此语言未返回教育者摘要文字。",
+  "results.llmHowGeneratedTrigger": "此摘要如何生成",
+  "results.llmHowGeneratedBodyEn":
+    "This section uses a large language model (LLM) on the server to turn model outputs and educational context into plain-language notes. It is for learning only: it does not diagnose disease, confirm that you are healthy, or replace your clinician or radiologist. Always discuss imaging with your care team.",
+  "results.llmHowGeneratedBodyHant":
+    "此區塊由伺服端的大型語言模型（LLM）將模型輸出與教育脈絡整理成較易讀的文字，僅供學習參考：不作疾病診斷、不保證身體狀況，也不能取代醫師或放射科醫師。影像判讀請務必與醫護團隊討論。",
+  "results.llmHowGeneratedBodyHans":
+    "此区块由服务器端的大型语言模型（LLM）将模型输出与教育语境整理成较易读的文字，仅供学习参考：不作疾病诊断、不保证身体状况，也不能替代医师或放射科医生。影像解读请务必与医护团队讨论。",
   "results.pdfSection.visualXray": "X 光影像分析",
+  "results.ensembleArchitecture.title": "查看集成架构详情",
+  "results.ensembleArchitecture.colDisplayName": "显示名称",
+  "results.ensembleArchitecture.colArchitecture": "架构",
+  "results.ensembleArchitecture.colApiField": "API 字段",
+  "results.ensembleArchitecture.colTrainedBy": "训练者",
   "results.pdfSection.clinicalAssessment": "临床患者评估",
   "results.poweredBy.model1": "由模型 1（ResNet-50）提供 · Casper 训练",
   "results.poweredBy.model2": "由模型 2（ResNet-152V2）提供 · Edward 训练",
   "results.poweredBy.model3": "由模型 3（DenseNet-121）提供 · Charles 训练",
   "results.poweredBy.model4": "由模型 4（Swin Transformer）提供 · Casper 训练",
+  "results.poweredBy.model5": "由模型 5（DenseNet-121）提供 · Dicky 训练",
   "results.poweredBy.copd": "由慢性肺部风险（COPD）模块提供",
-  "results.classProbabilitiesTitle": "类别概率",
+  "results.complianceImportant": "重要提示",
   "results.pdfXray": "原始 X 光",
   "results.pdfAttentionMap": "AI 注意力热图",
   "results.learnMore": "延伸阅读",
@@ -850,11 +889,8 @@ const dictHans: Dict = {
   "results.tab.anatomy": "解剖导览",
   "results.questionsTitle": "可向医生提出的问题",
   "results.noSignificant": "AI 未标示明显重点区域。这通常可能接近正常 X 光表现，但仍需放射科医生确认。",
-  "results.notice.pneumoniaBacterialBody":
-    "教学上常把细菌性肺炎描述为肺泡实变（可呈叶段分布），有时可见胸膜积液；但实际影像常互相重叠，不能单靠 X 光确认病原。此为模型分数的教育性提示，需由医生结合症状、体格检查与检验解读。",
-  "results.notice.pneumoniaViralBody":
-    "病毒肺炎在教学上常提到较多间质性变化，之后可能出现斑片状阴影；进阶影像可能见磨玻璃样改变或小结节，但与细菌性或其他肺炎仍可能相似。此为教育性输出，不能取代病毒检测或医生判读。",
-  "results.sticky": "LungLens 仅供教育用途，并非医疗诊断。请务必咨询合格医务人员。",
+  "results.sticky":
+    "LungLens 仅供教育用途，并非医疗诊断。请务必就医并咨询合格医务人员以获取医疗建议。",
   "results.pipelineTitle": "模型流程摘要",
   "results.model1": "模型 1 — ResNet-50",
   "results.model2": "模型 2 — ResNet-152V2",
@@ -912,6 +948,24 @@ const dictHans: Dict = {
   "results.provenance.impact.model2": "模型 2",
   "results.provenance.impact.model3": "模型 3",
   "results.provenance.impact.model4": "模型 4",
+  "results.impact.title": "模型影响对照",
+  "results.impact.subtitle": "每一行是此教育报告的一部分；最右列表示该部分是否在本次运行中生成，并非临床诊断结论。",
+  "results.impact.colSection": "区块",
+  "results.impact.colSource": "如何生成",
+  "results.impact.colRun": "本次运行",
+  "results.impact.pipelineSection": "模型流程摘要",
+  "results.impact.findingsSection": "发现解读",
+  "results.impact.questionsSection": "医生提问建议",
+  "results.impact.reportSection": "最终报告摘要",
+  "results.impact.anatomySection": "解剖导览",
+  "results.impact.sourceModel": "模型输出",
+  "results.impact.sourceRulesModel": "规则 + 模型数据",
+  "results.impact.sourceLlm": "LLM 汇总",
+  "results.impact.sourceStatic": "固定教育内容",
+  "results.impact.statusOk": "本次已执行",
+  "results.impact.statusFallback": "部分／有限",
+  "results.impact.statusFailed": "未能完成",
+  "results.impact.statusSkipped": "本次未使用",
   "stage.Normal": "正常",
   "stage.Pneumonia-Bacteria": "肺炎（细菌性形态）",
   "stage.Pneumonia-Virus": "肺炎（病毒性形态）",
@@ -954,14 +1008,7 @@ const dictHans: Dict = {
   "about.badge": "关于 LungLens",
   "about.title": "让胸片学习更普及",
   "about.storyTitle": "项目故事",
-  "about.team": "认识团队",
-  "about.teamSub": "训练模型、打造产品与推动研究的 LungLens 成员。",
-  "about.member.charles.role":
-    "解决方案架构师与全栈负责人（前端、后端、集成）及模型 3（DenseNet-121）",
-  "about.member.casper.role": "视觉 AI 工程师（模型 1：ResNet-50 与模型 4：Swin Transformer）",
-  "about.member.edward.role": "视觉 AI 工程师（模型 2：ResNet-152V2）",
-  "about.member.jina.role": "软件工程师（代码优化、报告与演示策略）",
-  "about.member.dicky.role": "研究与策略（报告与未来模型 5 架构）",
+  "about.team": "团队名单",
   "about.contactTitle": "开源 / 联系",
   "about.email": "邮件联系",
   "results.doctorQuestionsEmptyFallback":
@@ -1025,24 +1072,31 @@ export const CONDITION_DESC: Record<
   },
 };
 
-/** Headline for “What the AI noticed” rows (includes bacterial/viral pneumonia pattern titles). */
-export function aiNoticeRowHeadline(locale: Locale, label: FindingLabel, noticeKind: PneumoniaNoticeKind): string {
+export function aiNoticeRowHeadline(
+  locale: Locale,
+  label: FindingLabel,
+  noticeKind: PneumoniaNoticeKind,
+): string {
   if (noticeKind === "pneumonia_bacterial") {
-    return t(locale, "stage.Pneumonia-Bacteria", "Pneumonia (bacterial pattern)");
+    return t(locale, "results.notice.pneumoniaBacterialTitle", "Pneumonia (bacterial pattern)");
   }
   if (noticeKind === "pneumonia_viral") {
-    return t(locale, "stage.Pneumonia-Virus", "Pneumonia (viral pattern)");
+    return t(locale, "results.notice.pneumoniaViralTitle", "Pneumonia (viral pattern)");
   }
   return conditionName(locale, label);
 }
 
-/** Educational body copy for an AI-notice row. */
-export function aiNoticeRowBody(locale: Locale, label: FindingLabel, noticeKind: PneumoniaNoticeKind): string {
+export function aiNoticeRowBody(
+  locale: Locale,
+  label: FindingLabel,
+  noticeKind: PneumoniaNoticeKind,
+): string {
   if (noticeKind === "pneumonia_bacterial") {
-    return t(locale, "results.notice.pneumoniaBacterialBody", CONDITION_DESCRIPTIONS.Pneumonia);
+    return t(locale, "results.notice.pneumoniaBacterialBody", CONDITION_DESC.en.Pneumonia);
   }
   if (noticeKind === "pneumonia_viral") {
-    return t(locale, "results.notice.pneumoniaViralBody", CONDITION_DESCRIPTIONS.Pneumonia);
+    return t(locale, "results.notice.pneumoniaViralBody", CONDITION_DESC.en.Pneumonia);
   }
-  return CONDITION_DESC[locale]?.[label] ?? CONDITION_DESCRIPTIONS[label];
+  return CONDITION_DESC[locale]?.[label] ?? CONDITION_DESC.en[label] ?? label;
 }
+
