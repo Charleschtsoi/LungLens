@@ -554,7 +554,7 @@ export default function ResultsPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-foreground">{model1SummaryText}</p>
-                      <p className="text-xs text-muted-foreground">Powered by Model 1 (ResNet-50)</p>
+                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model1")}</p>
                     </div>
                     <SectionSourceBadge
                       source={pipelineProvenanceSource(analysis.provenance, "model1")}
@@ -570,7 +570,7 @@ export default function ResultsPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-foreground">{model2SummaryText}</p>
-                      <p className="text-xs text-muted-foreground">Powered by Model 2 (ResNet-152V2)</p>
+                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model2")}</p>
                     </div>
                     <SectionSourceBadge
                       source={pipelineProvenanceSource(analysis.provenance, "model2")}
@@ -586,7 +586,7 @@ export default function ResultsPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-foreground">{model3SummaryText ?? t("results.na")}</p>
-                      <p className="text-xs text-muted-foreground">Powered by Model 3 (DenseNet-121)</p>
+                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model3")}</p>
                     </div>
                     {denseNetDisplay?.success ? (
                       <SectionSourceBadge source="model" className="px-2 py-0 text-xs" />

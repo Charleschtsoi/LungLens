@@ -6,16 +6,56 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/hooks/useI18n";
 
-const TEAM = [
-  { name: "Chung Him TSOI", role: "ML Model Development, Web Application" },
-  { name: "Kai Chin NG", role: "ML Model Development" },
-  { name: "Man Ho CHOI", role: "ML Model Development" },
-  { name: "Yat Chun LEE", role: "ML Model Development" },
-  { name: "Yuk Han TSE", role: "ML Model Development" },
+const CONTRIBUTORS = [
+  {
+    id: "charles",
+    name: "Charles",
+    initials: "CH",
+    roleKey: "about.member.charles.role",
+    ringClass: "ring-sky-200/80",
+    avatarClass: "bg-gradient-to-br from-sky-500 to-teal-600 text-white",
+    cardClass: "border-sky-100/90 bg-gradient-to-br from-white to-sky-50/40",
+  },
+  {
+    id: "casper",
+    name: "Casper",
+    initials: "CA",
+    roleKey: "about.member.casper.role",
+    ringClass: "ring-violet-200/80",
+    avatarClass: "bg-gradient-to-br from-violet-500 to-indigo-600 text-white",
+    cardClass: "border-violet-100/90 bg-gradient-to-br from-white to-violet-50/40",
+  },
+  {
+    id: "edward",
+    name: "Edward",
+    initials: "ED",
+    roleKey: "about.member.edward.role",
+    ringClass: "ring-emerald-200/80",
+    avatarClass: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white",
+    cardClass: "border-emerald-100/90 bg-gradient-to-br from-white to-emerald-50/40",
+  },
+  {
+    id: "jina",
+    name: "Jina",
+    initials: "JI",
+    roleKey: "about.member.jina.role",
+    ringClass: "ring-amber-200/80",
+    avatarClass: "bg-gradient-to-br from-amber-500 to-orange-600 text-white",
+    cardClass: "border-amber-100/90 bg-gradient-to-br from-white to-amber-50/40",
+  },
+  {
+    id: "dicky",
+    name: "Dicky",
+    initials: "DI",
+    roleKey: "about.member.dicky.role",
+    ringClass: "ring-slate-200/80",
+    avatarClass: "bg-gradient-to-br from-slate-600 to-slate-800 text-white",
+    cardClass: "border-slate-200/90 bg-gradient-to-br from-white to-slate-50/60",
+  },
 ] as const;
 
 export default function AboutPage() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   return (
     <div className="space-y-8 pb-6">
       <section className="rounded-2xl border border-sky-100/80 bg-gradient-to-br from-sky-50/90 via-white to-teal-50/40 p-6 shadow-sm md:p-8">
@@ -34,9 +74,7 @@ export default function AboutPage() {
         <Card className="border-sky-100/80">
           <CardHeader>
             <CardTitle className="text-xl">{t("about.storyTitle")}</CardTitle>
-            <CardDescription>
-              {t("about.storySub")}
-            </CardDescription>
+            <CardDescription>{t("about.storySub")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-relaxed text-muted-foreground">
             <p>{t("about.story1")}</p>
@@ -45,24 +83,30 @@ export default function AboutPage() {
         </Card>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold tracking-tight">{t("about.team")}</h2>
+      <section className="space-y-5 rounded-2xl border border-border/60 bg-muted/20 p-6 md:p-8">
+        <div className="max-w-2xl space-y-2">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">{t("about.team")}</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground md:text-base">{t("about.teamSub")}</p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {TEAM.map((member) => (
-            <Card key={member.name} className="border-sky-100/80">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{member.name}</CardTitle>
+          {CONTRIBUTORS.map((member) => (
+            <Card
+              key={member.id}
+              className={`overflow-hidden shadow-sm transition-shadow hover:shadow-md ${member.cardClass}`}
+            >
+              <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-2">
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-2 ${member.ringClass} ${member.avatarClass}`}
+                  aria-hidden
+                >
+                  {member.initials}
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <CardTitle className="text-lg leading-tight">{member.name}</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent className="pt-0 text-sm text-muted-foreground">
-                {locale === "en"
-                  ? member.role
-                  : locale === "zh-Hans"
-                    ? member.role
-                        .replace("ML Model Development", "机器学习模型开发")
-                        .replace("Web Application", "网页应用开发")
-                  : member.role
-                      .replace("ML Model Development", "機器學習模型開發")
-                      .replace("Web Application", "網頁應用開發")}
+              <CardContent className="pt-0">
+                <p className="text-sm leading-relaxed text-muted-foreground">{t(member.roleKey)}</p>
               </CardContent>
             </Card>
           ))}
@@ -97,9 +141,7 @@ export default function AboutPage() {
         <Card className="border-sky-100/80">
           <CardHeader>
             <CardTitle className="text-lg">{t("about.contactTitle")}</CardTitle>
-            <CardDescription>
-              {t("about.contactSub")}
-            </CardDescription>
+            <CardDescription>{t("about.contactSub")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Button asChild>
@@ -108,9 +150,7 @@ export default function AboutPage() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="mailto:your-email@example.com">
-                {t("about.email")}
-              </Link>
+              <Link href="mailto:your-email@example.com">{t("about.email")}</Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="https://www.linkedin.com/" target="_blank" rel="noopener noreferrer">
