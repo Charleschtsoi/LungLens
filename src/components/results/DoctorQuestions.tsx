@@ -9,7 +9,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 
 interface DoctorQuestionsProps {
-  findings: { label: FindingLabel }[];
+  findings: { label: FindingLabel; displayName?: string }[];
   doctorQuestionsProvenance?: unknown;
   questions: SuggestedDoctorQuestion[] | null;
   isLoading: boolean;

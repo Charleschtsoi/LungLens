@@ -14,7 +14,7 @@ import { FindingsCard } from "@/components/results/FindingsCard";
 import { DoctorQuestions } from "@/components/results/DoctorQuestions";
 import { LearnMoreCards } from "@/components/results/LearnMoreCards";
 import { ResultsStickyDisclaimer } from "@/components/results/ResultsStickyDisclaimer";
-import { getNotableFindings } from "@/lib/findings-utils";
+import { getMergedNotableFindingsForAiNotice } from "@/lib/findings-utils";
 import { buildDoctorQuestions } from "@/lib/doctor-questions";
 import { buildEducationReportPdf } from "@/lib/pdf-report";
 import { FileDown, Loader2 } from "lucide-react";
@@ -23,11 +23,10 @@ import { useI18n } from "@/hooks/useI18n";
 import {
   denseNetResponseFromAnalyzeModel3,
   mergeDenseNetDisplayForUi,
-  model3PredictionString,
 } from "@/lib/dense-net-from-analysis";
-import { mapModelSignalsToHighAttentionFindings } from "@/lib/high-attention-findings";
-import type { FindingLabel, SuggestedDoctorQuestion } from "@/types";
-import { conditionName } from "@/lib/i18n";
+import { buildHighAttentionFindingKeys } from "@/lib/high-attention-findings";
+import type { AiNoticeFindingRow, FindingLabel, SuggestedDoctorQuestion } from "@/types";
+import { aiNoticeRowHeadline, conditionName } from "@/lib/i18n";
 import {
   bothClassifierModelsLive,
   buildFlatProvenanceSummary,
@@ -81,6 +80,7 @@ export default function ResultsPage() {
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
   const hasFetchedQuestions = useRef(false);
   const prevAnalysisRef = useRef<typeof analysis>(undefined);
+  const prevDenseNetResultRef = useRef(denseNetResult);
 
   useEffect(() => {
     if (loading) return;
@@ -96,7 +96,12 @@ export default function ResultsPage() {
       console.log("Q&A: Analysis identity changed; resetting fetch guard and loading.");
       hasFetchedQuestions.current = false;
       prevAnalysisRef.current = analysis;
+      prevDenseNetResultRef.current = denseNetResult;
       setIsQuestionsLoading(false);
+    } else if (prevDenseNetResultRef.current !== denseNetResult) {
+      console.log("Q&A: DenseNet supplemental result updated; resetting fetch guard.");
+      hasFetchedQuestions.current = false;
+      prevDenseNetResultRef.current = denseNetResult;
     }
 
     if (!analysis) {
@@ -111,30 +116,15 @@ export default function ResultsPage() {
       return;
     }
 
-    const findings: string[] = [];
-    if (analysis.model1?.label && analysis.model1.label !== "Normal") {
-      findings.push(analysis.model1.label);
-    }
-    const m3pred = model3PredictionString(analysis.model3);
-    if (m3pred && m3pred !== "Normal") {
-      findings.push(m3pred);
-    }
-
-    console.log("Q&A Extracted Findings:", findings);
-
-    if (findings.length === 0) {
-      console.log("Q&A: No abnormal findings, skipping fetch.");
-      setSuggestedQuestions([]);
-      setIsQuestionsLoading(false);
-      hasFetchedQuestions.current = true;
-      return;
-    }
-
-    const high_attention_findings = mapModelSignalsToHighAttentionFindings(findings);
-    console.log("Q&A Mapped high_attention_findings:", high_attention_findings);
+    const denseNetForKeys = mergeDenseNetDisplayForUi(
+      denseNetResponseFromAnalyzeModel3(analysis),
+      denseNetResult,
+    );
+    const high_attention_findings = buildHighAttentionFindingKeys(analysis, denseNetForKeys);
+    console.log("Q&A high_attention_findings:", high_attention_findings);
 
     if (high_attention_findings.length === 0) {
-      console.log("Q&A: No mappable finding keys after normalization; skipping fetch.");
+      console.log("Q&A: No high-attention findings; skipping fetch.");
       setSuggestedQuestions([]);
       setIsQuestionsLoading(false);
       hasFetchedQuestions.current = true;
@@ -188,7 +178,7 @@ export default function ResultsPage() {
     };
 
     fetchQuestions();
-  }, [analysis]);
+  }, [analysis, denseNetResult]);
 
   if (!analysis && loading) {
     return (
@@ -215,17 +205,27 @@ export default function ResultsPage() {
   const attentionHeatmapBase64 = heatmapBase64ForDisplay(
     model1GradcamRaw ?? analysis.gradcam.heatmap_base64,
   );
-  const notable = getNotableFindings(predictions);
-  const model2Fallback: Array<{ label: FindingLabel; score: number }> =
+  const notable = getMergedNotableFindingsForAiNotice(predictions, analysis, denseNetDisplay);
+  const model2Fallback: AiNoticeFindingRow[] =
     analysis.model2?.label && analysis.model2.label !== "Normal"
       ? [
           {
+            id: "model2-fallback",
             label: analysis.model2.label === "Viral Pneumonia" ? "Pneumonia" : "Lung Opacity",
             score: analysis.model2.confidence,
-          }
+            noticeKind: analysis.model2.label === "Viral Pneumonia" ? "pneumonia_viral" : "default",
+          },
         ]
       : [];
   const findingsForSections = notable.length > 0 ? notable : model2Fallback;
+  const doctorQuestionFindings = findingsForSections.map((f) => ({
+    label: f.label,
+    displayName: aiNoticeRowHeadline(locale, f.label, f.noticeKind),
+  }));
+  const learnMoreFindings = findingsForSections.map((f) => ({
+    label: f.label,
+    sectionKey: f.id,
+  }));
   const stageLabel = (value: string) => t(`stage.${value}`, value);
   const gateLabel = (value: string) => t(`gate.${value}`, value);
   const riskLabel = (value: string) => t(`risk.${value}`, value);
@@ -277,8 +277,8 @@ export default function ResultsPage() {
     : t("results.na");
   const model4SwintSummaryText =
     analysis.model4_swint?.status === "success"
-      ? `${analysis.model4_swint.prediction} (${Math.round((analysis.model4_swint.confidence ?? 0) * 100)}% Confidence)`
-      : "Model Offline (Weights Missing)";
+      ? `${stageLabel(analysis.model4_swint.prediction)} (${Math.round((analysis.model4_swint.confidence ?? 0) * 100)}% Confidence)`
+      : t("results.na");
   const copdSummaryText = (() => {
     if (analysis.copd_screening?.status !== "success") return null;
     const riskText =
@@ -296,7 +296,7 @@ export default function ResultsPage() {
       : analysis.model4
         ? `${t("results.reportSummaryGenerated")} ${conditionName(locale, analysis.gradcam.top_prediction)}.`
         : null;
-  const doctorQuestions = buildDoctorQuestions(findingsForSections, locale);
+  const doctorQuestions = buildDoctorQuestions(doctorQuestionFindings, locale);
   const runMode = analysis.provenance?.run_mode ?? (process.env.NEXT_PUBLIC_USE_MOCK === "true" ? "mock" : "real");
   const runModeLabel = t(`results.runMode.${runMode}`, runMode);
   const warningMessages = (analysis.warnings ?? []).map((w) => w.message);
@@ -424,7 +424,7 @@ export default function ResultsPage() {
         reportSummaryValue: reportSummary ?? t("results.questionnaireRequired"),
         findingsTitle: t("results.anatomyHeader"),
         findings: findingsForSections.map((f) => ({
-          label: conditionName(locale, f.label),
+          label: aiNoticeRowHeadline(locale, f.label, f.noticeKind),
           scorePct: Math.round(f.score * 100),
         })),
         noFindingsText: t("results.noSignificant"),
@@ -601,15 +601,20 @@ export default function ResultsPage() {
                   />
                 </div>
 
-                <div className="flex flex-wrap items-start justify-between gap-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{model4SwintSummaryText}</p>
-                    <p className="text-xs text-muted-foreground">Powered by Model 4 (Swin Transformer)</p>
+                <div className="space-y-2 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground">{model4SwintSummaryText}</p>
+                      <p className="text-xs text-muted-foreground">{t("results.poweredBy.model4")}</p>
+                    </div>
+                    {analysis.model4_swint?.status === "success" ? (
+                      <Badge variant="outline" className="border-violet-200 bg-violet-50 px-2 py-0 text-xs text-violet-700">
+                        ViT Model ✓
+                      </Badge>
+                    ) : null}
                   </div>
-                  {analysis.model4_swint?.status === "success" ? (
-                    <Badge variant="outline" className="border-violet-200 bg-violet-50 px-2 py-0 text-xs text-violet-700">
-                      ViT Model ✓
-                    </Badge>
+                  {analysis.model4_swint?.probabilities ? (
+                    <ClassProbabilitiesList probabilities={analysis.model4_swint.probabilities} />
                   ) : null}
                 </div>
               </div>
@@ -715,11 +720,12 @@ export default function ResultsPage() {
       <div className="mt-10 space-y-10">
         <FindingsCard
           predictions={predictions}
+          notableFindings={notable}
           model2={analysis.model2}
           findingsBadgeSource={resolveFindingsBadgeSource(analysis.provenance)}
         />
         <DoctorQuestions
-          findings={findingsForSections}
+          findings={doctorQuestionFindings}
           doctorQuestionsProvenance={
             analysis.provenance?.doctor_questions ??
             analysis.provenance?.clinical_risk?.source ??
@@ -729,7 +735,7 @@ export default function ResultsPage() {
           isLoading={isQuestionsLoading}
         />
         <LearnMoreCards
-          findings={findingsForSections}
+          findings={learnMoreFindings}
           anatomyGuideProvenance={
             analysis.provenance?.anatomy_guide ?? (nestedProv ? "static" : undefined)
           }

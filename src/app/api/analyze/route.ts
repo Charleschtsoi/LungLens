@@ -146,27 +146,6 @@ function normalizeModel1ProbabilityKeys(rec: JsonRecord | undefined): JsonRecord
   return { ...rec, probabilities: out };
 }
 
-/** Temporary Model 2 label swap: Normal <-> Lung Opacity. */
-function swapModel2Labels(rec: JsonRecord | undefined): JsonRecord | undefined {
-  if (!rec) return rec;
-  const out: JsonRecord = { ...rec };
-  const swap = (label: string): string => {
-    if (label === "Normal") return "Lung Opacity";
-    if (label === "Lung Opacity") return "Normal";
-    return label;
-  };
-  if (typeof out.label === "string") out.label = swap(out.label);
-  if (isRecord(out.probabilities)) {
-    const p = out.probabilities as Record<string, unknown>;
-    const normalized: JsonRecord = {};
-    for (const [k, v] of Object.entries(p)) {
-      normalized[swap(k)] = v;
-    }
-    out.probabilities = normalized;
-  }
-  return out;
-}
-
 function pickModelRecordOrNull(
   payload: JsonRecord,
   newKey: string,
@@ -405,7 +384,9 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   if (!gradcam) return null;
 
   const m1 = normalizeModel1ProbabilityKeys(resolveModelRecord(root, "model1", "stage1"));
-  const m2 = swapModel2Labels(resolveModelRecord(root, "model2", "stage2"));
+  const m2 = resolveModelRecord(root, "model2", "stage2");
+  const m4SwintRaw = pickModelRecord(root, "model4_swint", "model4_swint");
+  const m4Swint = m4SwintRaw ? coerceStageRecord(m4SwintRaw) : undefined;
   const m4Raw = pickModelRecordOrNull(root, "model4", "report");
   const m4 = m4Raw == null ? m4Raw : coerceStageRecord(m4Raw);
 
@@ -432,6 +413,7 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     model2: m2,
     clinical_risk: clinicalRisk,
     model3: model3DenseNet,
+    model4_swint: m4Swint,
     model4: m4,
   };
 

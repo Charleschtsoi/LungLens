@@ -2,6 +2,17 @@ import type { FindingLabel } from "@/lib/constants";
 
 export type { FindingLabel };
 
+/** Subtype for “What the AI noticed” when pipeline classes distinguish bacterial vs viral pneumonia patterns. */
+export type PneumoniaNoticeKind = "default" | "pneumonia_bacterial" | "pneumonia_viral";
+
+/** One row in the merged AI-notice list (fusion + per-model thresholds). */
+export interface AiNoticeFindingRow {
+  id: string;
+  label: FindingLabel;
+  score: number;
+  noticeKind: PneumoniaNoticeKind;
+}
+
 /** Per-condition model scores (educational / technical, not a diagnosis). */
 export type Predictions = Record<FindingLabel, number>;
 
@@ -100,9 +111,9 @@ export interface StageBinaryResult {
   probabilities?: Record<string, number>;
 }
 
-/** Model 2 row shape: 3-class ResNet-152V2 (Keras H5) labels — not a separate binary stage. */
+/** Model 2 row shape: 3-class ResNet-152V2 (Keras H5) — `H5_MODEL2_LABELS`. */
 export interface StageMultiClassResult {
-  label: "Normal" | "Lung Opacity" | "Viral Pneumonia" | "Other";
+  label: "Normal" | "Lung Opacity" | "Viral Pneumonia";
   confidence: number;
   probabilities?: Record<string, number>;
 }
@@ -132,10 +143,13 @@ export interface CopdScreeningResult {
   status: string;
 }
 
+/** Swin-T 6-class block from backend `model4_swint` (see `sample_response.json`). */
 export interface SwinTScreeningResult {
   prediction: string;
   confidence: number;
   status: string;
+  probabilities: Record<string, number>;
+  model_name?: string;
 }
 
 export interface StageReportResult {

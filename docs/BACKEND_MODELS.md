@@ -9,9 +9,14 @@
 | **Model 1** | PyTorch **ResNet-50** | `model1` | Normal / Pneumonia-Bacteria / Pneumonia-Virus |
 | **Model 2** | Keras H5 **ResNet-152V2** | `model2` | Normal / Lung Opacity / Viral Pneumonia (API uses spaces) |
 | **Model 3** | PyTorch **DenseNet-121** | `model3` | COVID-19 / Normal / Pneumonia; **`gradcam`** + **`input_preview_base64`** (224×224 center crop matching model input) |
+| **Model 4 (Swin-T)** | **Swin Transformer** | `model4_swint` | 6-class probabilities + `prediction` / `confidence` / `status` |
+| **COPD screen** | Tabular Keras | `copd_screening` | When `patient_data` is present on analyze |
+| **Gemini educator** | BYOK optional | `llm_evaluation` | `{ status, text }` — English markdown in `text` |
 
 - **`clinical_risk`**: questionnaire-derived severity (not the DenseNet block).
-- **`model4`**: report synthesis text.
+- **`model4`**: questionnaire / rules educational report (not Swin-T; do not confuse with `model4_swint`).
+
+Canonical successful analyze example: [`sample_response.json`](../sample_response.json) at repo root (copy from backend when updating contract).
 - Mock **14-class** `predictions` + pipeline **heatmap** may still be educational scaffolding; they are not the same as the three classifier outputs above.
 
 ## 2. DenseNet-121 standalone (`POST /predict/densenet`)

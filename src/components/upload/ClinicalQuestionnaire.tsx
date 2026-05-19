@@ -1,6 +1,6 @@
 "use client";
 
-import { analyzeImageFile } from "@/lib/api";
+import { analyzeImageFile, probeGeminiApiKey } from "@/lib/api";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store/useAppStore";
@@ -36,6 +36,20 @@ export function ClinicalQuestionnaire() {
     setAnalysisError(null);
     setAnalysisLoading(true);
     const geminiApiKey = readStoredGeminiApiKey();
+    const probe = await probeGeminiApiKey(geminiApiKey ?? "");
+    if (!probe.ok) {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_BUTTON_LOADING_MS) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_BUTTON_LOADING_MS - elapsed));
+      }
+      setAnalysisLoading(false);
+      setSubmitUiLoading(false);
+      const msg = probe.error_code
+        ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
+        : probe.error || t("upload.geminiHealth.failed");
+      setAnalysisError(msg);
+      return;
+    }
     const res = await analyzeImageFile(imageFile, {
       questionnaire,
       ...(geminiApiKey ? { geminiApiKey } : {}),

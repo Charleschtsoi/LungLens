@@ -1,9 +1,6 @@
-import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
-import type { AnalyzeSuccessResponse, DenseNetResponse } from "@/types";
+import type { AnalyzeSuccessResponse, DenseNetResponse, FindingLabel } from "@/types";
 import { model3PredictionString } from "@/lib/dense-net-from-analysis";
-import { getNotableFindings } from "@/lib/findings-utils";
-
-const FINDING_SET = new Set<string>(FINDING_LABELS as readonly string[]);
+import { getMergedNotableFindingsForAiNotice, modelClassKeyToFindingLabel } from "@/lib/findings-utils";
 
 /**
  * Maps `model1` / DenseNet stage strings (e.g. `Pneumonia-Bacteria`, `COVID-19`) to
@@ -12,23 +9,8 @@ const FINDING_SET = new Set<string>(FINDING_LABELS as readonly string[]);
 export function mapModelSignalsToHighAttentionFindings(signals: string[]): FindingLabel[] {
   const out = new Set<FindingLabel>();
   for (const raw of signals) {
-    const s = typeof raw === "string" ? raw.trim() : "";
-    if (!s || s === "Normal") continue;
-    if (s === "COVID-19") {
-      out.add("COVID-19");
-      continue;
-    }
-    if (s === "Lung Opacity" || s === "Infiltration") {
-      out.add("Lung Opacity");
-      continue;
-    }
-    if (s === "Pneumonia" || s.includes("Pneumonia")) {
-      out.add("Pneumonia");
-      continue;
-    }
-    if (FINDING_SET.has(s)) {
-      out.add(s as FindingLabel);
-    }
+    const label = modelClassKeyToFindingLabel(raw);
+    if (label) out.add(label);
   }
   return Array.from(out);
 }
@@ -57,10 +39,9 @@ export function buildHighAttentionFindingKeys(
   analysis: AnalyzeSuccessResponse,
   denseNetDisplay: DenseNetResponse | null,
 ): string[] {
-  const notable = getNotableFindings(analysis.predictions);
-  const fromScores = notable.map((n) => n.label);
-  if (fromScores.length > 0) {
-    return Array.from(new Set(fromScores));
+  const merged = getMergedNotableFindingsForAiNotice(analysis.predictions, analysis, denseNetDisplay);
+  if (merged.length > 0) {
+    return Array.from(new Set(merged.map((n) => n.label)));
   }
 
   const top = analysis.gradcam.top_prediction;

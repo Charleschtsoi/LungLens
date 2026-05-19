@@ -1,12 +1,9 @@
 "use client";
 
-import { CONDITION_DESCRIPTIONS } from "@/lib/constants";
-import type { Predictions } from "@/types";
-import type { StageMultiClassResult } from "@/types";
+import type { AiNoticeFindingRow, AnalyzeStageSource, FindingLabel, Predictions, StageMultiClassResult } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
-import type { AnalyzeStageSource } from "@/types";
 import {
   confidenceTier,
   getNotableFindings,
@@ -15,7 +12,7 @@ import {
 } from "@/lib/findings-utils";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
-import { CONDITION_DESC, conditionName } from "@/lib/i18n";
+import { aiNoticeRowBody, aiNoticeRowHeadline } from "@/lib/i18n";
 
 function TierLabel({ tier }: { tier: ConfidenceTier }) {
   const { t } = useI18n();
@@ -44,18 +41,37 @@ function ConfidenceBar({ tier }: { tier: ConfidenceTier }) {
   );
 }
 
+function legacyNotableToRows(
+  rows: { label: FindingLabel; score: number }[],
+): AiNoticeFindingRow[] {
+  return rows.map((r) => ({
+    id: `legacy-${r.label}`,
+    label: r.label,
+    score: r.score,
+    noticeKind: "default",
+  }));
+}
+
 export function FindingsCard({
   predictions,
   model2,
   findingsBadgeSource,
+  notableFindings,
 }: {
   predictions: Predictions | null;
   model2?: StageMultiClassResult;
+  /** When set (e.g. merged fusion + per-model >50%), drives notice rows instead of fusion-only scores. */
+  notableFindings?: AiNoticeFindingRow[] | null;
   /** Resolved badge source (mock / rule / …) from provenance. */
   findingsBadgeSource?: AnalyzeStageSource | null;
 }) {
   const { t, locale } = useI18n();
-  const notable = predictions ? getNotableFindings(predictions) : [];
+  const notable: AiNoticeFindingRow[] =
+    notableFindings != null
+      ? notableFindings
+      : predictions
+        ? legacyNotableToRows(getNotableFindings(predictions))
+        : [];
   const findingsAreMock = findingsBadgeSource === "mock";
   const showDemoFindingsNotice = findingsAreMock;
   const showPrimaryClassNotice = !showDemoFindingsNotice;
@@ -98,13 +114,14 @@ export function FindingsCard({
             {model2Hint && <p>{model2Hint}</p>}
           </div>
         ) : (
-          notable.map(({ label, score }) => {
-            const tier = confidenceTier(score);
-            const desc = CONDITION_DESC[locale]?.[label] ?? CONDITION_DESCRIPTIONS[label];
+          notable.map((row) => {
+            const tier = confidenceTier(row.score);
+            const title = aiNoticeRowHeadline(locale, row.label, row.noticeKind);
+            const desc = aiNoticeRowBody(locale, row.label, row.noticeKind);
             return (
-              <div key={label} className="space-y-3 border-b border-border/60 pb-6 last:border-0 last:pb-0">
+              <div key={row.id} className="space-y-3 border-b border-border/60 pb-6 last:border-0 last:pb-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-base font-semibold text-foreground">{conditionName(locale, label)}</h3>
+                  <h3 className="text-base font-semibold text-foreground">{title}</h3>
                   <TierLabel tier={tier} />
                 </div>
                 <ConfidenceBar tier={tier} />

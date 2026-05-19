@@ -9,7 +9,7 @@ import { conditionName } from "@/lib/i18n";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 
 interface LearnMoreCardsProps {
-  findings: { label: FindingLabel }[];
+  findings: { label: FindingLabel; sectionKey: string }[];
   anatomyGuideProvenance?: unknown;
 }
 
@@ -46,8 +46,8 @@ export function LearnMoreCards({ findings, anatomyGuideProvenance }: LearnMoreCa
             </Card>
           </Link>
         ) : (
-          findings.map(({ label }) => (
-            <Link key={label} href={`/learn?topic=${encodeURIComponent(label)}`} className="group block">
+          findings.map(({ label, sectionKey }) => (
+            <Link key={sectionKey} href={`/learn?topic=${encodeURIComponent(label)}`} className="group block">
               <Card className="h-full transition-shadow group-hover:shadow-md">
                 <CardHeader className="flex flex-row items-start gap-3 space-y-0">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100/80 text-emerald-800">

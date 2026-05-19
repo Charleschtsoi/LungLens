@@ -347,6 +347,24 @@ export async function mockAnalyze(
       error: "Model not available",
     },
     model4,
+    model4_swint: {
+      prediction: "Normal",
+      confidence: 0.91,
+      status: "success",
+      model_name: "Swin-T",
+      probabilities: {
+        Atelectasis: 0.02,
+        Cardiomegaly: 0.03,
+        Consolidation: 0.01,
+        Edema: 0.01,
+        Effusion: 0.02,
+        Normal: 0.91,
+      },
+    },
+    llm_evaluation: {
+      status: "success",
+      text: "### 🩺 Clinical Observation\n\nThis is **mock** educational output for local testing. Imaging models did not flag a dominant abnormality in this demo run.\n\n### 📋 Suggested Next Steps\n\n- Share your official radiology report with your clinician.\n- Discuss any symptoms that worry you, even when automated scores look low.",
+    },
     requires_questionnaire: needsQuestionnaire,
     timing_ms: {
       model1: Math.max(40, Math.round(total * 0.12)),

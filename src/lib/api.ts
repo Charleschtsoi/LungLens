@@ -206,6 +206,75 @@ export async function analyzeImageFile(
   }
 }
 
+const GEMINI_HEALTH_URL = "/api/gemini/health-check";
+
+export type GeminiHealthCheckResult =
+  | { ok: true; skipped?: boolean }
+  | { ok: false; error?: string; error_code?: string };
+
+/**
+ * BYOK probe: short backend `generate_content` using the same model path as analyze.
+ * - Empty / whitespace-only key → `{ ok: true, skipped: true }` (no network).
+ * - Mock mode → skipped, no network.
+ */
+export async function probeGeminiApiKey(geminiApiKey: string | undefined | null): Promise<GeminiHealthCheckResult> {
+  const trimmed = typeof geminiApiKey === "string" ? geminiApiKey.trim() : "";
+  if (!trimmed) {
+    return { ok: true, skipped: true };
+  }
+
+  const useMock = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+  if (useMock) {
+    return { ok: true, skipped: true };
+  }
+
+  const form = new FormData();
+  form.append("gemini_api_key", trimmed);
+
+  try {
+    const res = await fetch(GEMINI_HEALTH_URL, {
+      method: "POST",
+      body: form,
+    });
+
+    let data: Record<string, unknown> | null = null;
+    try {
+      const j: unknown = await res.json();
+      data = j && typeof j === "object" && !Array.isArray(j) ? (j as Record<string, unknown>) : null;
+    } catch {
+      data = null;
+    }
+
+    if (!data) {
+      return {
+        ok: false,
+        error: "Invalid response from Gemini health check.",
+        error_code: "internal_error",
+      };
+    }
+
+    if (data.ok === true) {
+      return { ok: true, skipped: data.skipped === true };
+    }
+
+    const err =
+      typeof data.error === "string"
+        ? data.error
+        : typeof data.message === "string"
+          ? data.message
+          : "Gemini API key check failed.";
+    const code = typeof data.error_code === "string" ? data.error_code : undefined;
+    return { ok: false, error: err, error_code: code };
+  } catch (e) {
+    console.error("[LungLens] probeGeminiApiKey fetch error", e);
+    return {
+      ok: false,
+      error: "Network error during Gemini key check.",
+      error_code: "network_error",
+    };
+  }
+}
+
 const DENSENET_UNAVAILABLE = "__DENSENET_UNAVAILABLE__";
 
 /**

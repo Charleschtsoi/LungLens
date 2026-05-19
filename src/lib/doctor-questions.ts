@@ -3,7 +3,7 @@ import { conditionName } from "@/lib/i18n";
 import type { Locale } from "@/store/useLocaleStore";
 
 export function buildDoctorQuestions(
-  findings: { label: FindingLabel }[],
+  findings: { label: FindingLabel; displayName?: string }[],
   locale: Locale = "en",
 ): string[] {
   if (findings.length === 0) {
@@ -35,7 +35,7 @@ export function buildDoctorQuestions(
 
   const first = findings[0];
   if (first) {
-    const n = conditionName(locale, first.label);
+    const n = first.displayName ?? conditionName(locale, first.label);
     out.push(
       locale === "zh-Hant"
         ? `我留意到 AI 在與 ${n} 相關的區域有較高關注，能否解釋這區在我的影像代表什麼？`
@@ -45,7 +45,7 @@ export function buildDoctorQuestions(
     );
   }
   if (findings[1]) {
-    const n = conditionName(locale, findings[1].label);
+    const n = findings[1].displayName ?? conditionName(locale, findings[1].label);
     out.push(
       locale === "zh-Hant"
         ? `教育性輸出也提高了 ${n} 的權重，這與我報告中的 impression 是否一致？`
@@ -55,7 +55,7 @@ export function buildDoctorQuestions(
     );
   }
   if (findings[2]) {
-    const n = conditionName(locale, findings[2].label);
+    const n = findings[2].displayName ?? conditionName(locale, findings[2].label);
     out.push(
       locale === "zh-Hant"
         ? `我需要特別擔心 ${n} 嗎？還是這可能與正常變異或其他情況重疊？`

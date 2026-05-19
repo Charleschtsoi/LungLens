@@ -40,7 +40,7 @@ Important: this project is educational and research-oriented. It is not a medica
 - Charts: Recharts
 - Integration:
   - Mock path: `src/lib/mock.ts`
-  - Real path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`
+  - Real path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`, `src/app/api/gemini/health-check/route.ts`
 
 ## Local Setup (Detailed)
 
@@ -73,6 +73,7 @@ Set values in `.env.local`:
   - Backend root, for example `http://127.0.0.1:8000`
   - Frontend routes call:
     - `${BACKEND_API_BASE_URL}/api/v1/analyze`
+    - `${BACKEND_API_BASE_URL}/api/v1/gemini/health-check` (BYOK key probe; proxied by Next as `POST /api/gemini/health-check`)
     - `${BACKEND_API_BASE_URL}/api/v1/generate-questions`
     - `${BACKEND_API_BASE_URL}/api/v1/predict/densenet` (if used)
 - `BACKEND_API_KEY` (server-only)

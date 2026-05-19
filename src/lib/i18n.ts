@@ -1,5 +1,5 @@
 import { CONDITION_DESCRIPTIONS } from "@/lib/constants";
-import type { FindingLabel } from "@/types";
+import type { FindingLabel, PneumoniaNoticeKind } from "@/types";
 import type { Locale } from "@/store/useLocaleStore";
 
 type Dict = Record<string, string>;
@@ -154,6 +154,15 @@ const dictEn: Dict = {
   "upload.geminiOptional.help":
     "Stored only in this browser and sent with your analyze request as multipart field gemini_api_key; LungLens servers do not retain it.",
   "upload.geminiOptional.placeholder": "Paste your Google AI Studio key for BYOK",
+  "upload.geminiHealth.failed":
+    "We could not verify your Gemini API key. Fix the issue below, or clear the field to continue without an AI clinical summary.",
+  "upload.geminiHealth.invalid_api_key":
+    "That Gemini API key was rejected (invalid or expired). Check Google AI Studio and paste again.",
+  "upload.geminiHealth.timeout": "Gemini key check timed out. Try again.",
+  "upload.geminiHealth.network_error": "Network error while verifying your Gemini key. Check your connection and retry.",
+  "upload.geminiHealth.backend_unavailable":
+    "Could not reach the AI backend to verify your key. Confirm the server is running and BACKEND_API_BASE_URL.",
+  "upload.geminiHealth.internal_error": "Gemini key check returned an invalid response. Try again or skip BYOK.",
 
   "results.loading": "Loading results...",
   "results.redirecting": "Redirecting to upload...",
@@ -204,6 +213,10 @@ const dictEn: Dict = {
     "Educational model scores-not a diagnosis. Only a radiologist can confirm what your film shows.",
   "results.noSignificant":
     "The AI did not highlight any significant areas. This is generally consistent with a normal chest X-ray, but only a radiologist can confirm.",
+  "results.notice.pneumoniaBacterialBody":
+    "In teaching radiology, bacterial pneumonia is often described as airspace (alveolar) consolidation—sometimes in a lobar or segmental distribution—and pleural fluid can appear. In real patients, many infections overlap on a plain chest X-ray, and some atypical organisms can look mixed. This label reflects model class scores for education, not a confirmed organism. Only your clinician can interpret this film with your symptoms, exam, and any tests.",
+  "results.notice.pneumoniaViralBody":
+    "Viral pneumonias are often discussed as starting with more interstitial involvement and sometimes progressing to patchy airspace opacities; on CT, patterns like ground-glass opacity or small nodules may appear—but several viruses (and some bacterial infections) can look similar on X-ray. This label is an educational model output, not a viral test result. Discuss what this means for you with your healthcare team.",
   "results.attentionLevel": "Attention level",
   "results.low": "Low",
   "results.moderate": "Moderate",
@@ -499,6 +512,13 @@ const dictHant: Dict = {
   "upload.geminiOptional.help":
     "僅存在此瀏覽器，並以 multipart 欄位 gemini_api_key 與分析請求一併送出；LungLens 伺服端不會保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，請貼上 Google AI Studio 金鑰",
+  "upload.geminiHealth.failed":
+    "無法驗證 Gemini API 金鑰。請修正下方問題，或清空欄位以略過 AI 臨床摘要。",
+  "upload.geminiHealth.invalid_api_key": "此 Gemini 金鑰被拒絕（無效或已過期）。請至 Google AI Studio 確認後重新貼上。",
+  "upload.geminiHealth.timeout": "驗證金鑰逾時，請再試一次。",
+  "upload.geminiHealth.network_error": "驗證金鑰時發生網路錯誤，請檢查連線後重試。",
+  "upload.geminiHealth.backend_unavailable": "無法連線至後端以驗證金鑰，請確認伺服器與 BACKEND_API_BASE_URL。",
+  "upload.geminiHealth.internal_error": "驗證金鑰回應異常，請重試或略過 BYOK。",
   "results.loading": "結果載入中…",
   "results.redirecting": "正在返回上傳頁…",
   "results.title": "你的教育報告",
@@ -540,6 +560,10 @@ const dictHant: Dict = {
   "results.anatomyHeader": "AI 注意到的內容",
   "results.anatomySub": "以下為教育用途分數，不代表診斷，最終仍需由放射科醫師確認。",
   "results.noSignificant": "AI 未標示明顯重點區域。這一般可能接近正常 X 光表現，但仍需放射科醫師確認。",
+  "results.notice.pneumoniaBacterialBody":
+    "教學上常把細菌性肺炎描述為肺泡實變（可呈葉段分布），有時可見肋膜積液；但實際影像常互相重疊，不能單靠 X 光確認病原。此為模型分數的教育性提示，需由醫師結合症狀、理學檢查與檢驗解讀。",
+  "results.notice.pneumoniaViralBody":
+    "病毒肺炎在教學上常提到較多間質性變化，之後可能出現斑片狀陰影；進階影像可能見毛玻璃樣改變或小結節，但與細菌性或其他肺炎仍可能相似。此為教育性輸出，不能取代病毒檢測或醫師判讀。",
   "results.attentionLevel": "關注程度",
   "results.low": "低",
   "results.moderate": "中",
@@ -773,6 +797,13 @@ const dictHans: Dict = {
   "upload.geminiOptional.help":
     "仅保存在本浏览器，并以 multipart 字段 gemini_api_key 随分析请求发送；LungLens 服务端不会保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，请粘贴 Google AI Studio 密钥",
+  "upload.geminiHealth.failed":
+    "无法验证 Gemini API 密钥。请修正下方问题，或清空字段以跳过 AI 临床摘要。",
+  "upload.geminiHealth.invalid_api_key": "此 Gemini 密钥被拒绝（无效或已过期）。请到 Google AI Studio 确认后重新粘贴。",
+  "upload.geminiHealth.timeout": "验证密钥超时，请重试。",
+  "upload.geminiHealth.network_error": "验证密钥时出现网络错误，请检查连接后重试。",
+  "upload.geminiHealth.backend_unavailable": "无法连接后端以验证密钥，请确认服务与 BACKEND_API_BASE_URL。",
+  "upload.geminiHealth.internal_error": "验证密钥响应异常，请重试或跳过 BYOK。",
   "results.title": "你的教育报告",
   "results.subtitle": "查看影像、注意力热图与解剖提示，再把问题带回给医护团队。",
   "results.newUpload": "重新上传",
@@ -804,6 +835,10 @@ const dictHans: Dict = {
   "results.tab.anatomy": "解剖导览",
   "results.questionsTitle": "可向医生提出的问题",
   "results.noSignificant": "AI 未标示明显重点区域。这通常可能接近正常 X 光表现，但仍需放射科医生确认。",
+  "results.notice.pneumoniaBacterialBody":
+    "教学上常把细菌性肺炎描述为肺泡实变（可呈叶段分布），有时可见胸膜积液；但实际影像常互相重叠，不能单靠 X 光确认病原。此为模型分数的教育性提示，需由医生结合症状、体格检查与检验解读。",
+  "results.notice.pneumoniaViralBody":
+    "病毒肺炎在教学上常提到较多间质性变化，之后可能出现斑片状阴影；进阶影像可能见磨玻璃样改变或小结节，但与细菌性或其他肺炎仍可能相似。此为教育性输出，不能取代病毒检测或医生判读。",
   "results.sticky": "LungLens 仅供教育用途，并非医疗诊断。请务必咨询合格医务人员。",
   "results.pipelineTitle": "模型流程摘要",
   "results.model1": "模型 1 — ResNet-50",
@@ -968,3 +1003,24 @@ export const CONDITION_DESC: Record<
   },
 };
 
+/** Headline for “What the AI noticed” rows (includes bacterial/viral pneumonia pattern titles). */
+export function aiNoticeRowHeadline(locale: Locale, label: FindingLabel, noticeKind: PneumoniaNoticeKind): string {
+  if (noticeKind === "pneumonia_bacterial") {
+    return t(locale, "stage.Pneumonia-Bacteria", "Pneumonia (bacterial pattern)");
+  }
+  if (noticeKind === "pneumonia_viral") {
+    return t(locale, "stage.Pneumonia-Virus", "Pneumonia (viral pattern)");
+  }
+  return conditionName(locale, label);
+}
+
+/** Educational body copy for an AI-notice row. */
+export function aiNoticeRowBody(locale: Locale, label: FindingLabel, noticeKind: PneumoniaNoticeKind): string {
+  if (noticeKind === "pneumonia_bacterial") {
+    return t(locale, "results.notice.pneumoniaBacterialBody", CONDITION_DESCRIPTIONS.Pneumonia);
+  }
+  if (noticeKind === "pneumonia_viral") {
+    return t(locale, "results.notice.pneumoniaViralBody", CONDITION_DESCRIPTIONS.Pneumonia);
+  }
+  return CONDITION_DESC[locale]?.[label] ?? CONDITION_DESCRIPTIONS[label];
+}

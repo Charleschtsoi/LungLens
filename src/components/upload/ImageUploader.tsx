@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { FileImage, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { analyzeImageFile } from "@/lib/api";
+import { analyzeImageFile, probeGeminiApiKey } from "@/lib/api";
 import { GEMINI_API_KEY_STORAGE_KEY } from "@/lib/gemini-client-storage";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { useAppStore } from "@/store/useAppStore";
@@ -41,19 +41,23 @@ export function ImageUploader() {
   const { t } = useI18n();
   const [rejectError, setRejectError] = useState<string | null>(null);
   const [geminiKey, setGeminiKey] = useState("");
-  const geminiHydrated = useRef(false);
 
+  /** Hydrate from localStorage once. Do not persist via useEffect — that can run before state updates and wipe the saved key. */
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
     if (saved) setGeminiKey(saved);
-    geminiHydrated.current = true;
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !geminiHydrated.current) return;
-    window.localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, geminiKey);
-  }, [geminiKey]);
+  const persistGeminiKey = useCallback((value: string) => {
+    setGeminiKey(value);
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, value);
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, []);
 
   const imageFile = useAppStore((s) => s.imageFile);
   const previewUrl = useAppStore((s) => s.previewUrl);
@@ -113,7 +117,19 @@ export function ImageUploader() {
     if (!file || analysisLoading) return;
     setAnalysisError(null);
     setAnalysisLoading(true);
-    const res = await analyzeImageFile(file, geminiKey.trim() ? { geminiApiKey: geminiKey.trim() } : undefined);
+    const key = geminiKey.trim();
+    if (key) {
+      const probe = await probeGeminiApiKey(key);
+      if (!probe.ok) {
+        setAnalysisLoading(false);
+        const msg = probe.error_code
+          ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
+          : probe.error || t("upload.geminiHealth.failed");
+        setAnalysisError(msg);
+        return;
+      }
+    }
+    const res = await analyzeImageFile(file, key ? { geminiApiKey: key } : undefined);
     setAnalysisLoading(false);
     if (!res.success) {
       setAnalysisError(res.error || t("upload.error.analysisFailed"));
@@ -206,7 +222,7 @@ export function ImageUploader() {
             <Input
               type="password"
               value={geminiKey}
-              onChange={(e) => setGeminiKey(e.target.value)}
+              onChange={(e) => persistGeminiKey(e.target.value)}
               autoComplete="off"
               placeholder={t("upload.geminiOptional.placeholder")}
               disabled={analysisLoading}
