@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { FreshUploadLink } from "@/components/upload/FreshUploadLink";
 import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -31,10 +32,10 @@ export function Hero() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Button asChild size="lg" className="rounded-full px-8 shadow-md shadow-primary/10">
-            <Link href="/upload" className="gap-2">
+            <FreshUploadLink href="/upload" className="gap-2 inline-flex items-center">
               {t("landing.hero.ctaUpload")}
               <ArrowRight className="h-4 w-4 opacity-90" aria-hidden />
-            </Link>
+            </FreshUploadLink>
           </Button>
           <Link
             href="/learn"

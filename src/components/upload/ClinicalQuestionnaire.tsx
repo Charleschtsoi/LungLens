@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { analyzeImageFile, probeGeminiApiKey } from "@/lib/api";
 import { persistAnalyzeSuccessToSession } from "@/lib/analysis-session-storage";
 import { holdPipelineCompleteAnimation } from "@/lib/analysis-pipeline-loading";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
-import { readStoredGeminiApiKey } from "@/lib/gemini-client-storage";
+import {
+  persistStoredGeminiApiKey,
+  readStoredGeminiApiKey,
+} from "@/lib/gemini-client-storage";
 import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalysisPipelineLoader } from "@/components/upload/AnalysisPipelineLoader";
 import { UploadDestructiveAlert } from "@/components/upload/UploadDestructiveAlert";
@@ -18,6 +22,17 @@ export function ClinicalQuestionnaire() {
   const router = useRouter();
   const { t } = useI18n();
   const [pipelineFinishing, setPipelineFinishing] = useState(false);
+  const [geminiKey, setGeminiKey] = useState("");
+
+  useEffect(() => {
+    const saved = readStoredGeminiApiKey();
+    if (saved) setGeminiKey(saved);
+  }, []);
+
+  const persistGeminiKey = useCallback((value: string) => {
+    setGeminiKey(value);
+    persistStoredGeminiApiKey(value);
+  }, []);
 
   const imageFile = useAppStore((s) => s.imageFile);
   const analysisError = useAppStore((s) => s.analysisError);
@@ -45,20 +60,22 @@ export function ClinicalQuestionnaire() {
     setAnalysisLoading(true);
 
     try {
-      const geminiApiKey = readStoredGeminiApiKey();
-      const probe = await probeGeminiApiKey(geminiApiKey ?? "");
-      if (!probe.ok) {
-        const msg = probe.error_code
-          ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
-          : probe.error || t("upload.geminiHealth.failed");
-        setAnalysisError(msg);
-        stopPipeline();
-        return;
+      const key = geminiKey.trim();
+      if (key) {
+        const probe = await probeGeminiApiKey(key);
+        if (!probe.ok) {
+          const msg = probe.error_code
+            ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
+            : probe.error || t("upload.geminiHealth.failed");
+          setAnalysisError(msg);
+          stopPipeline();
+          return;
+        }
       }
 
       const res = await analyzeImageFile(imageFile, {
         questionnaire,
-        ...(geminiApiKey ? { geminiApiKey } : {}),
+        ...(key ? { geminiApiKey: key } : {}),
       });
 
       if (!res.success) {
@@ -97,7 +114,6 @@ export function ClinicalQuestionnaire() {
       <CardHeader>
         <CardTitle>{t("upload.q.title")}</CardTitle>
         <CardDescription>{t("upload.q.subtitle")}</CardDescription>
-        <p className="mt-2 text-xs text-muted-foreground">{t("upload.q.geminiReuseNote")}</p>
       </CardHeader>
       {analysisError && (
         <div className="px-6 pb-2">
@@ -178,6 +194,18 @@ export function ClinicalQuestionnaire() {
             <option value="mild">{t("upload.q.mild")}</option>
             <option value="severe">{t("upload.q.severe")}</option>
           </select>
+        </label>
+
+        <label className="block space-y-1.5 sm:col-span-2">
+          <span className="text-sm text-muted-foreground">{t("upload.geminiOptional.label")}</span>
+          <Input
+            type="password"
+            value={geminiKey}
+            onChange={(e) => persistGeminiKey(e.target.value)}
+            autoComplete="off"
+            placeholder={t("upload.geminiOptional.placeholder")}
+          />
+          <span className="block text-xs text-muted-foreground">{t("upload.geminiOptional.help")}</span>
         </label>
 
         <div className="sm:col-span-2">

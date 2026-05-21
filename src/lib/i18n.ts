@@ -140,8 +140,6 @@ const dictEn: Dict = {
   "upload.q.title": "Clinical questionnaire",
   "upload.q.subtitle":
     "Because findings were positive, please answer a few questions to generate contextual risk guidance.",
-  "upload.q.geminiReuseNote":
-    "If you entered an optional Gemini API key on the upload step, it is sent again automatically with this request (stored only in your browser).",
   "upload.q.age": "Age",
   "upload.q.fever": "Fever",
   "upload.q.coughDays": "Cough duration (days)",
@@ -160,7 +158,7 @@ const dictEn: Dict = {
   "upload.modeConfigured.demo": "Configured for demo mock mode (no backend call).",
   "upload.geminiOptional.label": "Gemini API key (optional, for AI clinical summary)",
   "upload.geminiOptional.help":
-    "Stored only in this browser. Sent with the questionnaire analyze (not the first image-only run) as gemini_api_key; LungLens servers do not retain it.",
+    "Optional. Stored only in this browser. Validated when you submit this form, then sent with your answers as gemini_api_key; LungLens servers do not retain it.",
   "upload.geminiOptional.placeholder": "Paste your Google AI Studio key for BYOK",
 
   "results.loading": "Loading results...",
@@ -176,9 +174,9 @@ const dictEn: Dict = {
   "results.pdfReportHeaderTitle": "LungLens Educational Report",
   "results.llmEducatorTitle": "AI Clinical Educator Summary",
   "results.llmFailedHint":
-    "When this appears, the backend usually could not complete the Gemini call (invalid key, quota, model error, or network). Confirm your key on the upload step and check Google AI Studio.",
+    "When this appears, the backend usually could not complete the Gemini call (invalid key, quota, model error, or network). Confirm your key on the questionnaire step and check Google AI Studio.",
   "results.llmSkippedHint":
-    "Optional: add a Gemini API key on the upload step so the educator summary can run (BYOK).",
+    "Optional: add a Gemini API key on the questionnaire step so the educator summary can run (BYOK).",
   "results.llmLocaleUnavailable": "No educator summary text was returned for this language.",
   "results.llmHowGeneratedTrigger": "How this summary was produced",
   "results.llmHowGeneratedBodyEn":
@@ -553,8 +551,6 @@ const dictHant: Dict = {
 
   "upload.q.title": "臨床問卷",
   "upload.q.subtitle": "由於出現陽性線索，請回答幾個問題以產生更完整的風險說明。",
-  "upload.q.geminiReuseNote":
-    "若你在上傳步驟填過選填的 Gemini API 金鑰，本次請求會自動一併送出（僅存在你的瀏覽器）。",
   "upload.q.age": "年齡",
   "upload.q.fever": "是否發燒",
   "upload.q.coughDays": "咳嗽天數",
@@ -573,7 +569,7 @@ const dictHant: Dict = {
   "upload.modeConfigured.demo": "目前設定為示範模擬模式（不呼叫後端）。",
   "upload.geminiOptional.label": "Gemini API 金鑰（選填，供 AI 臨床摘要）",
   "upload.geminiOptional.help":
-    "僅存在此瀏覽器。於問卷提交後的分析請求（非首次僅影像分析）以 gemini_api_key 送出；LungLens 伺服端不會保存。",
+    "選填。僅存在此瀏覽器。提交本表單時驗證金鑰，並與問卷答案一併以 gemini_api_key 送出；LungLens 伺服端不會保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，請貼上 Google AI Studio 金鑰",
   "results.loading": "結果載入中…",
   "results.redirecting": "正在返回上傳頁…",
@@ -587,8 +583,8 @@ const dictHant: Dict = {
   "results.pdfReportHeaderTitle": "LungLens 教育報告",
   "results.llmEducatorTitle": "AI 臨床教育摘要",
   "results.llmFailedHint":
-    "通常代表後端無法完成 Gemini 請求（金鑰無效、配額、模型或網路問題）。請在上傳步驟確認金鑰並查看 Google AI Studio。",
-  "results.llmSkippedHint": "選填：於上傳步驟加入 Gemini API 金鑰以啟用教育者摘要（BYOK）。",
+    "通常代表後端無法完成 Gemini 請求（金鑰無效、配額、模型或網路問題）。請在問卷步驟確認金鑰並查看 Google AI Studio。",
+  "results.llmSkippedHint": "選填：於問卷步驟加入 Gemini API 金鑰以啟用教育者摘要（BYOK）。",
   "results.llmLocaleUnavailable": "此語言未回傳教育者摘要文字。",
   "results.llmHowGeneratedTrigger": "此摘要如何產生",
   "results.llmHowGeneratedBodyEn":
@@ -895,8 +891,6 @@ const dictHans: Dict = {
 
   "upload.q.title": "临床问卷",
   "upload.q.subtitle": "由于出现阳性线索，请回答几个问题以生成更完整的风险说明。",
-  "upload.q.geminiReuseNote":
-    "若你在上传步骤填写过可选的 Gemini API 密钥，本次请求会自动一并发送（仅保存在你的浏览器）。",
   "upload.q.age": "年龄",
   "upload.q.fever": "是否发烧",
   "upload.q.coughDays": "咳嗽天数",
@@ -915,7 +909,7 @@ const dictHans: Dict = {
   "upload.modeConfigured.demo": "当前配置为演示模拟模式（不调用后端）。",
   "upload.geminiOptional.label": "Gemini API 密钥（可选，用于 AI 临床摘要）",
   "upload.geminiOptional.help":
-    "仅保存在本浏览器。在问卷提交后的分析请求（非首次仅影像分析）中以 gemini_api_key 发送；LungLens 服务端不会保存。",
+    "可选。仅保存在本浏览器。提交本表单时验证密钥，并与问卷答案一并作为 gemini_api_key 发送；LungLens 服务端不会保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，请粘贴 Google AI Studio 密钥",
   "results.title": "你的教育报告",
   "results.subtitle": "查看影像、注意力热图与解剖提示，再把问题带回给医护团队。",
@@ -927,8 +921,8 @@ const dictHans: Dict = {
   "results.pdfReportHeaderTitle": "LungLens 教育报告",
   "results.llmEducatorTitle": "AI 临床教育摘要",
   "results.llmFailedHint":
-    "通常表示后端未能完成 Gemini 请求（密钥无效、配额、模型或网络问题）。请在上传步骤确认密钥并查看 Google AI Studio。",
-  "results.llmSkippedHint": "可选：在上传步骤添加 Gemini API 密钥以启用教育者摘要（BYOK）。",
+    "通常表示后端未能完成 Gemini 请求（密钥无效、配额、模型或网络问题）。请在问卷步骤确认密钥并查看 Google AI Studio。",
+  "results.llmSkippedHint": "可选：在问卷步骤添加 Gemini API 密钥以启用教育者摘要（BYOK）。",
   "results.llmLocaleUnavailable": "此语言未返回教育者摘要文字。",
   "results.llmHowGeneratedTrigger": "此摘要如何生成",
   "results.llmHowGeneratedBodyEn":

@@ -10,3 +10,17 @@ export function readStoredGeminiApiKey(): string | undefined {
     return undefined;
   }
 }
+
+export function persistStoredGeminiApiKey(value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const trimmed = value.trim();
+    if (trimmed) {
+      window.localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, trimmed);
+    } else {
+      window.localStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}

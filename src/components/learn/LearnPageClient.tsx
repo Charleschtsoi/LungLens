@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FreshUploadLink } from "@/components/upload/FreshUploadLink";
 import type { FindingLabel } from "@/types";
 import { useI18n } from "@/hooks/useI18n";
 import { conditionName } from "@/lib/i18n";
@@ -32,7 +33,7 @@ export function LearnPageClient({ topic }: { topic: FindingLabel | null }) {
             <Link href="/">{t("nav.home")}</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/upload">{t("nav.upload")}</Link>
+            <FreshUploadLink href="/upload">{t("nav.upload")}</FreshUploadLink>
           </Button>
         </CardContent>
       </Card>

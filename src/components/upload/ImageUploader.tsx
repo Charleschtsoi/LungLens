@@ -1,19 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { FileImage, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { analyzeImageFile, probeGeminiApiKey } from "@/lib/api";
+import { analyzeImageFile } from "@/lib/api";
 import { persistAnalyzeSuccessToSession } from "@/lib/analysis-session-storage";
 import { holdPipelineCompleteAnimation } from "@/lib/analysis-pipeline-loading";
-import { GEMINI_API_KEY_STORAGE_KEY } from "@/lib/gemini-client-storage";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { AnalysisPipelineLoader } from "@/components/upload/AnalysisPipelineLoader";
 import { UploadDestructiveAlert } from "@/components/upload/UploadDestructiveAlert";
 import { useI18n } from "@/hooks/useI18n";
@@ -44,24 +42,7 @@ export function ImageUploader() {
   const router = useRouter();
   const { t } = useI18n();
   const [rejectError, setRejectError] = useState<string | null>(null);
-  const [geminiKey, setGeminiKey] = useState("");
   const [pipelineFinishing, setPipelineFinishing] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
-    if (saved) setGeminiKey(saved);
-  }, []);
-
-  const persistGeminiKey = useCallback((value: string) => {
-    setGeminiKey(value);
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, value);
-    } catch {
-      /* ignore quota / private mode */
-    }
-  }, []);
 
   const imageFile = useAppStore((s) => s.imageFile);
   const previewUrl = useAppStore((s) => s.previewUrl);
@@ -158,20 +139,7 @@ export function ImageUploader() {
     setAnalysisLoading(true);
 
     try {
-      const key = geminiKey.trim();
-      if (key) {
-        const probe = await probeGeminiApiKey(key);
-        if (!probe.ok) {
-          const msg = probe.error_code
-            ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
-            : probe.error || t("upload.geminiHealth.failed");
-          setAnalysisError(msg);
-          stopPipeline();
-          return;
-        }
-      }
-
-      const res = await analyzeImageFile(file, key ? { geminiApiKey: key } : undefined);
+      const res = await analyzeImageFile(file);
       if (!res.success) {
         setAnalysisError(res.error || t("upload.error.analysisFailed"));
         stopPipeline();
@@ -242,18 +210,6 @@ export function ImageUploader() {
               <p className="text-xs">{imageFile.name}</p>
             </div>
           )}
-
-          <label className="block space-y-1.5">
-            <span className="text-sm text-muted-foreground">{t("upload.geminiOptional.label")}</span>
-            <Input
-              type="password"
-              value={geminiKey}
-              onChange={(e) => persistGeminiKey(e.target.value)}
-              autoComplete="off"
-              placeholder={t("upload.geminiOptional.placeholder")}
-            />
-            <span className="block text-xs text-muted-foreground">{t("upload.geminiOptional.help")}</span>
-          </label>
 
           <Button type="button" className="w-full sm:w-auto" size="lg" onClick={runAnalyze}>
             {t("upload.analyze")}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Activity } from "lucide-react";
+import { FreshUploadLink } from "@/components/upload/FreshUploadLink";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useI18n } from "@/hooks/useI18n";
@@ -31,15 +32,25 @@ export function Navbar({ className }: { className?: string }) {
         </Link>
         <div className="flex flex-wrap items-center gap-3">
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="text-muted-foreground transition-colors hover:text-primary"
-            >
-              {t(l.key)}
-            </Link>
-          ))}
+          {links.map((l) =>
+            l.href === "/upload" ? (
+              <FreshUploadLink
+                key={l.href}
+                href={l.href}
+                className="text-muted-foreground transition-colors hover:text-primary"
+              >
+                {t(l.key)}
+              </FreshUploadLink>
+            ) : (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-muted-foreground transition-colors hover:text-primary"
+              >
+                {t(l.key)}
+              </Link>
+            ),
+          )}
         </nav>
           <LanguageSwitcher />
         </div>
