@@ -413,7 +413,24 @@ const dictEn: Dict = {
     "The machine learning model behind LungLens was developed as part of an MSc group project at CUHK Chinese University Hong Kong.",
   "about.story2":
     "I then built this web application independently so the tool could be freely accessible to everyone in a clean, easy-to-use format.",
-  "about.team": "Team Credits",
+  "about.team": "Meet the Team",
+  "about.teamSub":
+    "Engineers, researchers, and builders who trained the models and shaped the LungLens experience.",
+  "about.member.charles.role": "Full-Stack Developer & Architect",
+  "about.member.charles.detail":
+    "Designed the system architecture and developed the frontend web application and backend API integration. Trained, evaluated, and deployed Model 3 (DenseNet-121) with integrated Grad-CAM visual interpretability.",
+  "about.member.casper.role": "Vision AI Researcher",
+  "about.member.casper.detail":
+    "Developed and optimized two computer vision pipelines for the ensemble system: Model 1 (ResNet-50) for primary feature classification and Model 4 (Swin Transformer Tiny) for advanced pattern recognition.",
+  "about.member.edward.role": "Vision AI Researcher & Clinical Logic",
+  "about.member.edward.detail":
+    "Developed and trained Model 2 (ResNet-152V2). Designed the conditional user intake questionnaire to capture patient context and supply structured clinical inputs to the LLM diagnostic module.",
+  "about.member.jina.role": "Systems Optimization & Presentation Specialist",
+  "about.member.jina.detail":
+    "Handled backend performance tuning, code quality improvements, and repository maintenance using AI-assisted engineering tools. Co-authored reporting templates and led the final presentation design.",
+  "about.member.dicky.role": "Vision AI Researcher",
+  "about.member.dicky.detail":
+    "Conducted data analysis on medical reporting standards and deploying Model 5 (DenseNet-121) to scale our diagnostic ensemble.",
   "about.disclaimerTitle": "Medical Disclaimer",
   "about.disclaimer1": "This tool is for educational and research purposes only.",
   "about.disclaimer2":
@@ -779,7 +796,23 @@ const dictHant: Dict = {
     "LungLens 背後的機器學習模型，源自 CUHK Chinese University Hong Kong 碩士小組專案。",
   "about.story2":
     "其後我獨立開發此網頁應用，讓更多人可以免費使用並更容易理解 X 光資訊。",
-  "about.team": "團隊名單",
+  "about.team": "認識團隊",
+  "about.teamSub": "訓練模型、打造產品與推動研究的 LungLens 成員。",
+  "about.member.charles.role": "全端開發者與架構師",
+  "about.member.charles.detail":
+    "設計系統架構並開發前端網頁應用與後端 API 整合。訓練、評估並部署模型 3（DenseNet-121），並整合 Grad-CAM 視覺可解釋性。",
+  "about.member.casper.role": "視覺 AI 研究員",
+  "about.member.casper.detail":
+    "為集成系統開發並優化兩條電腦視覺流程：模型 1（ResNet-50）用於主要特徵分類，模型 4（Swin Transformer Tiny）用於進階模式識別。",
+  "about.member.edward.role": "視覺 AI 研究員與臨床邏輯",
+  "about.member.edward.detail":
+    "開發並訓練模型 2（ResNet-152V2）。設計條件式使用者問卷以擷取病患情境，並為 LLM 診斷模組提供結構化臨床輸入。",
+  "about.member.jina.role": "系統優化與簡報專家",
+  "about.member.jina.detail":
+    "負責後端效能調校、程式品質改進與程式庫維護（含 AI 輔助工程工具）。共同撰寫報告範本並主導最終簡報設計。",
+  "about.member.dicky.role": "視覺 AI 研究員",
+  "about.member.dicky.detail":
+    "進行醫療報告標準數據分析，並部署模型 5（DenseNet-121）以擴大診斷集成系統。",
   "about.disclaimerTitle": "醫療免責聲明",
   "about.disclaimer1": "本工具僅供教育與研究用途。",
   "about.disclaimer2": "本工具不能取代專業醫療診斷。",
@@ -1057,7 +1090,23 @@ const dictHans: Dict = {
   "about.badge": "关于 LungLens",
   "about.title": "让胸片学习更普及",
   "about.storyTitle": "项目故事",
-  "about.team": "团队名单",
+  "about.team": "认识团队",
+  "about.teamSub": "训练模型、打造产品与推动研究的 LungLens 成员。",
+  "about.member.charles.role": "全栈开发者与架构师",
+  "about.member.charles.detail":
+    "设计系统架构并开发前端 Web 应用与后端 API 集成。训练、评估并部署模型 3（DenseNet-121），并整合 Grad-CAM 视觉可解释性。",
+  "about.member.casper.role": "视觉 AI 研究员",
+  "about.member.casper.detail":
+    "为集成系统开发并优化两条计算机视觉流程：模型 1（ResNet-50）用于主要特征分类，模型 4（Swin Transformer Tiny）用于高级模式识别。",
+  "about.member.edward.role": "视觉 AI 研究员与临床逻辑",
+  "about.member.edward.detail":
+    "开发并训练模型 2（ResNet-152V2）。设计条件式用户问卷以捕获患者情境，并为 LLM 诊断模块提供结构化临床输入。",
+  "about.member.jina.role": "系统优化与演示专家",
+  "about.member.jina.detail":
+    "负责后端性能调优、代码质量改进与仓库维护（含 AI 辅助工程工具）。共同撰写报告模板并主导最终演示设计。",
+  "about.member.dicky.role": "视觉 AI 研究员",
+  "about.member.dicky.detail":
+    "进行医疗报告标准数据分析，并部署模型 5（DenseNet-121）以扩大诊断集成系统。",
   "about.contactTitle": "开源 / 联系",
   "about.email": "邮件联系",
   "results.doctorQuestionsEmptyFallback":
