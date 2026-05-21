@@ -119,13 +119,14 @@ API fields: `model1`, `model2`, `model3`, `clinical_risk`, `model4`, `model4_swi
 Model stages:
 
 1. **Model 1 (ResNet-50)** — visual X-ray: 3-class (Normal / Pneumonia-Bacteria / Pneumonia-Virus)
-2. **Model 2 (Chronic Lung Risk / COPD)** — clinical questionnaire: tabular neural network (`model2` or `copd_screening`); shown under **Clinical Patient Assessment**, not in the visual X-ray list
-3. **Gate**: `early_stop` or `continue`
-4. **Model 3 (DenseNet-121)** — visual X-ray: `COVID-19` / `Normal` / `Pneumonia` (+ optional Grad-CAM)
-5. **Model 4 (Swin-T)** — visual X-ray: `model4_swint`
-6. **Model 5 (DenseNet-121 H5)** — visual X-ray: `model5_densenet`
-7. **clinical_risk**: rule-based questionnaire severity (separate from Model 2 COPD score)
-8. **model4**: report synthesis
+2. **Model 2 (ResNet-152V2, Edward)** — visual X-ray in the pipeline card (`model6_vision_h5`; legacy H5_MODEL2 naming)
+3. **Model 6 (Chronic Lung Risk / COPD)** — clinical questionnaire: tabular neural network (`model2` or `copd_screening`); shown under **Clinical Patient Assessment**, not in the visual X-ray list
+4. **Gate**: `early_stop` or `continue`
+5. **Model 3 (DenseNet-121)** — visual X-ray: `COVID-19` / `Normal` / `Pneumonia` (+ optional Grad-CAM)
+6. **Model 4 (Swin-T)** — visual X-ray: `model4_swint`
+7. **Model 5 (DenseNet-121 H5)** — visual X-ray: `model5_densenet`
+8. **clinical_risk**: rule-based questionnaire severity (separate from Model 6 COPD score)
+9. **model4**: report synthesis
 
 Primary `predictions` dictionary is now expected to use:
 

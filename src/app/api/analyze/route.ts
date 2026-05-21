@@ -271,18 +271,20 @@ function normalizePredictions(payload: JsonRecord): JsonRecord {
   }
 
   const m1 = firstRecord(payload.model1, payload.stage1);
-  const m2 = firstRecord(payload.model2, payload.stage2);
   const m1Label = m1?.label;
   const m1Confidence = score(m1?.confidence);
 
   const s1Finding = labelToFindingLabel(m1Label);
   if (s1Finding) normalized[s1Finding] = Math.max(score(normalized[s1Finding]), m1Confidence);
 
-  if (m2 && m2.input_type !== "tabular") {
-    const m2Label = m2.label;
-    const m2Confidence = score(m2.confidence);
-    const s2Finding = labelToFindingLabel(m2Label);
-    if (s2Finding) normalized[s2Finding] = Math.max(score(normalized[s2Finding]), m2Confidence);
+  const m6 = firstRecord(payload.model6_vision_h5);
+  if (m6 && m6.input_type === "vision") {
+    const m6Label =
+      (typeof m6.label === "string" ? m6.label : undefined) ??
+      (typeof m6.prediction === "string" ? m6.prediction : undefined);
+    const m6Confidence = score(m6.confidence);
+    const s6Finding = labelToFindingLabel(m6Label);
+    if (s6Finding) normalized[s6Finding] = Math.max(score(normalized[s6Finding]), m6Confidence);
   }
   return normalized;
 }
@@ -448,6 +450,11 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   const m4Swint = m4SwintRaw ? coerceStageRecord(m4SwintRaw) : undefined;
   const m5DenseNetRaw = pickModelRecord(root, "model5_densenet", "model5_densenet");
   const m5DenseNet = m5DenseNetRaw ? coerceStageRecord(m5DenseNetRaw) : undefined;
+  const m6VisionRaw = pickModelRecord(root, "model6_vision_h5", "model6_vision_h5");
+  let m6Vision = m6VisionRaw ? coerceStageRecord(m6VisionRaw) : undefined;
+  if (m6Vision) {
+    m6Vision = { ...m6Vision, input_type: "vision" };
+  }
   const m4Raw = pickModelRecordOrNull(root, "model4", "report");
   const m4 = m4Raw == null ? m4Raw : coerceStageRecord(m4Raw);
 
@@ -478,6 +485,7 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     model4: m4,
     model4_swint: m4Swint,
     model5_densenet: m5DenseNet,
+    model6_vision_h5: m6Vision,
   };
 
   if (!copdScreening) delete normalized.copd_screening;

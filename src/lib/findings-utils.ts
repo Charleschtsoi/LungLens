@@ -127,10 +127,8 @@ function collectModelNoticeAggregate(
 ): ModelNoticeAgg {
   const agg = emptyAgg();
   absorbProbs(agg, analysis.model1?.probabilities);
-  const m2 = analysis.model2;
-  if (m2 && typeof m2 === "object" && "probabilities" in m2 && m2.probabilities) {
-    absorbProbs(agg, m2.probabilities);
-  }
+  // Edward ResNet-152V2 (3-class X-ray) — not tabular model2 / COPD.
+  absorbProbs(agg, analysis.model6_vision_h5?.probabilities);
   absorbProbs(agg, analysis.model4_swint?.probabilities);
   absorbProbs(agg, analysis.model5_densenet?.probabilities);
   if (denseNetDisplay?.success && denseNetDisplay.probabilities) {
@@ -144,11 +142,13 @@ function collectModelNoticeAggregate(
   return agg;
 }
 
-/** Align fusion “Pneumonia” notice with pipeline primary classes (model 1, then model 2 viral). */
+/** Align fusion “Pneumonia” notice with pipeline primary classes (model 1, then model 6 viral). */
 function fusionPneumoniaNoticeKind(analysis: AnalyzeSuccessResponse): PneumoniaNoticeKind {
   const m1 = analysis.model1?.label;
   if (m1 === "Pneumonia-Bacteria") return "pneumonia_bacterial";
   if (m1 === "Pneumonia-Virus") return "pneumonia_viral";
+  const m6Pred = analysis.model6_vision_h5?.prediction?.trim();
+  if (m6Pred === "Viral Pneumonia") return "pneumonia_viral";
   return "default";
 }
 

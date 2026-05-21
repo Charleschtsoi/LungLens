@@ -68,6 +68,8 @@ export interface AnalyzeSuccessResponse {
   model4_swint?: SwinTScreeningResult;
   /** Expansion DenseNet-121 ensemble slot from backend `model5_densenet`. */
   model5_densenet?: Model5DenseNetResult;
+  /** Edward ResNet-152V2 Keras H5 (`model6_vision_h5`; legacy H5_MODEL2). */
+  model6_vision_h5?: Model6VisionH5Result;
   /**
    * DenseNet-121 3-class + Grad-CAM (backend `model3`).
    * Separate from questionnaire clinical block.
@@ -170,6 +172,12 @@ export interface ClassifierModelBlock {
 export type SwinTScreeningResult = ClassifierModelBlock;
 
 export type Model5DenseNetResult = ClassifierModelBlock;
+
+/** Edward ResNet-152V2 — 3 classes: Normal, Viral Pneumonia, Lung Opacity (see H5_MODEL2_LABELS). */
+export interface Model6VisionH5Result extends ClassifierModelBlock {
+  gradcam?: string;
+  input_type?: "vision";
+}
 
 export interface StageReportResult {
   summary: string;

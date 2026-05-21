@@ -1,6 +1,7 @@
-/** Visual X-Ray Analysis slots — four image classifiers (Model 2 is tabular COPD, clinical section only). */
+/** Visual X-Ray Analysis slots (tabular COPD is Model 6 in UI; Edward ResNet is Model 2). */
 export const VISUAL_PIPELINE_MODEL_SLOTS = [
   "model1",
+  "model6_vision_h5",
   "model3",
   "model4_swint",
   "model5_densenet",
@@ -27,10 +28,16 @@ export const ENSEMBLE_ARCHITECTURE_ROWS: readonly EnsembleArchitectureRow[] = [
     trainedBy: "Casper Lee",
   },
   {
-    displayName: "Model 2 (Chronic Lung Risk)",
+    displayName: "Model 2 (ResNet-152V2)",
+    architecture: "ResNet-152V2 (Keras H5)",
+    apiField: "model6_vision_h5",
+    trainedBy: "Edward Choi",
+  },
+  {
+    displayName: "Model 6 (Chronic Lung Risk)",
     architecture: "Tabular neural network (clinical questionnaire)",
     apiField: "model2 / copd_screening",
-    trainedBy: "Edward Choi",
+    trainedBy: "LungLens clinical team",
   },
   {
     displayName: "Model 3 (DenseNet-121)",

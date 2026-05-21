@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { analyzeImageFile, probeGeminiApiKey } from "@/lib/api";
 import { persistAnalyzeSuccessToSession } from "@/lib/analysis-session-storage";
-import { ANALYSIS_PIPELINE_COMPLETE_HOLD_MS } from "@/lib/analysis-pipeline-loading";
+import { holdPipelineCompleteAnimation } from "@/lib/analysis-pipeline-loading";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { readStoredGeminiApiKey } from "@/lib/gemini-client-storage";
 import { useI18n } from "@/hooks/useI18n";
@@ -13,10 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalysisPipelineLoader } from "@/components/upload/AnalysisPipelineLoader";
 import { UploadDestructiveAlert } from "@/components/upload/UploadDestructiveAlert";
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
 
 export function ClinicalQuestionnaire() {
   const router = useRouter();
@@ -40,12 +36,6 @@ export function ClinicalQuestionnaire() {
   const stopPipeline = () => {
     setPipelineFinishing(false);
     setAnalysisLoading(false);
-  };
-
-  const finishPipelineSuccess = async () => {
-    setPipelineFinishing(true);
-    await delay(ANALYSIS_PIPELINE_COMPLETE_HOLD_MS);
-    stopPipeline();
   };
 
   const submit = async () => {
@@ -77,7 +67,8 @@ export function ClinicalQuestionnaire() {
         return;
       }
 
-      await finishPipelineSuccess();
+      setPipelineFinishing(true);
+      await holdPipelineCompleteAnimation();
       setQuestionnaireSubmitted(true);
       setPreQuestionnaireAnalysis(null);
       setAnalysis(res);
@@ -86,7 +77,7 @@ export function ClinicalQuestionnaire() {
       if (!(dn?.success === true && Boolean(dn.gradcam?.trim()))) {
         startSupplementalDensenet();
       }
-      router.push("/results");
+      router.replace("/results");
     } catch {
       setAnalysisError(t("upload.error.analysisFailed"));
       stopPipeline();
@@ -190,7 +181,7 @@ export function ClinicalQuestionnaire() {
         </label>
 
         <div className="sm:col-span-2">
-          <Button type="button" onClick={submit}>
+          <Button type="button" onClick={submit} disabled={showPipelineLoader}>
             {t("upload.q.submit")}
           </Button>
         </div>

@@ -8,7 +8,7 @@ import { FileImage, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeImageFile, probeGeminiApiKey } from "@/lib/api";
 import { persistAnalyzeSuccessToSession } from "@/lib/analysis-session-storage";
-import { ANALYSIS_PIPELINE_COMPLETE_HOLD_MS } from "@/lib/analysis-pipeline-loading";
+import { holdPipelineCompleteAnimation } from "@/lib/analysis-pipeline-loading";
 import { GEMINI_API_KEY_STORAGE_KEY } from "@/lib/gemini-client-storage";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
 import { useAppStore } from "@/store/useAppStore";
@@ -38,10 +38,6 @@ function formatRejections(rejections: FileRejection[], t: (k: string) => string)
   if (code === "file-too-large") return t("upload.fileError.size");
   if (code === "file-invalid-type") return t("upload.fileError.type");
   return first.errors[0]?.message || t("upload.fileError.type");
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 export function ImageUploader() {
@@ -86,15 +82,10 @@ export function ImageUploader() {
     setAnalysisLoading(false);
   }, [setAnalysisLoading]);
 
-  const finishPipelineSuccess = useCallback(async () => {
-    setPipelineFinishing(true);
-    await delay(ANALYSIS_PIPELINE_COMPLETE_HOLD_MS);
-    stopPipeline();
-  }, [stopPipeline]);
-
   const applySuccess = useCallback(
     (res: AnalyzeSuccessResponse) => {
       if (res.requires_questionnaire) {
+        stopPipeline();
         setPreQuestionnaireAnalysis(res);
         setAnalysis(null);
         setUploadFlowStep(4);
@@ -107,7 +98,7 @@ export function ImageUploader() {
       if (!(dn?.success === true && Boolean(dn.gradcam?.trim()))) {
         startSupplementalDensenet();
       }
-      router.push("/results");
+      router.replace("/results");
     },
     [
       router,
@@ -115,6 +106,7 @@ export function ImageUploader() {
       setPreQuestionnaireAnalysis,
       setUploadFlowStep,
       startSupplementalDensenet,
+      stopPipeline,
     ],
   );
 
@@ -186,7 +178,8 @@ export function ImageUploader() {
         return;
       }
 
-      await finishPipelineSuccess();
+      setPipelineFinishing(true);
+      await holdPipelineCompleteAnimation();
       applySuccess(res);
     } catch {
       setAnalysisError(t("upload.error.analysisFailed"));

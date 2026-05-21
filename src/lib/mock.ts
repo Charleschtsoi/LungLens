@@ -3,6 +3,7 @@ import { PIPELINE } from "@/lib/constants";
 import type {
   AnalyzeSuccessResponse,
   Model2TabularResult,
+  Model6VisionH5Result,
   Predictions,
   Stage3QuestionnaireInput,
   StageClinicalResult,
@@ -137,6 +138,28 @@ function stage2FromPredictions(preds: Predictions): StageMultiClassResult {
     return { label: "Viral Pneumonia", confidence: Number(viral.toFixed(4)) };
   }
   return { label: "Lung Opacity", confidence: Number(opacity.toFixed(4)) };
+}
+
+/** Edward ResNet-152V2 slot (`model6_vision_h5`) — class order: Normal, Viral Pneumonia, Lung Opacity. */
+function model6VisionFromPredictions(preds: Predictions): Model6VisionH5Result {
+  const viral = Math.max(preds.Pneumonia, preds["COVID-19"]);
+  const opacity = preds["Lung Opacity"];
+  const normal = Math.max(0.05, 1 - Math.max(viral, opacity));
+  const sum = normal + viral + opacity || 1;
+  const stage2 = stage2FromPredictions(preds);
+  return {
+    prediction: stage2.label,
+    confidence: stage2.confidence,
+    status: "success",
+    model_name: "ResNet-152V2 (Edward)",
+    input_type: "vision",
+    probabilities: {
+      Normal: Number((normal / sum).toFixed(2)),
+      "Viral Pneumonia": Number((viral / sum).toFixed(2)),
+      "Lung Opacity": Number((opacity / sum).toFixed(2)),
+    },
+    gradcam: "",
+  };
 }
 
 function gateFromStages(stage1: StageBinaryResult, stage2: StageMultiClassResult) {
@@ -390,6 +413,7 @@ export async function mockAnalyze(
         Normal: 0.91,
       },
     },
+    model6_vision_h5: model6VisionFromPredictions(predictions),
     model5_densenet: {
       prediction: "No Finding",
       confidence: 0.78,

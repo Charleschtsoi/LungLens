@@ -9,7 +9,7 @@ import { useI18n } from "@/hooks/useI18n";
 const LIVE_MODEL_BADGE_CLASS =
   "border-emerald-200/80 bg-emerald-50 px-2 py-0 text-xs font-medium text-emerald-800";
 
-export type PipelineModelNumber = 1 | 2 | 3 | 4 | 5;
+export type PipelineModelNumber = 1 | 2 | 3 | 4 | 5 | 6;
 
 type PipelineModelBadgeProps = {
   modelNumber: PipelineModelNumber;

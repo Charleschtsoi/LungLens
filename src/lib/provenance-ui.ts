@@ -95,7 +95,7 @@ export function hybridRunModeBannerMessage(
   if (!m1 && m2) {
     return t(
       "results.provenance.hybridBanner.model2Only",
-      "Model 2 used a live classifier. Model 1 did not run as a loaded neural model on this run (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+      "Model 2 (COPD tabular) ran on this upload. Model 1 did not run as a loaded X-ray classifier (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
     );
   }
   return t(
@@ -294,12 +294,190 @@ function statusLabel(st: AnalyzeStageStatus, t: (key: string, fallback?: string)
   return t("results.impact.statusOk");
 }
 
-/** X-ray expansion slots — separate from `provenance.model4` (report synthesis). */
-function visionExpansionImpactRows(
-  analysis: Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet"> | undefined,
+function stageProvenanceImpactRow(
+  sp: StageProvenance,
+  titleKey: string,
+  fallback: string,
+  t: (key: string, fallback?: string) => string,
+): ImpactRow {
+  const src = normalizeToBadgeSource(sp.source);
+  return {
+    section: t(titleKey, fallback),
+    source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
+    sourceKind: src,
+    status: statusLabel(sp.status, t),
+  };
+}
+
+function flatProvenanceSectionRow(
+  provenance: AnalyzeProvenance,
+  key: FlatProvenanceKey,
+  t: (key: string, fallback?: string) => string,
+): ImpactRow | null {
+  const rec = provenance as unknown as Record<string, unknown>;
+  const src = normalizeToBadgeSource(rec[key]);
+  if (!src) return null;
+  return {
+    section: t(`results.provenance.section.${key}`, key),
+    source: t(`results.provenance.badge.${src}`, src),
+    sourceKind: src,
+    status: t("results.impact.statusOk"),
+  };
+}
+
+function visionClassifierImpactRow(
+  rec: { status?: string } | undefined,
+  titleKey: string,
+  fallback: string,
+  t: (key: string, fallback?: string) => string,
+): ImpactRow | null {
+  if (!rec) return null;
+  const live = rec.status === "success";
+  return {
+    section: t(titleKey, fallback),
+    source: live
+      ? t("results.provenance.badge.model", "model")
+      : t("results.provenance.sourceUnknown"),
+    sourceKind: live ? "model" : null,
+    status: live ? t("results.impact.statusOk") : t("results.impact.statusSkipped"),
+  };
+}
+
+/**
+ * Classifier rows in the same order as the results pipeline card:
+ * 1 → 2 (Edward) → 3 → 4 → 5 → 6 (COPD) → clinical risk.
+ */
+export function pipelineOrderedModelImpactRows(
+  provenance: AnalyzeProvenance | undefined,
+  analysis:
+    | Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">
+    | undefined,
   t: (key: string, fallback?: string) => string,
 ): ImpactRow[] {
   const rows: ImpactRow[] = [];
+  if (!provenance && !analysis) return rows;
+
+  const m1 = provenance?.model1;
+  if (m1) {
+    rows.push(
+      stageProvenanceImpactRow(m1, "results.provenance.impact.model1", "Model 1 — ResNet-50", t),
+    );
+  } else if (provenance) {
+    const flat = flatProvenanceSectionRow(provenance, "model1_result", t);
+    if (flat) rows.push(flat);
+  }
+
+  const edward = visionClassifierImpactRow(
+    analysis?.model6_vision_h5,
+    "results.provenance.impact.model6",
+    "Model 2 — ResNet-152V2 (Edward)",
+    t,
+  );
+  if (edward) rows.push(edward);
+
+  const m3 = provenance?.model3;
+  if (m3) {
+    rows.push(
+      stageProvenanceImpactRow(m3, "results.provenance.impact.model3", "Model 3 — DenseNet-121", t),
+    );
+  }
+
+  const swint = visionClassifierImpactRow(
+    analysis?.model4_swint,
+    "results.provenance.impact.model4_swint",
+    "Model 4 — Swin Transformer",
+    t,
+  );
+  if (swint) rows.push(swint);
+
+  const m5 = visionClassifierImpactRow(
+    analysis?.model5_densenet,
+    "results.provenance.impact.model5",
+    "Model 5 — DenseNet-121 (H5)",
+    t,
+  );
+  if (m5) rows.push(m5);
+
+  const copd = provenance?.model2;
+  if (copd) {
+    rows.push(
+      stageProvenanceImpactRow(
+        copd,
+        "results.provenance.impact.model2",
+        "Model 6 — Chronic Lung Risk (COPD)",
+        t,
+      ),
+    );
+  } else if (provenance) {
+    const flat = flatProvenanceSectionRow(provenance, "model2_result", t);
+    if (flat) rows.push(flat);
+  }
+
+  const cr = provenance?.clinical_risk;
+  if (cr) {
+    const src = normalizeToBadgeSource(cr.source);
+    rows.push({
+      section: t("results.model3Risk"),
+      source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
+      sourceKind: src,
+      status: statusLabel(cr.status, t),
+    });
+  }
+
+  return rows;
+}
+
+const FLAT_IMPACT_TAIL_KEYS: FlatProvenanceKey[] = [
+  "gate_decision",
+  "findings",
+  "doctor_questions",
+  "report_summary",
+  "anatomy_guide",
+];
+
+/** Flat provenance: ordered models first, then gate / findings / report tail. */
+export function flatPipelineImpactRows(
+  provenance: AnalyzeProvenance,
+  analysis:
+    | Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">
+    | undefined,
+  t: (key: string, fallback?: string) => string,
+): ImpactRow[] {
+  const rec = provenance as unknown as Record<string, unknown>;
+  const tail = FLAT_IMPACT_TAIL_KEYS.map((key) => {
+    const src = normalizeToBadgeSource(rec[key]);
+    const section = t(`results.provenance.section.${key}`, key);
+    const sourceLabel = src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown");
+    return {
+      section,
+      source: sourceLabel,
+      sourceKind: src,
+      status: t("results.impact.statusOk"),
+    };
+  });
+  return [...pipelineOrderedModelImpactRows(provenance, analysis, t), ...tail];
+}
+
+/** X-ray expansion slots — separate from `provenance.model4` (report synthesis). */
+export function visionExpansionImpactRows(
+  analysis:
+    | Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">
+    | undefined,
+  t: (key: string, fallback?: string) => string,
+): ImpactRow[] {
+  const rows: ImpactRow[] = [];
+  const m6 = analysis?.model6_vision_h5;
+  if (m6) {
+    const live = m6.status === "success";
+    rows.push({
+      section: t("results.provenance.impact.model6", "Model 2 — ResNet-152V2 (Edward)"),
+      source: live
+        ? t("results.provenance.badge.model", "model")
+        : t("results.provenance.sourceUnknown"),
+      sourceKind: live ? "model" : null,
+      status: live ? t("results.impact.statusOk") : t("results.impact.statusSkipped"),
+    });
+  }
   const m4Swint = analysis?.model4_swint;
   if (m4Swint) {
     const live = m4Swint.status === "success";
@@ -330,48 +508,9 @@ function visionExpansionImpactRows(
 export function nestedProvenanceImpactRows(
   provenance: AnalyzeProvenance,
   t: (key: string, fallback?: string) => string,
-  analysis?: Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet">,
+  analysis?: Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">,
 ): ImpactRow[] {
-  const rows: ImpactRow[] = [];
-  const earlyStages: { key: "model1" | "model2"; titleKey: string }[] = [
-    { key: "model1", titleKey: "results.provenance.impact.model1" },
-    { key: "model2", titleKey: "results.provenance.impact.model2" },
-  ];
-  for (const { key, titleKey } of earlyStages) {
-    const sp = provenance[key];
-    if (!sp) continue;
-    const src = normalizeToBadgeSource(sp.source);
-    rows.push({
-      section: t(titleKey, key),
-      source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
-      sourceKind: src,
-      status: statusLabel(sp.status, t),
-    });
-  }
-
-  const cr = provenance.clinical_risk;
-  if (cr) {
-    const src = normalizeToBadgeSource(cr.source);
-    rows.push({
-      section: t("results.model3Risk"),
-      source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
-      sourceKind: src,
-      status: statusLabel(cr.status, t),
-    });
-  }
-
-  const m3 = provenance.model3;
-  if (m3) {
-    const src = normalizeToBadgeSource(m3.source);
-    rows.push({
-      section: t("results.provenance.impact.model3", "Model 3 — DenseNet-121"),
-      source: src ? t(`results.provenance.badge.${src}`, src) : t("results.provenance.sourceUnknown"),
-      sourceKind: src,
-      status: statusLabel(m3.status, t),
-    });
-  }
-
-  rows.push(...visionExpansionImpactRows(analysis, t));
+  const rows: ImpactRow[] = [...pipelineOrderedModelImpactRows(provenance, analysis, t)];
 
   const findingsSrc = resolveFindingsBadgeSource(provenance);
   rows.push({

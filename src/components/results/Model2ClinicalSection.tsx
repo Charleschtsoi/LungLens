@@ -2,6 +2,7 @@
 
 import { PipelineModelBadge } from "@/components/results/PipelineModelBadge";
 import { ProbabilityBarList } from "@/components/results/ProbabilityBarList";
+import { DISPLAY_PIPELINE_MODEL } from "@/lib/model-display-numbers";
 import { pipelineProvenanceSource } from "@/lib/provenance-ui";
 import {
   formatModel2ClinicalHeadline,
@@ -51,10 +52,10 @@ export function Model2ClinicalSection({ tabular, provenance }: Model2ClinicalSec
             >
               {headline}
             </p>
-            <p className="text-xs text-muted-foreground">{t("results.poweredBy.model2")}</p>
+            <p className="text-xs text-muted-foreground">{t("results.poweredBy.model6")}</p>
           </div>
           <PipelineModelBadge
-            modelNumber={2}
+            modelNumber={DISPLAY_PIPELINE_MODEL.copdTabular}
             live={Boolean(tabular)}
             provenanceSource={pipelineProvenanceSource(provenance, "model2")}
             className="px-2 py-0 text-xs"
