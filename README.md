@@ -226,13 +226,34 @@ docs/BACKEND_MODELS.md                   # Backend payload expectations
 
 ## Deployment Notes
 
-- Frontend: Vercel or any Next.js-compatible runtime
+- Frontend: Vercel, **Cloudflare Workers** (OpenNext), or any Next.js-compatible runtime
 - Backend: container host (Railway, Cloud Run, etc.)
 - Set platform env vars:
   - `NEXT_PUBLIC_USE_MOCK`
   - `NEXT_PUBLIC_API_URL`
   - `BACKEND_API_BASE_URL`
   - `BACKEND_API_KEY`
+
+### Cloudflare Workers (OpenNext)
+
+Cloudflare’s auto-migrate installs `@opennextjs/cloudflare@latest`, which **requires Next.js 15.5+** and breaks this repo on **Next 14.2.35**. Use the pinned adapter already in `package.json`:
+
+| Setting | Value |
+|--------|--------|
+| Build command | `npm run build:cloudflare` |
+| Deploy (CLI) | `npm run deploy:cloudflare` |
+| Adapter | `@opennextjs/cloudflare@1.15.1` (supports Next `14.2.35`) |
+
+**Worker secrets / vars** (Dashboard → Workers → lunglens → Settings → Variables):
+
+- `BACKEND_API_BASE_URL` — your ML API root (HTTPS)
+- `BACKEND_API_KEY` — server API key
+- `NEXT_PUBLIC_USE_MOCK` — `false` for production
+- `NEXT_PUBLIC_API_URL` — optional warm-up health URL
+
+The log line `WARN Failed to set up cache for your project` is expected when R2 is not enabled; caching uses the default in-memory config in `open-next.config.ts` until you add an R2 bucket binding.
+
+Local Workers preview: `cp .dev.vars.example .dev.vars` then `npm run preview:cloudflare`.
 
 ## License
 

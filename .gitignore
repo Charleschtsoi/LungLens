@@ -5,6 +5,9 @@ plans-local/
 # Dependencies & build
 node_modules
 .next
+.open-next
+.wrangler
+.dev.vars
 out
 build
 dist

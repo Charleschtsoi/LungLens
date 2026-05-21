@@ -1,0 +1,4 @@
+# Local preview (`npm run preview:cloudflare`) — copy to .dev.vars (gitignored)
+NEXTJS_ENV=development
+BACKEND_API_BASE_URL=http://127.0.0.1:8000
+BACKEND_API_KEY=
