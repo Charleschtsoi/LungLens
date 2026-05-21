@@ -125,7 +125,7 @@ export async function analyzeImageFile(
       console.error("[LungLens] POST /api/analyze failed", {
         httpStatus: res.status,
         response: data,
-        hint: "Check server BACKEND_API_BASE_URL (e.g. http://127.0.0.1:8000) and BACKEND_API_KEY; see terminal logs from the Next route.",
+        hint: "Check server BACKEND_API_BASE_URL (e.g. http://127.0.0.1:7861 — match uvicorn port) and BACKEND_API_KEY; see terminal logs from the Next route.",
       });
       if (!data || !("success" in data) || data.success !== false) {
         return {
@@ -172,10 +172,16 @@ export async function analyzeImageFile(
       };
     }
     if (!ok.provenance) {
+      const m2Vision =
+        ok.model2 &&
+        typeof ok.model2 === "object" &&
+        "input_type" in ok.model2 &&
+        ok.model2.input_type === "vision";
       ok.provenance = {
         run_mode: "hybrid",
         model1: { source: "model", status: ok.model1 ? "fallback" : "skipped" },
-        model2: { source: "model", status: ok.model2 ? "fallback" : "skipped" },
+        model2: { source: "model", status: m2Vision ? "fallback" : "skipped" },
+        model6: { source: "model", status: ok.model6 ? "fallback" : "skipped" },
         model3: { source: "model", status: ok.model3 != null ? "fallback" : "skipped" },
         clinical_risk: { source: "rule", status: ok.clinical_risk != null ? "fallback" : "skipped" },
         model4: { source: "llm", status: ok.model4 != null ? "fallback" : "skipped" },
@@ -195,10 +201,10 @@ export async function analyzeImageFile(
     return data;
   } catch (e) {
     console.error("[LungLens] analyzeImageFile fetch error (network or CORS)", e);
-    const message = e instanceof Error ? e.message : "Network error calling ML server.";
     return {
       success: false,
-      error: message,
+      error:
+        "Network error contacting backend API. Check BACKEND_API_BASE_URL (port must match uvicorn, often 7861), that the backend is running, and BACKEND_API_KEY when REQUIRE_API_KEY=true.",
       error_code: "network_error",
       stage: "pipeline",
       retryable: true,

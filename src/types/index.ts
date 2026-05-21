@@ -214,12 +214,17 @@ export interface StageTiming {
   total: number;
 }
 
-/** Backend `/api/v1/generate-questions` suggested prompts for the doctor Q&A card. */
-export interface SuggestedDoctorQuestion {
+/** Backend `/api/v1/generate-questions` educational insights for the results card. */
+export interface EducationalInsight {
   id: string;
+  title: string;
   text: string;
   finding_trigger: string;
+  category?: string;
 }
+
+/** @deprecated Use EducationalInsight */
+export type SuggestedDoctorQuestion = EducationalInsight;
 
 export type AnalyzeRunMode = "real" | "mock" | "hybrid";
 export type AnalyzeStageStatus = "ok" | "fallback" | "failed" | "skipped";

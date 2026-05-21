@@ -4,23 +4,23 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { FindingLabel, SuggestedDoctorQuestion } from "@/types";
+import type { EducationalInsight, FindingLabel } from "@/types";
 import { useI18n } from "@/hooks/useI18n";
 import { SectionSourceBadge } from "@/components/results/SectionSourceBadge";
 
-interface DoctorQuestionsProps {
-  findings: { label: FindingLabel; displayName?: string }[];
-  doctorQuestionsProvenance?: unknown;
-  questions: SuggestedDoctorQuestion[] | null;
+interface EducationalInsightsProps {
+  findings: { label: FindingLabel }[];
+  insightsProvenance?: unknown;
+  insights: EducationalInsight[] | null;
   isLoading: boolean;
 }
 
 export function DoctorQuestions({
   findings: _findings,
-  doctorQuestionsProvenance,
-  questions,
+  insightsProvenance,
+  insights,
   isLoading,
-}: DoctorQuestionsProps) {
+}: EducationalInsightsProps) {
   const { t } = useI18n();
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export function DoctorQuestions({
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
             <span>{t("results.questionsTitle")}</span>
-            <SectionSourceBadge source={doctorQuestionsProvenance} />
+            <SectionSourceBadge source={insightsProvenance} />
           </CardTitle>
           <CardDescription>{t("results.questionsSub")}</CardDescription>
         </CardHeader>
@@ -49,10 +49,10 @@ export function DoctorQuestions({
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="flex flex-col gap-2 rounded-lg border border-muted/60 bg-muted/10 p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-lg border border-muted/60 bg-muted/10 p-4"
               >
-                <div className="h-4 w-full max-w-md animate-pulse rounded bg-muted sm:h-5" />
-                <div className="h-9 w-20 shrink-0 animate-pulse rounded-md bg-muted sm:ml-4" />
+                <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-full max-w-md animate-pulse rounded bg-muted" />
               </div>
             ))}
           </div>
@@ -61,55 +61,60 @@ export function DoctorQuestions({
     );
   }
 
-  if (!isLoading && (!questions || questions.length === 0)) {
+  if (!isLoading && (!insights || insights.length === 0)) {
     return (
       <div className="text-sm text-muted-foreground p-4">
-        No specific questions generated for these findings. Please consult your doctor directly.
+        {t("results.doctorQuestionsEmptyFallback")}
       </div>
     );
   }
 
-  const resolved = questions as SuggestedDoctorQuestion[];
-  const apiRows = resolved.map((q) => ({ key: q.id, text: q.text }));
+  const resolved = insights as EducationalInsight[];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
           <span>{t("results.questionsTitle")}</span>
-          <SectionSourceBadge source={doctorQuestionsProvenance} />
+          <SectionSourceBadge source={insightsProvenance} />
         </CardTitle>
         <CardDescription>{t("results.questionsSub")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          {apiRows.map((row) => (
-            <div
-              key={row.key}
-              className="flex flex-col gap-2 rounded-lg border border-sky-100/80 bg-sky-50/20 p-4 sm:flex-row sm:items-start sm:justify-between"
-            >
-              <p className="text-sm leading-relaxed text-foreground">{row.text}</p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 gap-1.5"
-                onClick={() => copy(row.text, row.key)}
+          {resolved.map((row) => {
+            const copyText = `${row.title}\n\n${row.text}`;
+            return (
+              <div
+                key={row.id}
+                className="flex flex-col gap-2 rounded-lg border border-sky-100/80 bg-sky-50/20 p-4 sm:flex-row sm:items-start sm:justify-between"
               >
-                {copiedKey === row.key ? (
-                  <>
-                    <Check className="h-3.5 w-3.5" aria-hidden />
-                    {t("results.copied")}
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" aria-hidden />
-                    {t("results.copy")}
-                  </>
-                )}
-              </Button>
-            </div>
-          ))}
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium text-foreground">{row.title}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{row.text}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  onClick={() => copy(copyText, row.id)}
+                >
+                  {copiedKey === row.id ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" aria-hidden />
+                      {t("results.copied")}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" aria-hidden />
+                      {t("results.copy")}
+                    </>
+                  )}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

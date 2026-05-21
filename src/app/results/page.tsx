@@ -16,7 +16,11 @@ import { DoctorQuestions } from "@/components/results/DoctorQuestions";
 import { LearnMoreCards } from "@/components/results/LearnMoreCards";
 import { ResultsStickyDisclaimer } from "@/components/results/ResultsStickyDisclaimer";
 import { getNotableFindings } from "@/lib/findings-utils";
-import { buildDoctorQuestions } from "@/lib/doctor-questions";
+import {
+  buildEducationalInsights,
+  educationalInsightsToPdfLines,
+} from "@/lib/educational-insights";
+import { readStoredGeminiApiKey } from "@/lib/gemini-client-storage";
 import { buildEducationReportPdf } from "@/lib/pdf-report";
 import { pickLlmMarkdownForLocale } from "@/lib/llm-evaluation-display";
 import { FileDown, Loader2 } from "lucide-react";
@@ -26,8 +30,8 @@ import {
   mergeDenseNetDisplayForUi,
   model3PredictionString,
 } from "@/lib/dense-net-from-analysis";
-import { mapModelSignalsToHighAttentionFindings } from "@/lib/high-attention-findings";
-import type { AiNoticeFindingRow, FindingLabel, SuggestedDoctorQuestion } from "@/types";
+import { buildHighAttentionFindingKeys } from "@/lib/high-attention-findings";
+import type { AiNoticeFindingRow, AnalyzeSuccessResponse, EducationalInsight, FindingLabel } from "@/types";
 import { aiNoticeRowHeadline, conditionName } from "@/lib/i18n";
 import {
   bothClassifierModelsLive,
@@ -57,6 +61,21 @@ import { Model2ClinicalSection } from "@/components/results/Model2ClinicalSectio
 import { model2VisionFromAnalysis } from "@/lib/model2-vision";
 import { formatModel6ClinicalHeadline, model6TabularFromAnalysis } from "@/lib/model6-tabular";
 
+function buildScanSummaryForInsights(analysis: AnalyzeSuccessResponse): string {
+  const parts: string[] = [];
+  if (analysis.gradcam?.top_prediction) {
+    parts.push(`Top attention: ${analysis.gradcam.top_prediction}`);
+  }
+  if (analysis.model1?.label) parts.push(`Model 1: ${analysis.model1.label}`);
+  const m3 = model3PredictionString(analysis.model3);
+  if (m3) parts.push(`Model 3: ${m3}`);
+  const m2 = model2VisionFromAnalysis(analysis);
+  if (m2?.prediction) parts.push(`Model 2: ${m2.prediction}`);
+  const m6 = model6TabularFromAnalysis(analysis);
+  if (m6?.prediction) parts.push(`Model 6 COPD: ${m6.prediction}`);
+  return parts.join("; ");
+}
+
 /** Raw base64 for attention overlay (tabs + PDF); strips `data:image/...;base64,` if present. */
 function heatmapBase64ForDisplay(raw: string | null | undefined): string {
   if (!raw || !raw.trim()) return "";
@@ -82,7 +101,8 @@ export default function ResultsPage() {
   const denseNetFromAnalyze = analysis ? denseNetResponseFromAnalyzeModel3(analysis) : null;
   const denseNetDisplay = analysis ? mergeDenseNetDisplayForUi(denseNetFromAnalyze, denseNetResult) : null;
 
-  const [suggestedQuestions, setSuggestedQuestions] = useState<SuggestedDoctorQuestion[] | null>(null);
+  const [educationalInsights, setEducationalInsights] = useState<EducationalInsight[] | null>(null);
+  const [insightsSource, setInsightsSource] = useState<"llm" | "rules" | null>(null);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
   const hasFetchedQuestions = useRef(false);
@@ -121,95 +141,91 @@ export default function ResultsPage() {
     }
 
     if (!analysis) {
-      console.log("Q&A: No analysis; clearing questions and loading.");
-      setSuggestedQuestions(null);
+      setEducationalInsights(null);
+      setInsightsSource(null);
       setIsQuestionsLoading(false);
       return;
     }
 
     if (hasFetchedQuestions.current) {
-      console.log("Q&A: Skip — already fetched for this analysis session.");
       return;
     }
 
-    const findings: string[] = [];
-    if (analysis.model1?.label && analysis.model1.label !== "Normal") {
-      findings.push(analysis.model1.label);
-    }
-    const m3pred = model3PredictionString(analysis.model3);
-    if (m3pred && m3pred !== "Normal") {
-      findings.push(m3pred);
-    }
-
-    console.log("Q&A Extracted Findings:", findings);
-
-    if (findings.length === 0) {
-      console.log("Q&A: No abnormal findings, skipping fetch.");
-      setSuggestedQuestions([]);
-      setIsQuestionsLoading(false);
-      hasFetchedQuestions.current = true;
-      return;
-    }
-
-    const high_attention_findings = mapModelSignalsToHighAttentionFindings(findings);
-    console.log("Q&A Mapped high_attention_findings:", high_attention_findings);
-
+    const high_attention_findings = buildHighAttentionFindingKeys(analysis, denseNetDisplay);
     if (high_attention_findings.length === 0) {
-      console.log("Q&A: No mappable finding keys after normalization; skipping fetch.");
-      setSuggestedQuestions([]);
+      setEducationalInsights(null);
+      setInsightsSource(null);
       setIsQuestionsLoading(false);
       hasFetchedQuestions.current = true;
       return;
     }
 
-    const fetchQuestions = async () => {
+    const fetchInsights = async () => {
       hasFetchedQuestions.current = true;
       setIsQuestionsLoading(true);
-      console.log("Q&A: Initiating fetch to proxy...", { high_attention_findings });
+      const geminiApiKey = readStoredGeminiApiKey();
       try {
         const res = await fetch("/api/generate-questions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ high_attention_findings }),
+          body: JSON.stringify({
+            high_attention_findings,
+            gemini_api_key: geminiApiKey,
+            locale,
+            scan_summary: buildScanSummaryForInsights(analysis),
+          }),
         });
-
-        console.log("Q&A Proxy Response Status:", res.status);
 
         if (!res.ok) {
           throw new Error(`Proxy returned status ${res.status}`);
         }
 
         const data: unknown = await res.json();
-        console.log("Q&A Data Received:", data);
-
         const rawList =
           data && typeof data === "object"
-            ? (data as { suggested_questions?: unknown }).suggested_questions
+            ? (data as { educational_insights?: unknown }).educational_insights
             : undefined;
+        const source =
+          data && typeof data === "object" && (data as { source?: string }).source === "llm"
+            ? "llm"
+            : "rules";
         if (!Array.isArray(rawList)) {
-          setSuggestedQuestions([]);
+          setEducationalInsights([]);
+          setInsightsSource(null);
           return;
         }
-        const list = rawList.filter(
-          (item): item is SuggestedDoctorQuestion =>
-            Boolean(item) &&
-            typeof item === "object" &&
-            typeof (item as SuggestedDoctorQuestion).id === "string" &&
-            typeof (item as SuggestedDoctorQuestion).text === "string" &&
-            typeof (item as SuggestedDoctorQuestion).finding_trigger === "string",
-        );
-        setSuggestedQuestions(list);
-      } catch (error) {
-        console.error("Q&A Fetch Error on Client:", error);
-        setSuggestedQuestions([]);
+        const list = rawList.flatMap((item, i): EducationalInsight[] => {
+          if (!item || typeof item !== "object") return [];
+          const row = item as Record<string, unknown>;
+          const text = typeof row.text === "string" ? row.text.trim() : "";
+          if (!text) return [];
+          const title =
+            typeof row.title === "string" && row.title.trim()
+              ? row.title.trim()
+              : text.slice(0, 72);
+          return [
+            {
+              id: typeof row.id === "string" ? row.id : `i${i + 1}`,
+              title,
+              text,
+              finding_trigger:
+                typeof row.finding_trigger === "string" ? row.finding_trigger : "General",
+              category: typeof row.category === "string" ? row.category : undefined,
+            },
+          ];
+        });
+        setEducationalInsights(list);
+        setInsightsSource(source);
+      } catch {
+        setEducationalInsights([]);
+        setInsightsSource(null);
       } finally {
-        console.log("Q&A: Fetch complete, disabling loader.");
         setIsQuestionsLoading(false);
       }
     };
 
-    fetchQuestions();
-  }, [analysis]);
+    fetchInsights();
+  }, [analysis, denseNetDisplay, locale]);
 
   if (!analysis && loading) {
     return (
@@ -353,7 +369,12 @@ export default function ResultsPage() {
       : analysis.model4
         ? `${t("results.reportSummaryGenerated")} ${conditionName(locale, analysis.gradcam.top_prediction)}.`
         : null;
-  const doctorQuestions = buildDoctorQuestions(doctorQuestionFindings, locale);
+  const fallbackInsights = buildEducationalInsights(doctorQuestionFindings, locale);
+  const resolvedInsights =
+    insightsSource === "llm" && educationalInsights && educationalInsights.length > 0
+      ? educationalInsights
+      : fallbackInsights;
+  const pdfInsightLines = educationalInsightsToPdfLines(resolvedInsights);
   const runMode = analysis.provenance?.run_mode ?? (process.env.NEXT_PUBLIC_USE_MOCK === "true" ? "mock" : "real");
   const runModeLabel = t(`results.runMode.${runMode}`, runMode);
   const warningMessages = (analysis.warnings ?? []).map((w) => w.message);
@@ -560,7 +581,7 @@ export default function ResultsPage() {
         })),
         noFindingsText: t("results.noSignificant"),
         doctorQuestionsTitle: t("results.questionsTitle"),
-        doctorQuestions,
+        doctorQuestions: pdfInsightLines,
         warningsTitle: t("results.warningsTitle"),
         warnings: warningMessages,
         footerDisclaimer: t("results.sticky"),
@@ -741,12 +762,17 @@ export default function ResultsPage() {
         />
         <DoctorQuestions
           findings={findingsForSections}
-          doctorQuestionsProvenance={
-            analysis.provenance?.doctor_questions ??
-            analysis.provenance?.clinical_risk?.source ??
-            (nestedProv ? "rule" : undefined)
+          insightsProvenance={
+            insightsSource === "llm"
+              ? "llm"
+              : insightsSource === "rules"
+                ? "rules"
+                : analysis.provenance?.doctor_questions ??
+                  (nestedProv ? "rules" : undefined)
           }
-          questions={suggestedQuestions}
+          insights={
+            isQuestionsLoading ? null : resolvedInsights
+          }
           isLoading={isQuestionsLoading}
         />
         <LearnMoreCards

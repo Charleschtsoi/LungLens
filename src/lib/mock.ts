@@ -434,7 +434,7 @@ export async function mockAnalyze(
     },
     llm_evaluation: {
       status: "success",
-      text: "### 🩺 Clinical Observation\n\nThis is **mock** educational output for local testing. Imaging models did not flag a dominant abnormality in this demo run.\n\n### 📋 Suggested Next Steps\n\n- Share your official radiology report with your clinician.\n- Discuss any symptoms that worry you, even when automated scores look low.\n\n### Questions to ask your doctor\n\n- What did my official radiology report conclude?\n- Could these patterns match infection, inflammation, or something else?\n- Do I need follow-up imaging or labs based on my symptoms?",
+      text: "### 🩺 Clinical Observation\n\nThis is **mock** educational output for local testing. Imaging models did not flag a dominant abnormality in this demo run.\n\n### 💡 Clinical Context & Management Strategy\n\n**Latest Developments:** Modern understanding of low-suspicion chest radiographs in mild respiratory symptoms emphasizes correlation with clinical probability and established infectious-disease guidance rather than automated pattern scores alone.\n\n**Standard Strategy:** Typical practice pathways may include clinical review, comparison with prior imaging when available, and selective follow-up testing when symptoms persist or vital signs are abnormal—described here as general medical knowledge, not personal advice.\n\n**Key Concerns & Limitations:** Clinicians commonly weigh age, cough duration, smoking history, and breathing difficulty from intake data; AI screening cannot replace a formal radiology report or physical examination.",
     },
     requires_questionnaire: needsQuestionnaire,
     timing_ms: {
@@ -448,6 +448,7 @@ export async function mockAnalyze(
       run_mode: "mock",
       model1_result: "mock",
       model2_result: "mock",
+      model6_result: opts?.questionnaire ? "mock" : "skipped",
       model3_result: "skipped",
       clinical_risk_result: stage3 ? "mock" : "skipped",
       gate_decision: "mock",
@@ -457,6 +458,9 @@ export async function mockAnalyze(
       anatomy_guide: "static",
       model1: { source: "mock", status: "ok", model_id: "mock-model1", model_version: "demo-v1" },
       model2: { source: "mock", status: "ok", model_id: "mock-model2", model_version: "demo-v1" },
+      model6: opts?.questionnaire
+        ? { source: "mock", status: "ok", model_id: "mock-model6", model_version: "demo-v1" }
+        : { source: "mock", status: "skipped", model_id: "mock-model6", model_version: "demo-v1" },
       model3: {
         source: "mock",
         status: "skipped",

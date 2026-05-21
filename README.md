@@ -70,7 +70,7 @@ Set values in `.env.local`:
 - `NEXT_PUBLIC_API_URL`
   - Used only for silent warm-up ping (`${NEXT_PUBLIC_API_URL}/health`).
 - `BACKEND_API_BASE_URL` (server-only)
-  - Backend root, for example `http://127.0.0.1:8000`
+  - Backend root — must match your uvicorn port (often `http://127.0.0.1:7861`, not 8000)
   - Frontend routes call:
     - `${BACKEND_API_BASE_URL}/api/v1/analyze`
     - `${BACKEND_API_BASE_URL}/api/v1/gemini/health-check` (BYOK key probe; proxied by Next as `POST /api/gemini/health-check`)
@@ -104,12 +104,12 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn main:app --host 0.0.0.0 --port 7861
 ```
 
 Then set:
 
-- `BACKEND_API_BASE_URL=http://127.0.0.1:8000`
+- `BACKEND_API_BASE_URL=http://127.0.0.1:7861`
 - restart Next dev server if already running.
 
 ## Pipeline Architecture
@@ -120,7 +120,7 @@ Model stages:
 
 1. **Model 1 (ResNet-50)** — visual X-ray: 3-class (Normal / Pneumonia-Bacteria / Pneumonia-Virus)
 2. **Model 2 (ResNet-152V2, Edward)** — visual X-ray in the pipeline card (`model6_vision_h5`; legacy H5_MODEL2 naming)
-3. **Model 6 (Chronic Lung Risk / COPD)** — clinical questionnaire: tabular neural network (`model2` or `copd_screening`); shown under **Clinical Patient Assessment**, not in the visual X-ray list
+3. **Model 6 (Chronic Lung Risk / COPD)** — clinical questionnaire: tabular neural network (`model6` or `copd_screening`); shown under **Clinical Patient Assessment**, not in the visual X-ray list
 4. **Gate**: `early_stop` or `continue`
 5. **Model 3 (DenseNet-121)** — visual X-ray: `COVID-19` / `Normal` / `Pneumonia` (+ optional Grad-CAM)
 6. **Model 4 (Swin-T)** — visual X-ray: `model4_swint`
@@ -223,6 +223,21 @@ src/lib/mock.ts                          # Browser mock pipeline implementation
 src/types/index.ts                       # Shared API/types contract
 docs/BACKEND_MODELS.md                   # Backend payload expectations
 ```
+
+## Backend connectivity (network errors)
+
+`Network error contacting backend API` from the Next BFF means `fetch` to `BACKEND_API_BASE_URL` failed (connection refused, wrong host/port, timeout)—not a bad JSON schema.
+
+| Check | Action |
+|--------|--------|
+| Port | `BACKEND_API_BASE_URL` must match uvicorn (e.g. `http://127.0.0.1:7861`) |
+| API key | `BACKEND_API_KEY` = backend `API_KEY` when `REQUIRE_API_KEY=true` |
+| Backend running | `uvicorn main:app --host 0.0.0.0 --port 7861` (restart after backend code changes) |
+| CORS | Backend `ALLOWED_ORIGINS` includes `http://localhost:3000` |
+
+**API slots (current backend):** `model2` = Edward ResNet vision (`input_type: "vision"`); `model6` = COPD tabular (`input_type: "tabular"` after questionnaire). BFF maps legacy `model6_vision_h5` / tabular `model2` when present.
+
+**Insights:** `POST /api/generate-questions` returns `educational_insights[]` (not `suggested_questions`). UI section: “Health information for your scan”.
 
 ## Deployment Notes
 

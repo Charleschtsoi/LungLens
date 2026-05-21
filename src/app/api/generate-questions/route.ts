@@ -1,34 +1,49 @@
 import { NextResponse } from "next/server";
 
+function backendBaseUrl(): string | null {
+  const base = process.env.BACKEND_API_BASE_URL?.trim();
+  if (!base) return null;
+  return base.replace(/\/$/, "");
+}
+
 export async function POST(req: Request) {
-  console.log("--- PROXY HIT: /api/generate-questions ---");
+  const base = backendBaseUrl();
+  const apiKey = process.env.BACKEND_API_KEY?.trim();
+
+  if (!base) {
+    return NextResponse.json(
+      { status: "failed", educational_insights: [], error: "BACKEND_API_BASE_URL is not configured." },
+      { status: 500 },
+    );
+  }
+
   try {
     const body = await req.json();
-    console.log("Proxy received body:", body);
-
-    const raw = process.env.BACKEND_API_BASE_URL || "http://127.0.0.1:8000";
-    const backendUrl = raw.replace(/\/$/, "");
-    console.log(`Proxy forwarding to: ${backendUrl}/api/v1/generate-questions`);
-
-    const res = await fetch(`${backendUrl}/api/v1/generate-questions`, {
+    const res = await fetch(`${base}/api/v1/generate-questions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(apiKey ? { "X-API-Key": apiKey } : {}),
+      },
       body: JSON.stringify(body),
     });
 
-    console.log("Proxy received Backend Status:", res.status);
-
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Backend Error Text:", errorText);
-      return NextResponse.json({ suggested_questions: [] }, { status: res.status });
+      console.error("[LungLens /api/generate-questions proxy] Backend error", {
+        status: res.status,
+        backendBase: base,
+        errorText: errorText.slice(0, 500),
+      });
+      return NextResponse.json({ educational_insights: [] }, { status: res.status });
     }
 
     const data = await res.json();
-    console.log("Proxy successfully parsed Backend JSON.");
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Q&A Proxy CRASHED:", error);
-    return NextResponse.json({ suggested_questions: [] }, { status: 500 });
+    console.error("[LungLens /api/generate-questions proxy] Network or unexpected error", error, {
+      backendBase: base,
+    });
+    return NextResponse.json({ educational_insights: [] }, { status: 502 });
   }
 }

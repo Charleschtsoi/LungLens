@@ -160,7 +160,7 @@ const dictEn: Dict = {
   "upload.modeConfigured.demo": "Configured for demo mock mode (no backend call).",
   "upload.geminiOptional.label": "Gemini API key (optional, for AI clinical summary)",
   "upload.geminiOptional.help":
-    "Stored only in this browser and sent with your analyze request as multipart field gemini_api_key; LungLens servers do not retain it.",
+    "Stored only in this browser. Sent with the questionnaire analyze (not the first image-only run) as gemini_api_key; LungLens servers do not retain it.",
   "upload.geminiOptional.placeholder": "Paste your Google AI Studio key for BYOK",
 
   "results.loading": "Loading results...",
@@ -246,11 +246,11 @@ const dictEn: Dict = {
   "results.low": "Low",
   "results.moderate": "Moderate",
   "results.high": "High",
-  "results.questionsTitle": "Questions to ask your doctor",
+  "results.questionsTitle": "Health information for your scan",
   "results.questionsSub":
-    "Suggested conversation starters based on this educational output-not medical instructions.",
+    "General background on your AI findings—treatment themes and evidence context, not a diagnosis or live news feed.",
   "results.doctorQuestionsEmptyFallback":
-    "No specific questions generated for these findings. Please consult your doctor directly.",
+    "Could not load educational insights for these findings. Please discuss your results with a clinician.",
   "results.copy": "Copy",
   "results.copied": "Copied",
   "results.learnMore": "Learn more",
@@ -573,7 +573,7 @@ const dictHant: Dict = {
   "upload.modeConfigured.demo": "目前設定為示範模擬模式（不呼叫後端）。",
   "upload.geminiOptional.label": "Gemini API 金鑰（選填，供 AI 臨床摘要）",
   "upload.geminiOptional.help":
-    "僅存在此瀏覽器，並以 multipart 欄位 gemini_api_key 與分析請求一併送出；LungLens 伺服端不會保存。",
+    "僅存在此瀏覽器。於問卷提交後的分析請求（非首次僅影像分析）以 gemini_api_key 送出；LungLens 伺服端不會保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，請貼上 Google AI Studio 金鑰",
   "results.loading": "結果載入中…",
   "results.redirecting": "正在返回上傳頁…",
@@ -638,16 +638,23 @@ const dictHant: Dict = {
   "results.noAttentionReturned": "本次分析未回傳注意力熱圖。",
   "results.anatomyPlaceholder": "標準 PA 胸肺 X 光的常見標記位置（教育示意）。",
   "results.anatomyHeader": "AI 注意到的內容",
+  "results.notice.pneumoniaBacterialTitle": "肺炎（細菌性模式）",
+  "results.notice.pneumoniaViralTitle": "肺炎（病毒性模式）",
+  "results.notice.pneumoniaBacterialBody":
+    "教育上，細菌性肺炎常描述為肺泡實變（有時呈葉性分布），可能伴隨肋膜積液。X 光模式可重疊，無法單靠影像確定病原。此為模型分數提示，需由醫師結合症狀與檢查解讀。",
+  "results.notice.pneumoniaViralBody":
+    "病毒性肺炎常描述為較多間質變化，後期可出現斑片狀陰影；進階影像可能見磨玻璃或小结節，但可與其他肺炎相似。僅供教育用途，不能取代病毒檢測或臨床判斷。",
   "results.anatomySub": "以下為教育用途分數，不代表診斷，最終仍需由放射科醫師確認。",
   "results.noSignificant": "AI 未標示明顯重點區域。這一般可能接近正常 X 光表現，但仍需放射科醫師確認。",
   "results.attentionLevel": "關注程度",
   "results.low": "低",
   "results.moderate": "中",
   "results.high": "高",
-  "results.questionsTitle": "可向醫生提出的問題",
-  "results.questionsSub": "以下為對話建議，並非醫療指示。",
+  "results.questionsTitle": "與本次掃描相關的健康資訊",
+  "results.questionsSub":
+    "根據 AI 發現提供的一般背景（治療方向與研究脈絡），並非診斷或即時新聞。",
   "results.doctorQuestionsEmptyFallback":
-    "本次未產生與這些發現相對應的具體提問。請直接向醫師諮詢。",
+    "未能載入與這些發現相關的教育資訊。請直接向醫師諮詢。",
   "results.copy": "複製",
   "results.copied": "已複製",
   "results.learnMore": "延伸閱讀",
@@ -908,7 +915,7 @@ const dictHans: Dict = {
   "upload.modeConfigured.demo": "当前配置为演示模拟模式（不调用后端）。",
   "upload.geminiOptional.label": "Gemini API 密钥（可选，用于 AI 临床摘要）",
   "upload.geminiOptional.help":
-    "仅保存在本浏览器，并以 multipart 字段 gemini_api_key 随分析请求发送；LungLens 服务端不会保存。",
+    "仅保存在本浏览器。在问卷提交后的分析请求（非首次仅影像分析）中以 gemini_api_key 发送；LungLens 服务端不会保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，请粘贴 Google AI Studio 密钥",
   "results.title": "你的教育报告",
   "results.subtitle": "查看影像、注意力热图与解剖提示，再把问题带回给医护团队。",
@@ -963,7 +970,18 @@ const dictHans: Dict = {
   "results.attention.overlayBadgeModel3": "模型 3 — DenseNet-121 注意力",
   "results.attention.overlayBadgeGlobalDemo": "AI 注意力热图（教育演示）",
   "results.tab.anatomy": "解剖导览",
-  "results.questionsTitle": "可向医生提出的问题",
+  "results.anatomyHeader": "AI 注意到的内容",
+  "results.notice.pneumoniaBacterialTitle": "肺炎（细菌性模式）",
+  "results.notice.pneumoniaViralTitle": "肺炎（病毒性模式）",
+  "results.notice.pneumoniaBacterialBody":
+    "教育上，细菌性肺炎常描述为肺泡实变（有时呈叶性分布），可能伴随胸膜积液。X 光模式可重叠，无法单靠影像确定病原。此为模型分数提示，需由医生结合症状与检查解读。",
+  "results.notice.pneumoniaViralBody":
+    "病毒性肺炎常描述为较多间质变化，后期可出现斑片状阴影；进阶影像可能见磨玻璃或小结节，但可与其他肺炎相似。仅供教育用途，不能取代病毒检测或临床判断。",
+  "results.questionsTitle": "与本次扫描相关的健康资讯",
+  "results.questionsSub":
+    "根据 AI 发现提供的一般背景（治疗方向与研究脉络），并非诊断或即时新闻。",
+  "results.doctorQuestionsEmptyFallback":
+    "未能加载与这些发现相关的教育信息。请直接向医生咨询。",
   "results.noSignificant": "AI 未标示明显重点区域。这通常可能接近正常 X 光表现，但仍需放射科医生确认。",
   "results.sticky":
     "LungLens 仅供教育用途，并非医疗诊断。请务必就医并咨询合格医务人员以获取医疗建议。",
@@ -1109,8 +1127,6 @@ const dictHans: Dict = {
     "进行医疗报告标准数据分析，并部署模型 5（DenseNet-121）以扩大诊断集成系统。",
   "about.contactTitle": "开源 / 联系",
   "about.email": "邮件联系",
-  "results.doctorQuestionsEmptyFallback":
-    "未针对这些发现生成具体问题，请直接向医生咨询。",
   "results.attentionNoteSoloModelCam":
     "显示为 ResNet-50 的 Grad-CAM，与模型使用相同的 224×224 居中裁剪输入叠加（未叠在完整分辨率预览上）。仅供教育参考。",
 };
