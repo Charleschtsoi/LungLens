@@ -2,8 +2,8 @@ import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 import { PIPELINE } from "@/lib/constants";
 import type {
   AnalyzeSuccessResponse,
-  Model2TabularResult,
-  Model6VisionH5Result,
+  Model2VisionResult,
+  Model6TabularResult,
   Predictions,
   Stage3QuestionnaireInput,
   StageClinicalResult,
@@ -140,8 +140,8 @@ function stage2FromPredictions(preds: Predictions): StageMultiClassResult {
   return { label: "Lung Opacity", confidence: Number(opacity.toFixed(4)) };
 }
 
-/** Edward ResNet-152V2 slot (`model6_vision_h5`) — class order: Normal, Viral Pneumonia, Lung Opacity. */
-function model6VisionFromPredictions(preds: Predictions): Model6VisionH5Result {
+/** Model 2 — Edward ResNet-152V2 (`model2`); class order: Normal, Viral Pneumonia, Lung Opacity. */
+function model2VisionFromPredictions(preds: Predictions): Model2VisionResult {
   const viral = Math.max(preds.Pneumonia, preds["COVID-19"]);
   const opacity = preds["Lung Opacity"];
   const normal = Math.max(0.05, 1 - Math.max(viral, opacity));
@@ -171,7 +171,7 @@ function gateFromStages(stage1: StageBinaryResult, stage2: StageMultiClassResult
     : { route: "early_stop" as const, reason: "both_negative" as const };
 }
 
-function model2TabularFromQuestionnaire(q: Stage3QuestionnaireInput): Model2TabularResult {
+function model6TabularFromQuestionnaire(q: Stage3QuestionnaireInput): Model6TabularResult {
   const clinical = stage3FromQuestionnaire(q);
   const high =
     clinical.risk_level === "high" ||
@@ -384,8 +384,9 @@ export async function mockAnalyze(
       confidence,
     },
     model1: stage1,
-    model2: opts?.questionnaire ? model2TabularFromQuestionnaire(opts.questionnaire) : undefined,
-    copd_screening: opts?.questionnaire ? model2TabularFromQuestionnaire(opts.questionnaire) : undefined,
+    model2: model2VisionFromPredictions(predictions),
+    model6: opts?.questionnaire ? model6TabularFromQuestionnaire(opts.questionnaire) : undefined,
+    copd_screening: opts?.questionnaire ? model6TabularFromQuestionnaire(opts.questionnaire) : undefined,
     gate,
     clinical_risk: stage3,
     model3: {
@@ -413,7 +414,6 @@ export async function mockAnalyze(
         Normal: 0.91,
       },
     },
-    model6_vision_h5: model6VisionFromPredictions(predictions),
     model5_densenet: {
       prediction: "No Finding",
       confidence: 0.78,

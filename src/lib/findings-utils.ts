@@ -128,6 +128,12 @@ function collectModelNoticeAggregate(
   const agg = emptyAgg();
   absorbProbs(agg, analysis.model1?.probabilities);
   // Edward ResNet-152V2 (3-class X-ray) — not tabular model2 / COPD.
+  const m2Vision = analysis.model2;
+  if (m2Vision && typeof m2Vision === "object" && "input_type" in m2Vision && m2Vision.input_type === "vision") {
+    absorbProbs(agg, m2Vision.probabilities);
+  } else if (m2Vision && typeof m2Vision === "object" && "probabilities" in m2Vision && !("input_type" in m2Vision)) {
+    absorbProbs(agg, m2Vision.probabilities);
+  }
   absorbProbs(agg, analysis.model6_vision_h5?.probabilities);
   absorbProbs(agg, analysis.model4_swint?.probabilities);
   absorbProbs(agg, analysis.model5_densenet?.probabilities);
@@ -147,7 +153,16 @@ function fusionPneumoniaNoticeKind(analysis: AnalyzeSuccessResponse): PneumoniaN
   const m1 = analysis.model1?.label;
   if (m1 === "Pneumonia-Bacteria") return "pneumonia_bacterial";
   if (m1 === "Pneumonia-Virus") return "pneumonia_viral";
-  const m6Pred = analysis.model6_vision_h5?.prediction?.trim();
+  const m2v = analysis.model2;
+  const m2Pred =
+    m2v && typeof m2v === "object"
+      ? ("prediction" in m2v && typeof m2v.prediction === "string"
+          ? m2v.prediction.trim()
+          : "label" in m2v && typeof m2v.label === "string"
+            ? m2v.label.trim()
+            : undefined)
+      : undefined;
+  const m6Pred = m2Pred ?? analysis.model6_vision_h5?.prediction?.trim();
   if (m6Pred === "Viral Pneumonia") return "pneumonia_viral";
   return "default";
 }

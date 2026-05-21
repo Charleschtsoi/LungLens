@@ -54,8 +54,8 @@ import {
 import type { VisualPipelineModelSlot } from "@/lib/ensemble-architecture";
 import { formatClassifierSummaryLine } from "@/lib/model-summary-display";
 import { Model2ClinicalSection } from "@/components/results/Model2ClinicalSection";
-import { DISPLAY_PIPELINE_MODEL } from "@/lib/model-display-numbers";
-import { formatModel2ClinicalHeadline, model2TabularFromAnalysis } from "@/lib/model2-tabular";
+import { model2VisionFromAnalysis } from "@/lib/model2-vision";
+import { formatModel6ClinicalHeadline, model6TabularFromAnalysis } from "@/lib/model6-tabular";
 
 /** Raw base64 for attention overlay (tabs + PDF); strips `data:image/...;base64,` if present. */
 function heatmapBase64ForDisplay(raw: string | null | undefined): string {
@@ -247,7 +247,8 @@ export default function ResultsPage() {
   );
   const notable = getNotableFindings(predictions);
   const findingsForSections = notable;
-  const model2Tabular = model2TabularFromAnalysis(analysis);
+  const model6Tabular = model6TabularFromAnalysis(analysis);
+  const model2Vision = model2VisionFromAnalysis(analysis);
   const learnMoreFindings = findingsForSections.map((f) => ({
     label: f.label,
     sectionKey: "id" in f && typeof f.id === "string" ? f.id : `finding-${f.label}`,
@@ -315,13 +316,17 @@ export default function ResultsPage() {
         t,
       })
     : t("results.na");
-  const model6VisionSummaryText =
-    analysis.model6_vision_h5?.status === "success"
-      ? formatClassifierSummaryLine(stageLabel, analysis.model6_vision_h5.prediction, {
-          confidence: analysis.model6_vision_h5.confidence,
-          probabilities: analysis.model6_vision_h5.probabilities,
-          t,
-        })
+  const model2VisionSummaryText =
+    model2Vision?.status === "success"
+      ? formatClassifierSummaryLine(
+          stageLabel,
+          model2Vision.prediction ?? model2Vision.label ?? "Normal",
+          {
+            confidence: model2Vision.confidence,
+            probabilities: model2Vision.probabilities,
+            t,
+          },
+        )
       : t("results.na");
   const model4SwintSummaryText =
     analysis.model4_swint?.status === "success"
@@ -339,9 +344,9 @@ export default function ResultsPage() {
           t,
         })
       : t("results.na");
-  const model2ClinicalLine = model2Tabular
-    ? formatModel2ClinicalHeadline(model2Tabular, t)
-    : t("results.model2Clinical.unavailable");
+  const model6ClinicalLine = model6Tabular
+    ? formatModel6ClinicalHeadline(model6Tabular, t)
+    : t("results.model6Clinical.unavailable");
   const reportSummary =
     locale === "en"
       ? analysis.model4?.summary
@@ -435,15 +440,15 @@ export default function ResultsPage() {
         />
       ),
     },
-    model6_vision_h5: {
-      summary: model6VisionSummaryText,
-      available: analysis.model6_vision_h5?.status === "success",
+    model2: {
+      summary: model2VisionSummaryText,
+      available: model2Vision?.status === "success",
       poweredByKey: "results.poweredBy.model2",
-      probabilities: analysis.model6_vision_h5?.probabilities ?? null,
+      probabilities: model2Vision?.probabilities ?? null,
       trailing: (
         <PipelineModelBadge
-          modelNumber={DISPLAY_PIPELINE_MODEL.edwardResNet}
-          live={analysis.model6_vision_h5?.status === "success"}
+          modelNumber={2}
+          live={model2Vision?.status === "success"}
           className="px-2 py-0 text-xs"
         />
       ),
@@ -520,7 +525,7 @@ export default function ResultsPage() {
             heading: t("results.pdfSection.visualXray"),
             rows: [
               { primary: model1SummaryText, poweredBy: t("results.poweredBy.model1") },
-              { primary: model6VisionSummaryText, poweredBy: t("results.poweredBy.model2") },
+              { primary: model2VisionSummaryText ?? "", poweredBy: t("results.poweredBy.model2") },
               {
                 primary: model3SummaryText ?? t("results.model3DenseNet.unavailable"),
                 poweredBy: t("results.poweredBy.model3"),
@@ -533,7 +538,7 @@ export default function ResultsPage() {
             heading: t("results.pdfSection.clinicalAssessment"),
             rows: [
               {
-                primary: model2ClinicalLine,
+                primary: model6ClinicalLine,
                 poweredBy: t("results.poweredBy.model6"),
               },
             ],
@@ -649,7 +654,7 @@ export default function ResultsPage() {
           <CardContent className="space-y-5 text-sm text-muted-foreground">
             <VisualXrayPipelineSection rows={visualPipelineRows} />
 
-            <Model2ClinicalSection tabular={model2Tabular} provenance={analysis.provenance} />
+            <Model2ClinicalSection tabular={model6Tabular} provenance={analysis.provenance} />
 
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">

@@ -2,15 +2,14 @@
 
 import { PipelineModelBadge } from "@/components/results/PipelineModelBadge";
 import { ProbabilityBarList } from "@/components/results/ProbabilityBarList";
-import { DISPLAY_PIPELINE_MODEL } from "@/lib/model-display-numbers";
 import { pipelineProvenanceSource } from "@/lib/provenance-ui";
 import {
-  formatModel2ClinicalHeadline,
-  formatModel2ClinicalSummary,
-  model2ClinicalProbabilityRows,
-} from "@/lib/model2-tabular";
+  formatModel6ClinicalHeadline,
+  formatModel6ClinicalSummary,
+  model6ClinicalProbabilityRows,
+} from "@/lib/model6-tabular";
 import { cn } from "@/lib/utils";
-import type { AnalyzeProvenance, Model2TabularResult } from "@/types";
+import type { AnalyzeProvenance, Model6TabularResult } from "@/types";
 import { useI18n } from "@/hooks/useI18n";
 
 const LABEL_KEYS: Record<string, string> = {
@@ -19,16 +18,16 @@ const LABEL_KEYS: Record<string, string> = {
 };
 
 type Model2ClinicalSectionProps = {
-  tabular: Model2TabularResult | undefined;
+  tabular: Model6TabularResult | undefined;
   provenance?: AnalyzeProvenance;
 };
 
 export function Model2ClinicalSection({ tabular, provenance }: Model2ClinicalSectionProps) {
   const { t } = useI18n();
-  const summary = tabular ? formatModel2ClinicalSummary(tabular) : null;
-  const headline = tabular ? formatModel2ClinicalHeadline(tabular, t) : t("results.model2Clinical.unavailable");
+  const summary = tabular ? formatModel6ClinicalSummary(tabular) : null;
+  const headline = tabular ? formatModel6ClinicalHeadline(tabular, t) : t("results.model2Clinical.unavailable");
   const barRows = tabular
-    ? model2ClinicalProbabilityRows(tabular).map((row) => ({
+    ? model6ClinicalProbabilityRows(tabular).map((row) => ({
         ...row,
         label: t(LABEL_KEYS[row.key] ?? row.key, row.label),
       }))
@@ -55,9 +54,9 @@ export function Model2ClinicalSection({ tabular, provenance }: Model2ClinicalSec
             <p className="text-xs text-muted-foreground">{t("results.poweredBy.model6")}</p>
           </div>
           <PipelineModelBadge
-            modelNumber={DISPLAY_PIPELINE_MODEL.copdTabular}
+            modelNumber={6}
             live={Boolean(tabular)}
-            provenanceSource={pipelineProvenanceSource(provenance, "model2")}
+            provenanceSource={pipelineProvenanceSource(provenance, "model6")}
             className="px-2 py-0 text-xs"
           />
         </div>

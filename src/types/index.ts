@@ -55,21 +55,20 @@ export interface AnalyzeSuccessResponse {
   gate?: GateDecision;
   /** Model 1 output: PyTorch ResNet-50 3-class (backend `model1`). */
   model1?: StageBinaryResult;
-  /**
-   * Model 2 — tabular Chronic Lung Risk (COPD) from questionnaire (`model2` or `copd_screening`).
-   * Shown under Clinical Patient Assessment, not in the visual X-ray pipeline.
-   */
-  model2?: Model2TabularResult | CopdScreeningResult;
+  /** Model 2 — Edward ResNet-152V2 vision (3-class X-ray). */
+  model2?: Model2VisionResult | StageMultiClassResult;
+  /** Model 6 — tabular Chronic Lung Risk (COPD) from questionnaire. */
+  model6?: Model6TabularResult | CopdScreeningResult;
   /** Clinical / questionnaire severity (backend `clinical_risk`; legacy: clinical-shaped `model3`). */
   clinical_risk?: StageClinicalResult | null;
-  /** Alias for Model 2 tabular output when backend uses `copd_screening` instead of `model2`. */
-  copd_screening?: CopdScreeningResult | Model2TabularResult;
+  /** Alias for Model 6 tabular when backend uses `copd_screening`. */
+  copd_screening?: CopdScreeningResult | Model6TabularResult;
   /** Swin-T Vision Transformer output from backend `model4_swint`. */
   model4_swint?: SwinTScreeningResult;
   /** Expansion DenseNet-121 ensemble slot from backend `model5_densenet`. */
   model5_densenet?: Model5DenseNetResult;
-  /** Edward ResNet-152V2 Keras H5 (`model6_vision_h5`; legacy H5_MODEL2). */
-  model6_vision_h5?: Model6VisionH5Result;
+  /** @deprecated Pre-alignment field; BFF maps to `model2` when present. */
+  model6_vision_h5?: Model2VisionResult;
   /**
    * DenseNet-121 3-class + Grad-CAM (backend `model3`).
    * Separate from questionnaire clinical block.
@@ -116,8 +115,8 @@ export interface StageBinaryResult {
   probabilities?: Record<string, number>;
 }
 
-/** Model 2 — tabular COPD classifier (questionnaire + scaler). */
-export interface Model2TabularResult {
+/** Model 6 — tabular COPD classifier (questionnaire + scaler). */
+export interface Model6TabularResult {
   prediction: string;
   /** P(High COPD Risk), even when displayed label is Low. */
   confidence: number;
@@ -128,7 +127,10 @@ export interface Model2TabularResult {
   probabilities?: Record<string, number>;
 }
 
-/** Model 2 row shape: 3-class ResNet-152V2 (Keras H5) — `H5_MODEL2_LABELS`. */
+/** @deprecated Use `Model6TabularResult` */
+export type Model2TabularResult = Model6TabularResult;
+
+/** Legacy multi-class row (ResNet-152V2 labels). */
 export interface StageMultiClassResult {
   label: "Normal" | "Lung Opacity" | "Viral Pneumonia" | "Other";
   confidence: number;
@@ -173,11 +175,15 @@ export type SwinTScreeningResult = ClassifierModelBlock;
 
 export type Model5DenseNetResult = ClassifierModelBlock;
 
-/** Edward ResNet-152V2 — 3 classes: Normal, Viral Pneumonia, Lung Opacity (see H5_MODEL2_LABELS). */
-export interface Model6VisionH5Result extends ClassifierModelBlock {
+/** Model 2 — 3-class ResNet-152V2 (Keras H5) — `H5_MODEL2_LABELS`. */
+export interface Model2VisionResult extends ClassifierModelBlock {
   gradcam?: string;
   input_type?: "vision";
+  label?: string;
 }
+
+/** @deprecated Use `Model2VisionResult` */
+export type Model6VisionH5Result = Model2VisionResult;
 
 export interface StageReportResult {
   summary: string;
@@ -204,6 +210,7 @@ export interface StageTiming {
   model2: number;
   model3: number;
   model4: number;
+  model6?: number;
   total: number;
 }
 
@@ -269,6 +276,7 @@ export interface AnalyzeProvenance {
   /** Flat section-level tags (backend `model1_result`, `model2_result`, …). */
   model1_result?: string;
   model2_result?: string;
+  model6_result?: string;
   model3_result?: string;
   clinical_risk_result?: string;
   gate_decision?: string;
@@ -278,6 +286,7 @@ export interface AnalyzeProvenance {
   anatomy_guide?: string;
   model1?: StageProvenance;
   model2?: StageProvenance;
+  model6?: StageProvenance;
   /** DenseNet-121 / neural model3. */
   model3?: StageProvenance;
   model4?: StageProvenance;

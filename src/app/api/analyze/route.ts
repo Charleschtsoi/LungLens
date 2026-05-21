@@ -146,11 +146,11 @@ function normalizeModel1ProbabilityKeys(rec: JsonRecord | undefined): JsonRecord
   return { ...rec, probabilities: out };
 }
 
-function isModel2TabularShape(rec: JsonRecord): boolean {
+function isTabularCopdShape(rec: JsonRecord): boolean {
   return rec.input_type === "tabular";
 }
 
-function resolveCopdScreeningRecord(root: JsonRecord): JsonRecord | undefined {
+function resolveModel6TabularRecord(root: JsonRecord): JsonRecord | undefined {
   const legacy = pickModelRecord(root, "copd_screening", "copd_screening");
   if (legacy) {
     const coerced = coerceStageRecord(legacy);
@@ -161,12 +161,37 @@ function resolveCopdScreeningRecord(root: JsonRecord): JsonRecord | undefined {
         typeof coerced.model_name === "string" ? coerced.model_name : "Chronic Lung Risk (COPD)",
     };
   }
+  const fromModel6 = pickModelRecord(root, "model6", "stage6");
+  if (fromModel6) {
+    const coerced = coerceStageRecord(fromModel6);
+    if (isTabularCopdShape(coerced)) return coerced;
+  }
   const fromModel2 = pickModelRecord(root, "model2", "stage2");
-  if (!fromModel2) return undefined;
-  const coerced = coerceStageRecord(fromModel2);
-  if (!isModel2TabularShape(coerced)) return undefined;
-  return coerced;
+  if (fromModel2) {
+    const coerced = coerceStageRecord(fromModel2);
+    if (isTabularCopdShape(coerced)) return coerced;
+  }
+  return undefined;
 }
+
+function resolveModel2VisionRecord(root: JsonRecord): JsonRecord | undefined {
+  const fromModel2 = pickModelRecord(root, "model2", "stage2");
+  if (fromModel2) {
+    const coerced = coerceStageRecord(fromModel2);
+    if (!isTabularCopdShape(coerced)) {
+      return { ...coerced, input_type: "vision" };
+    }
+  }
+  const legacy = pickModelRecord(root, "model6_vision_h5", "model6_vision_h5");
+  if (legacy) {
+    const coerced = coerceStageRecord(legacy);
+    return { ...coerced, input_type: "vision" };
+  }
+  return undefined;
+}
+
+/** @deprecated */
+const resolveCopdScreeningRecord = resolveModel6TabularRecord;
 
 function pickModelRecordOrNull(
   payload: JsonRecord,
@@ -193,6 +218,7 @@ function normalizeTimingMs(raw: unknown): JsonRecord | undefined {
       model2: pick(r.model2, r.stage2),
       model3: pick(r.model3, r.stage3),
       model4: pick(r.model4, r.stage4),
+      model6: pick(r.model6, r.stage6),
       total: numberTiming(r.total),
     };
   }
@@ -213,6 +239,9 @@ function normalizeProvenanceObject(raw: unknown): JsonRecord | undefined {
   const p: JsonRecord = { ...raw };
   if (p.model1_result == null && p.stage1_result != null) p.model1_result = p.stage1_result;
   if (p.model2_result == null && p.stage2_result != null) p.model2_result = p.stage2_result;
+  if (p.model6_result == null && (p as JsonRecord).stage6_result != null) {
+    p.model6_result = (p as JsonRecord).stage6_result;
+  }
   delete p.stage1_result;
   delete p.stage2_result;
   if (!isRecord(p.model1) && isRecord(p.stage1)) p.model1 = p.stage1;
@@ -277,14 +306,14 @@ function normalizePredictions(payload: JsonRecord): JsonRecord {
   const s1Finding = labelToFindingLabel(m1Label);
   if (s1Finding) normalized[s1Finding] = Math.max(score(normalized[s1Finding]), m1Confidence);
 
-  const m6 = firstRecord(payload.model6_vision_h5);
-  if (m6 && m6.input_type === "vision") {
-    const m6Label =
-      (typeof m6.label === "string" ? m6.label : undefined) ??
-      (typeof m6.prediction === "string" ? m6.prediction : undefined);
-    const m6Confidence = score(m6.confidence);
-    const s6Finding = labelToFindingLabel(m6Label);
-    if (s6Finding) normalized[s6Finding] = Math.max(score(normalized[s6Finding]), m6Confidence);
+  const m2Vision = firstRecord(payload.model2, payload.model6_vision_h5);
+  if (m2Vision && m2Vision.input_type !== "tabular") {
+    const m2Label =
+      (typeof m2Vision.label === "string" ? m2Vision.label : undefined) ??
+      (typeof m2Vision.prediction === "string" ? m2Vision.prediction : undefined);
+    const m2Confidence = score(m2Vision.confidence);
+    const s2Finding = labelToFindingLabel(m2Label);
+    if (s2Finding) normalized[s2Finding] = Math.max(score(normalized[s2Finding]), m2Confidence);
   }
   return normalized;
 }
@@ -445,16 +474,16 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   if (!gradcam) return null;
 
   const m1 = normalizeModel1ProbabilityKeys(resolveModelRecord(root, "model1", "stage1"));
-  const copdScreening = resolveCopdScreeningRecord(root);
+  const model6Tabular = resolveModel6TabularRecord(root);
+  const m2VisionRaw = resolveModel2VisionRecord(root);
+  let m2Vision = m2VisionRaw ? coerceStageRecord(m2VisionRaw) : undefined;
+  if (m2Vision) {
+    m2Vision = { ...m2Vision, input_type: "vision" };
+  }
   const m4SwintRaw = pickModelRecord(root, "model4_swint", "model4_swint");
   const m4Swint = m4SwintRaw ? coerceStageRecord(m4SwintRaw) : undefined;
   const m5DenseNetRaw = pickModelRecord(root, "model5_densenet", "model5_densenet");
   const m5DenseNet = m5DenseNetRaw ? coerceStageRecord(m5DenseNetRaw) : undefined;
-  const m6VisionRaw = pickModelRecord(root, "model6_vision_h5", "model6_vision_h5");
-  let m6Vision = m6VisionRaw ? coerceStageRecord(m6VisionRaw) : undefined;
-  if (m6Vision) {
-    m6Vision = { ...m6Vision, input_type: "vision" };
-  }
   const m4Raw = pickModelRecordOrNull(root, "model4", "report");
   const m4 = m4Raw == null ? m4Raw : coerceStageRecord(m4Raw);
 
@@ -478,17 +507,21 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     predictions,
     gradcam,
     model1: m1,
-    model2: copdScreening,
-    copd_screening: copdScreening,
+    model2: m2Vision,
+    model6: model6Tabular,
+    copd_screening: model6Tabular,
     clinical_risk: clinicalRisk,
     model3: model3DenseNet,
     model4: m4,
     model4_swint: m4Swint,
     model5_densenet: m5DenseNet,
-    model6_vision_h5: m6Vision,
   };
 
-  if (!copdScreening) delete normalized.copd_screening;
+  if (!model6Tabular) {
+    delete normalized.model6;
+    delete normalized.copd_screening;
+  }
+  delete normalized.model6_vision_h5;
   delete normalized.stage1;
   delete normalized.stage2;
   delete normalized.stage3;
@@ -516,7 +549,8 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
     normalized.provenance = {
       run_mode: "hybrid",
       model1: { source: "model", status: m1 ? "fallback" : "skipped" },
-      model2: { source: "model", status: copdScreening ? "fallback" : "skipped" },
+      model2: { source: "model", status: m2Vision ? "fallback" : "skipped" },
+      model6: { source: "model", status: model6Tabular ? "fallback" : "skipped" },
       model3: { source: "model", status: model3DenseNet != null ? "fallback" : "skipped" },
       clinical_risk: { source: "rule", status: clinicalRisk != null ? "fallback" : "skipped" },
       model4: { source: "llm", status: m4 != null ? "fallback" : "skipped" },

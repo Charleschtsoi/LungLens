@@ -18,6 +18,7 @@ import type { Locale } from "@/store/useLocaleStore";
 export const FLAT_PROVENANCE_KEYS = [
   "model1_result",
   "model2_result",
+  "model6_result",
   "gate_decision",
   "findings",
   "doctor_questions",
@@ -56,18 +57,23 @@ export function isFlatSectionProvenance(p: AnalyzeProvenance | undefined): boole
 /** Prefer nested `provenance.modelN.source` over flat `modelN_result` so badges match real inference. */
 export function pipelineProvenanceSource(
   provenance: AnalyzeProvenance | undefined,
-  which: "model1" | "model2",
+  which: "model1" | "model2" | "model6",
 ): unknown {
   if (!provenance) return undefined;
   const nested = provenance[which]?.source;
   if (nested != null && String(nested).trim() !== "") return nested;
-  const flatKey = which === "model1" ? "model1_result" : "model2_result";
+  const flatKey =
+    which === "model1"
+      ? "model1_result"
+      : which === "model2"
+        ? "model2_result"
+        : "model6_result";
   return (provenance as unknown as Record<string, unknown>)[flatKey];
 }
 
 function classifierSourceIsModel(
   provenance: AnalyzeProvenance | undefined,
-  which: "model1" | "model2",
+  which: "model1" | "model2" | "model6",
 ): boolean {
   return normalizeToBadgeSource(pipelineProvenanceSource(provenance, which)) === "model";
 }
@@ -82,20 +88,27 @@ export function hybridRunModeBannerMessage(
   t: (key: string, defaultValue?: string) => string,
 ): string {
   const m1 = classifierSourceIsModel(provenance, "model1");
-  const m2 = classifierSourceIsModel(provenance, "model2");
-  if (m1 && m2) {
+  const m2Vision = classifierSourceIsModel(provenance, "model2");
+  const m6Copd = classifierSourceIsModel(provenance, "model6");
+  if (m1 && m2Vision) {
     return "";
   }
-  if (m1 && !m2) {
+  if (m1 && !m2Vision) {
     return t(
       "results.provenance.hybridBanner.model1Only",
-      "Model 1 used a live classifier. Model 2 did not run as a loaded neural model on this run (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+      "Model 1 used a live classifier. Model 2 (ResNet-152V2) did not run as a loaded neural model on this run (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
     );
   }
-  if (!m1 && m2) {
+  if (!m1 && m2Vision) {
     return t(
       "results.provenance.hybridBanner.model2Only",
-      "Model 2 (COPD tabular) ran on this upload. Model 1 did not run as a loaded X-ray classifier (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+      "Model 2 (ResNet-152V2) ran on this upload. Model 1 did not run as a loaded X-ray classifier (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+    );
+  }
+  if (!m1 && !m2Vision && m6Copd) {
+    return t(
+      "results.provenance.hybridBanner.model6Only",
+      "Model 6 (COPD tabular) ran on this upload. X-ray classifiers did not run as loaded neural models (mock or rules).",
     );
   }
   return t(
@@ -109,6 +122,7 @@ export function isNestedStageProvenance(p: AnalyzeProvenance | undefined): boole
   return Boolean(
     p.model1?.source ||
       p.model2?.source ||
+      p.model6?.source ||
       p.model3?.source ||
       p.model4?.source ||
       p.clinical_risk?.source,
@@ -350,7 +364,7 @@ function visionClassifierImpactRow(
 export function pipelineOrderedModelImpactRows(
   provenance: AnalyzeProvenance | undefined,
   analysis:
-    | Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">
+    | Pick<AnalyzeSuccessResponse, "model2" | "model4_swint" | "model5_densenet">
     | undefined,
   t: (key: string, fallback?: string) => string,
 ): ImpactRow[] {
@@ -367,9 +381,15 @@ export function pipelineOrderedModelImpactRows(
     if (flat) rows.push(flat);
   }
 
+  const m2Vision =
+    analysis?.model2 &&
+    typeof analysis.model2 === "object" &&
+    "status" in analysis.model2
+      ? (analysis.model2 as { status?: string })
+      : undefined;
   const edward = visionClassifierImpactRow(
-    analysis?.model6_vision_h5,
-    "results.provenance.impact.model6",
+    m2Vision,
+    "results.provenance.impact.model2",
     "Model 2 — ResNet-152V2 (Edward)",
     t,
   );
@@ -398,18 +418,18 @@ export function pipelineOrderedModelImpactRows(
   );
   if (m5) rows.push(m5);
 
-  const copd = provenance?.model2;
+  const copd = provenance?.model6;
   if (copd) {
     rows.push(
       stageProvenanceImpactRow(
         copd,
-        "results.provenance.impact.model2",
+        "results.provenance.impact.model6",
         "Model 6 — Chronic Lung Risk (COPD)",
         t,
       ),
     );
   } else if (provenance) {
-    const flat = flatProvenanceSectionRow(provenance, "model2_result", t);
+    const flat = flatProvenanceSectionRow(provenance, "model6_result", t);
     if (flat) rows.push(flat);
   }
 
@@ -439,7 +459,7 @@ const FLAT_IMPACT_TAIL_KEYS: FlatProvenanceKey[] = [
 export function flatPipelineImpactRows(
   provenance: AnalyzeProvenance,
   analysis:
-    | Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">
+    | Pick<AnalyzeSuccessResponse, "model2" | "model4_swint" | "model5_densenet">
     | undefined,
   t: (key: string, fallback?: string) => string,
 ): ImpactRow[] {
@@ -461,16 +481,16 @@ export function flatPipelineImpactRows(
 /** X-ray expansion slots — separate from `provenance.model4` (report synthesis). */
 export function visionExpansionImpactRows(
   analysis:
-    | Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">
+    | Pick<AnalyzeSuccessResponse, "model2" | "model4_swint" | "model5_densenet">
     | undefined,
   t: (key: string, fallback?: string) => string,
 ): ImpactRow[] {
   const rows: ImpactRow[] = [];
-  const m6 = analysis?.model6_vision_h5;
-  if (m6) {
-    const live = m6.status === "success";
+  const m2 = analysis?.model2 as { status?: string; input_type?: string } | undefined;
+  if (m2 && m2.input_type !== "tabular") {
+    const live = m2.status === "success";
     rows.push({
-      section: t("results.provenance.impact.model6", "Model 2 — ResNet-152V2 (Edward)"),
+      section: t("results.provenance.impact.model2", "Model 2 — ResNet-152V2 (Edward)"),
       source: live
         ? t("results.provenance.badge.model", "model")
         : t("results.provenance.sourceUnknown"),
@@ -508,7 +528,7 @@ export function visionExpansionImpactRows(
 export function nestedProvenanceImpactRows(
   provenance: AnalyzeProvenance,
   t: (key: string, fallback?: string) => string,
-  analysis?: Pick<AnalyzeSuccessResponse, "model4_swint" | "model5_densenet" | "model6_vision_h5">,
+  analysis?: Pick<AnalyzeSuccessResponse, "model2" | "model4_swint" | "model5_densenet">,
 ): ImpactRow[] {
   const rows: ImpactRow[] = [...pipelineOrderedModelImpactRows(provenance, analysis, t)];
 
