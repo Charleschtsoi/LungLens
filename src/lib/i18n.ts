@@ -174,7 +174,9 @@ const dictEn: Dict = {
   "results.exportPdfError": "Failed to export PDF. Please try again.",
   "results.pdfGeneratedAt": "Generated at",
   "results.pdfReportHeaderTitle": "LungLens Educational Report",
-  "results.llmEducatorTitle": "AI Clinical Educator Summary",
+  "results.llmEducatorTitle": "AI Clinical Advisor",
+  "results.llmAdvisorTitle": "AI Clinical Advisor",
+  "results.llmAiGeneratedBadge": "AI Generated",
   "results.llmFailedHint":
     "When this appears, the backend usually could not complete the Gemini call (invalid key, quota, model error, or network). Confirm your key on the questionnaire step and check Google AI Studio.",
   "results.llmSkippedHint":
@@ -586,7 +588,9 @@ const dictHant: Dict = {
   "results.exportPdfError": "PDF 匯出失敗，請再試一次。",
   "results.pdfGeneratedAt": "產生時間",
   "results.pdfReportHeaderTitle": "LungLens 教育報告",
-  "results.llmEducatorTitle": "AI 臨床教育摘要",
+  "results.llmEducatorTitle": "AI 臨床顧問",
+  "results.llmAdvisorTitle": "AI 臨床顧問",
+  "results.llmAiGeneratedBadge": "AI 生成",
   "results.llmFailedHint":
     "通常代表後端無法完成 Gemini 請求（金鑰無效、配額、模型或網路問題）。請在問卷步驟確認金鑰並查看 Google AI Studio。",
   "results.llmSkippedHint": "選填：於問卷步驟加入 Gemini API 金鑰以啟用教育者摘要（BYOK）。",
@@ -927,7 +931,9 @@ const dictHans: Dict = {
   "results.exportPdfError": "PDF 导出失败，请重试。",
   "results.pdfGeneratedAt": "生成时间",
   "results.pdfReportHeaderTitle": "LungLens 教育报告",
-  "results.llmEducatorTitle": "AI 临床教育摘要",
+  "results.llmEducatorTitle": "AI 临床顾问",
+  "results.llmAdvisorTitle": "AI 临床顾问",
+  "results.llmAiGeneratedBadge": "AI 生成",
   "results.llmFailedHint":
     "通常表示后端未能完成 Gemini 请求（密钥无效、配额、模型或网络问题）。请在问卷步骤确认密钥并查看 Google AI Studio。",
   "results.llmSkippedHint": "可选：在问卷步骤添加 Gemini API 密钥以启用教育者摘要（BYOK）。",
