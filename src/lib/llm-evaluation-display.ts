@@ -1,3 +1,4 @@
+import type { LlmEvaluationResult } from "@/types";
 
 /** English-only educator text from backend `llm_evaluation.text`. */
 export function pickLlmMarkdownForLocale(
