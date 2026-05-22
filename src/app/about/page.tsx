@@ -1,6 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
+import { useAppMotion } from "@/lib/app-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,9 +63,15 @@ const CONTRIBUTORS = [
 
 export default function AboutPage() {
   const { t } = useI18n();
+  const { fadeInUp, staggerContainer, staggerItem, viewport } = useAppMotion();
   return (
     <div className="space-y-8 pb-6">
-      <section className="rounded-2xl border border-sky-100/80 bg-gradient-to-br from-sky-50/90 via-white to-teal-50/40 p-6 shadow-sm md:p-8">
+      <motion.section
+        className="rounded-2xl border border-sky-100/80 bg-gradient-to-br from-sky-50/90 via-white to-teal-50/40 p-6 shadow-sm md:p-8"
+        variants={fadeInUp}
+        initial="hidden"
+        animate="show"
+      >
         <Badge variant="secondary" className="bg-sky-100 text-sky-900">
           {t("about.badge")}
         </Badge>
@@ -73,7 +81,7 @@ export default function AboutPage() {
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">
           {t("about.subtitle")}
         </p>
-      </section>
+      </motion.section>
 
       <section>
         <Card className="border-sky-100/80">
@@ -93,11 +101,17 @@ export default function AboutPage() {
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">{t("about.team")}</h2>
           <p className="text-sm leading-relaxed text-muted-foreground md:text-base">{t("about.teamSub")}</p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewport}
+        >
           {CONTRIBUTORS.map((member) => (
+            <motion.div key={member.id} variants={staggerItem}>
             <Card
-              key={member.id}
-              className={`overflow-hidden shadow-sm transition-shadow hover:shadow-md ${member.cardClass}`}
+              className={`h-full overflow-hidden shadow-sm transition-shadow hover:shadow-md ${member.cardClass}`}
             >
               <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-2">
                 <div
@@ -115,8 +129,9 @@ export default function AboutPage() {
                 <p className="text-sm leading-relaxed text-muted-foreground">{t(member.detailKey)}</p>
               </CardContent>
             </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">

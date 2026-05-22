@@ -9,6 +9,7 @@ const dictEn: Dict = {
   "nav.upload": "Upload",
   "nav.learn": "Learn",
   "nav.about": "About",
+  "nav.pitch": "Pitch",
   "nav.language": "Language",
   "lang.en": "EN",
   "lang.hant": "繁中",
@@ -62,6 +63,7 @@ const dictEn: Dict = {
   "landing.expect.not.4":
     "Guarantee completeness or accuracy of any automated output",
 
+  "landing.explore.aria": "More about LungLens",
   "landing.disclaimer.title": "Medical disclaimer",
   "landing.disclaimer.p1":
     "LungLens is an educational health-literacy tool only. It is not a medical device and does not provide a diagnosis, prognosis, or treatment advice. Always follow the guidance of a qualified healthcare professional and your official radiology report.",
@@ -277,6 +279,7 @@ const dictEn: Dict = {
   "results.sticky":
     "LungLens is an educational tool only. This is not a medical diagnosis. Always consult a qualified healthcare professional for medical advice.",
   "results.pipelineTitle": "Pipeline model summary",
+  "results.pipelineAllModelsTitle": "All model results",
   "results.model1": "Model 1 — ResNet-50",
   "results.model2": "Model 2 — ResNet-152V2 (Edward)",
   "results.model6": "Model 6 — Chronic Lung Risk (COPD)",
@@ -450,6 +453,7 @@ const dictHant: Dict = {
   "nav.upload": "上傳",
   "nav.learn": "學習",
   "nav.about": "關於",
+  "nav.pitch": "簡報",
   "nav.language": "語言",
   "lang.en": "EN",
   "lang.hant": "繁中",
@@ -487,6 +491,7 @@ const dictHant: Dict = {
   "landing.expect.not.2": "不會取代放射科醫師或主診醫師",
   "landing.expect.not.3": "不會告訴你是否需要治療或急診",
   "landing.expect.not.4": "不保證自動化輸出的完整性或準確性",
+  "landing.explore.aria": "更多關於 LungLens",
   "landing.disclaimer.title": "醫療免責聲明",
   "landing.disclaimer.p1":
     "LungLens 僅為健康教育工具，並非醫療器材，不提供診斷、預後或治療建議。請以醫護專業人員與正式放射科報告為準。",
@@ -671,6 +676,7 @@ const dictHant: Dict = {
   "results.sticky":
     "LungLens 僅供教育用途，並非醫療診斷。請務必就醫並諮詢合資格醫護專業人員以取得醫療建議。",
   "results.pipelineTitle": "模型流程摘要",
+  "results.pipelineAllModelsTitle": "所有模型結果",
   "results.model1": "模型 1 — ResNet-50",
   "results.model2": "模型 2 — ResNet-152V2（Edward）",
   "results.model6": "模型 6 — 慢性肺部風險（COPD）",
@@ -837,6 +843,7 @@ const dictHans: Dict = {
   "nav.upload": "上传",
   "nav.learn": "学习",
   "nav.about": "关于",
+  "nav.pitch": "路演",
   "lang.hant": "繁中",
   "lang.hans": "简中",
   "footer.important": "重要声明",
@@ -845,6 +852,7 @@ const dictHans: Dict = {
   "landing.hero.subtitle": "已经有 X 光结果？我们可以帮你理解你正在看的影像内容。",
   "landing.how.title": "如何使用",
   "landing.expect.title": "先明确定位",
+  "landing.explore.aria": "更多关于 LungLens",
   "landing.disclaimer.title": "医疗免责声明",
   "upload.title": "上传你的 X 光",
   "upload.subtitle": "上传胸肺 X 光以开始分析流程。",
@@ -980,6 +988,7 @@ const dictHans: Dict = {
   "results.sticky":
     "LungLens 仅供教育用途，并非医疗诊断。请务必就医并咨询合格医务人员以获取医疗建议。",
   "results.pipelineTitle": "模型流程摘要",
+  "results.pipelineAllModelsTitle": "所有模型结果",
   "results.model1": "模型 1 — ResNet-50",
   "results.model2": "模型 2 — ResNet-152V2（Edward）",
   "results.model6": "模型 6 — 慢性肺部风险（COPD）",

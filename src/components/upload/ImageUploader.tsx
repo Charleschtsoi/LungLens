@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
+import { useAppMotion } from "@/lib/app-motion";
 import { useRouter } from "next/navigation";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { FileImage, Upload } from "lucide-react";
@@ -41,6 +43,7 @@ function formatRejections(rejections: FileRejection[], t: (k: string) => string)
 export function ImageUploader() {
   const router = useRouter();
   const { t } = useI18n();
+  const { reduced } = useAppMotion();
   const [rejectError, setRejectError] = useState<string | null>(null);
   const [pipelineFinishing, setPipelineFinishing] = useState(false);
 
@@ -177,18 +180,28 @@ export function ImageUploader() {
         />
       )}
 
-      <div
-        {...getRootProps()}
-        className={cn(
-          "flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/30 px-6 py-10 text-center transition-colors",
-          isDragActive && "border-primary bg-primary/5",
-        )}
+      <motion.div
+        whileHover={showPipelineLoader || reduced ? undefined : { scale: 1.01 }}
+        whileTap={showPipelineLoader || reduced ? undefined : { scale: 0.99 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="group rounded-xl"
       >
-        <input {...getInputProps()} />
-        <Upload className="mb-3 h-9 w-9 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-medium">{t("upload.drop.prompt")}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{t("upload.drop.note")}</p>
-      </div>
+        <div
+          {...getRootProps()}
+          className={cn(
+            "flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/30 px-6 py-10 text-center transition-colors",
+            !showPipelineLoader &&
+              !reduced &&
+              "group-hover:border-[#005088]",
+            isDragActive && "border-primary bg-primary/5",
+          )}
+        >
+          <input {...getInputProps()} />
+          <Upload className="mb-3 h-9 w-9 text-muted-foreground" aria-hidden />
+          <p className="text-sm font-medium">{t("upload.drop.prompt")}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("upload.drop.note")}</p>
+        </div>
+      </motion.div>
 
       {imageFile && (
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">

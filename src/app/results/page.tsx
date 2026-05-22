@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
+import { useAppMotion } from "@/lib/app-motion";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 import { readPersistedAnalyzeSuccessFromSession } from "@/lib/analysis-session-storage";
@@ -56,10 +58,18 @@ import {
   type VisualPipelineRowView,
 } from "@/components/results/VisualXrayPipelineSection";
 import type { VisualPipelineModelSlot } from "@/lib/ensemble-architecture";
-import { formatClassifierSummaryLine } from "@/lib/model-summary-display";
-import { Model2ClinicalSection } from "@/components/results/Model2ClinicalSection";
+import {
+  formatClassifierSummaryLine,
+  modelResultToneFromPrediction,
+} from "@/lib/model-summary-display";
+import { ProbabilityBarList } from "@/components/results/ProbabilityBarList";
 import { model2VisionFromAnalysis } from "@/lib/model2-vision";
-import { formatModel6ClinicalHeadline, model6TabularFromAnalysis } from "@/lib/model6-tabular";
+import {
+  formatModel6ClinicalHeadline,
+  model6ClinicalProbabilityRows,
+  model6HeadlineTone,
+  model6TabularFromAnalysis,
+} from "@/lib/model6-tabular";
 
 function buildScanSummaryForInsights(analysis: AnalyzeSuccessResponse): string {
   const parts: string[] = [];
@@ -82,6 +92,19 @@ function heatmapBase64ForDisplay(raw: string | null | undefined): string {
   const t = raw.trim();
   const m = /^data:image\/\w+;base64,(.+)$/i.exec(t);
   return m && m[1] ? m[1] : t;
+}
+
+function ResultsLlmReveal({ children }: { children: React.ReactNode }) {
+  const { llmDelayedReveal } = useAppMotion();
+  return (
+    <motion.div
+      initial={llmDelayedReveal.initial}
+      animate={llmDelayedReveal.animate}
+      transition={llmDelayedReveal.transition}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 export default function ResultsPage() {
@@ -446,10 +469,60 @@ export default function ResultsPage() {
       ? denseNetDisplay.probabilities
       : null;
 
+  const model3PredictionLabel =
+    denseNetDisplay?.success && denseNetDisplay.prediction
+      ? denseNetDisplay.prediction
+      : model3PredictionString(analysis.model3) ?? "";
+
+  const MODEL6_LABEL_KEYS: Record<string, string> = {
+    "High COPD Risk": "results.model2Clinical.labelHigh",
+    "Low COPD Risk": "results.model2Clinical.labelLow",
+  };
+
+  const model6ClinicalRow: VisualPipelineRowView = model6Tabular
+    ? {
+        summary: formatModel6ClinicalHeadline(model6Tabular, t),
+        poweredByKey: "results.poweredBy.model6",
+        available: true,
+        headlineTone: model6HeadlineTone(model6Tabular),
+        trailing: (
+          <PipelineModelBadge
+            modelNumber={6}
+            live
+            provenanceSource={pipelineProvenanceSource(analysis.provenance, "model6")}
+            className="px-2 py-0 text-xs"
+          />
+        ),
+        extra: (
+          <ProbabilityBarList
+            title={t("results.model2Clinical.probabilitiesTitle")}
+            rows={model6ClinicalProbabilityRows(model6Tabular).map((row) => ({
+              ...row,
+              label: t(MODEL6_LABEL_KEYS[row.key] ?? row.key, row.label),
+            }))}
+          />
+        ),
+      }
+    : {
+        summary: t("results.model2Clinical.unavailable"),
+        poweredByKey: "results.poweredBy.model6",
+        available: false,
+        headlineTone: "muted",
+        trailing: (
+          <PipelineModelBadge
+            modelNumber={6}
+            live={false}
+            provenanceSource={pipelineProvenanceSource(analysis.provenance, "model6")}
+            className="px-2 py-0 text-xs"
+          />
+        ),
+      };
+
   const visualPipelineRows: Record<VisualPipelineModelSlot, VisualPipelineRowView> = {
     model1: {
       summary: model1SummaryText,
       available: Boolean(analysis.model1),
+      headlineTone: modelResultToneFromPrediction(analysis.model1?.label),
       poweredByKey: "results.poweredBy.model1",
       probabilities: analysis.model1?.probabilities ?? null,
       trailing: (
@@ -464,6 +537,9 @@ export default function ResultsPage() {
     model2: {
       summary: model2VisionSummaryText,
       available: model2Vision?.status === "success",
+      headlineTone: modelResultToneFromPrediction(
+        model2Vision?.prediction ?? model2Vision?.label,
+      ),
       poweredByKey: "results.poweredBy.model2",
       probabilities: model2Vision?.probabilities ?? null,
       trailing: (
@@ -477,6 +553,7 @@ export default function ResultsPage() {
     model3: {
       summary: model3SummaryText ?? t("results.model3DenseNet.unavailable"),
       available: Boolean(model3SummaryText || denseNetDisplay?.success),
+      headlineTone: modelResultToneFromPrediction(model3PredictionLabel),
       poweredByKey: "results.poweredBy.model3",
       probabilities: model3Probabilities,
       trailing: denseNetDisplay?.success ? (
@@ -496,6 +573,7 @@ export default function ResultsPage() {
     model4_swint: {
       summary: model4SwintSummaryText,
       available: analysis.model4_swint?.status === "success",
+      headlineTone: modelResultToneFromPrediction(analysis.model4_swint?.prediction),
       poweredByKey: "results.poweredBy.model4",
       probabilities: analysis.model4_swint?.probabilities ?? null,
       trailing: (
@@ -509,6 +587,7 @@ export default function ResultsPage() {
     model5_densenet: {
       summary: model5DenseNetSummaryText,
       available: analysis.model5_densenet?.status === "success",
+      headlineTone: modelResultToneFromPrediction(analysis.model5_densenet?.prediction),
       poweredByKey: "results.poweredBy.model5",
       probabilities: analysis.model5_densenet?.probabilities ?? null,
       trailing: (
@@ -651,7 +730,12 @@ export default function ResultsPage() {
         </Alert>
       )}
 
-      <div className="mt-8">
+      <motion.div
+        className="mt-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         <ResultsImageTabs
           analysis={analysis}
           denseNetDisplay={denseNetDisplay}
@@ -661,11 +745,7 @@ export default function ResultsPage() {
             analysis.provenance?.anatomy_guide ?? (nestedProv ? "static" : undefined)
           }
         />
-      </div>
-
-      {analysis.llm_evaluation?.text?.trim() ? (
-        <LlmEducatorCard llm={analysis.llm_evaluation} locale={locale} t={t} />
-      ) : null}
+      </motion.div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
@@ -673,9 +753,7 @@ export default function ResultsPage() {
             <CardTitle className="text-base">{t("results.pipelineTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5 text-sm text-muted-foreground">
-            <VisualXrayPipelineSection rows={visualPipelineRows} />
-
-            <Model2ClinicalSection tabular={model6Tabular} provenance={analysis.provenance} />
+            <VisualXrayPipelineSection rows={visualPipelineRows} clinicalRow={model6ClinicalRow} />
 
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 flex-1">
@@ -723,6 +801,12 @@ export default function ResultsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {analysis.llm_evaluation?.text?.trim() ? (
+        <ResultsLlmReveal>
+          <LlmEducatorCard llm={analysis.llm_evaluation} locale={locale} t={t} />
+        </ResultsLlmReveal>
+      ) : null}
 
       <div className="mt-6">
         <EnsembleArchitectureAccordion />

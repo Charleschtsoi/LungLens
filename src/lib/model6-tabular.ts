@@ -1,5 +1,9 @@
 import type { ProbabilityBarRow } from "@/components/results/ProbabilityBarList";
-import { highestProbabilityLabel, probabilityToPercent } from "@/lib/model-summary-display";
+import {
+  highestProbabilityLabel,
+  probabilityToPercent,
+  type ModelResultTone,
+} from "@/lib/model-summary-display";
 import type {
   AnalyzeSuccessResponse,
   CopdScreeningResult,
@@ -12,17 +16,38 @@ export function isModel6Tabular(m: unknown): m is Model6TabularResult {
   return r.status === "success" && r.input_type === "tabular";
 }
 
+/** True when tabular output favors High COPD (label or top probability class). */
+export function model6IsHighRisk(m: Model6TabularResult): boolean {
+  const pred = (m.prediction ?? m.label ?? "").trim().toLowerCase().replace(/_/g, " ");
+  if (pred.includes("high copd") || pred.includes("elevated")) return true;
+  if (pred.includes("low copd") || pred.includes("standard risk")) return false;
+
+  const rows = model6ClinicalProbabilityRows(m);
+  const topKey = (rows[0]?.key ?? "").toLowerCase();
+  if (topKey.includes("high")) return true;
+  if (topKey.includes("low")) return false;
+
+  const rawHigh = m.probabilities?.["High COPD Risk"];
+  const pHigh =
+    typeof rawHigh === "number" && Number.isFinite(rawHigh)
+      ? rawHigh
+      : typeof m.confidence === "number"
+        ? m.confidence
+        : 0;
+  return probabilityToPercent(pHigh) > 50;
+}
+
+export function model6HeadlineTone(m: Model6TabularResult): ModelResultTone {
+  return model6IsHighRisk(m) ? "caution" : "positive";
+}
+
 export function formatModel6ClinicalSummary(m: Model6TabularResult): {
   riskText: string;
   confidence: number;
   isHigh: boolean;
 } {
-  const isHigh = m.prediction === "High COPD Risk";
-  const riskText = isHigh
-    ? "Elevated Risk Detected"
-    : m.prediction === "Low COPD Risk"
-      ? "Standard Risk Profile"
-      : m.prediction;
+  const isHigh = model6IsHighRisk(m);
+  const riskText = isHigh ? "Elevated Risk Detected" : "Standard Risk Profile";
   const rows = model6ClinicalProbabilityRows(m);
   const topPct = rows[0]?.pct ?? Math.round(probabilityToPercent(m.confidence ?? 0));
   return {

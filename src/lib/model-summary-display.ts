@@ -54,6 +54,45 @@ export function formatClassifierSummaryLine(
   return `${stageLabel(prediction)} (${highestProbabilityLabel(options.t, pct)})`;
 }
 
+export type ModelResultTone = "positive" | "caution" | "muted";
+
+/** Semantic color for pipeline headlines (aligned with Model 6 COPD styling). */
+export function modelResultToneFromPrediction(prediction: string | undefined | null): ModelResultTone {
+  const p = (prediction ?? "").trim();
+  if (!p || p === "N/A" || p.toLowerCase() === "unavailable") return "muted";
+  const lower = p.toLowerCase();
+  if (
+    lower === "normal" ||
+    (lower.includes("low") && lower.includes("copd")) ||
+    lower.includes("low copd") ||
+    lower.includes("standard risk")
+  ) {
+    return "positive";
+  }
+  if (
+    (lower.includes("high") && lower.includes("copd")) ||
+    lower.includes("high copd") ||
+    lower.includes("elevated") ||
+    lower.includes("pneumonia") ||
+    lower.includes("covid") ||
+    lower.includes("opacity") ||
+    lower.includes("infiltration") ||
+    lower.includes("viral") ||
+    lower.includes("bacterial")
+  ) {
+    return "caution";
+  }
+  return "caution";
+}
+
+export function modelHeadlineClassName(tone: ModelResultTone, available: boolean): string {
+  if (!available || tone === "muted") {
+    return "text-sm font-medium text-muted-foreground";
+  }
+  if (tone === "positive") return "font-semibold text-green-600";
+  return "font-semibold text-red-600";
+}
+
 /** Live models first (1→5), unavailable slots at the bottom of the Visual X-Ray list. */
 export function sortVisualPipelineSlots(
   rows: Record<VisualPipelineModelSlot, { available?: boolean }>,

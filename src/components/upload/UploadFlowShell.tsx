@@ -1,6 +1,8 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { DoctorGateQuestion } from "@/components/upload/DoctorGateQuestion";
+import { useAppMotion } from "@/lib/app-motion";
 import { PrivacyNotice } from "@/components/upload/PrivacyNotice";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { ClinicalQuestionnaire } from "@/components/upload/ClinicalQuestionnaire";
@@ -8,8 +10,24 @@ import { useAppStore } from "@/store/useAppStore";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
 
+function StepPanel({ step }: { step: 1 | 2 | 3 | 4 }) {
+  switch (step) {
+    case 1:
+      return <DoctorGateQuestion />;
+    case 2:
+      return <PrivacyNotice />;
+    case 3:
+      return <ImageUploader />;
+    case 4:
+      return <ClinicalQuestionnaire />;
+    default:
+      return null;
+  }
+}
+
 export function UploadFlowShell() {
   const { t } = useI18n();
+  const { stepTransition } = useAppMotion();
   const step = useAppStore((s) => s.uploadFlowStep);
   const setUploadFlowStep = useAppStore((s) => s.setUploadFlowStep);
   const doctorReviewed = useAppStore((s) => s.doctorReviewed);
@@ -68,10 +86,17 @@ export function UploadFlowShell() {
           ))}
         </ol>
 
-        {step === 1 && <DoctorGateQuestion />}
-        {step === 2 && <PrivacyNotice />}
-        {step === 3 && <ImageUploader />}
-        {step === 4 && <ClinicalQuestionnaire />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            variants={stepTransition}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+          >
+            <StepPanel step={step} />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <footer className="mt-auto border-t border-transparent pt-10 text-center">

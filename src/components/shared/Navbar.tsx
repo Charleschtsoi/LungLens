@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { Activity } from "lucide-react";
+import { useAppMotion } from "@/lib/app-motion";
 import { FreshUploadLink } from "@/components/upload/FreshUploadLink";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
@@ -12,12 +14,17 @@ const links = [
   { href: "/upload", key: "nav.upload" as const },
   { href: "/learn", key: "nav.learn" as const },
   { href: "/about", key: "nav.about" as const },
+  { href: "/pitch", key: "nav.pitch" as const },
 ];
 
 export function Navbar({ className }: { className?: string }) {
   const { t } = useI18n();
+  const { navbarDropIn } = useAppMotion();
   return (
-    <header
+    <motion.header
+      initial={navbarDropIn.initial}
+      animate={navbarDropIn.animate}
+      transition={navbarDropIn.transition}
       className={cn(
         "border-b border-sky-100/80 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75",
         className,
@@ -55,6 +62,6 @@ export function Navbar({ className }: { className?: string }) {
           <LanguageSwitcher />
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 }
