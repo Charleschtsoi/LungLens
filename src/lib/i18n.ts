@@ -219,6 +219,9 @@ const dictEn: Dict = {
     "You indicated a doctor has not yet reviewed your X-ray. Please consult a healthcare professional for proper diagnosis.",
   "results.tab.xray": "Your X-Ray",
   "results.tab.attention": "AI Attention Maps",
+  "results.attention.cardTitle": "X-Ray Heatmap Analysis",
+  "results.attention.cardDescription":
+    "Grad-CAM overlays show where convolutional models focused on the lung field. Educational only—not a diagnosis.",
   "results.attention.overlayBadge": "Model 1 — ResNet-50 Attention",
   "results.attention.overlayBadgeModel3": "Model 3 — DenseNet-121 Attention",
   "results.attention.overlayBadgeGlobalDemo": "AI Attention Map (Educational Demo)",
@@ -631,6 +634,9 @@ const dictHant: Dict = {
   "results.noDoctor": "你表示尚未有醫生檢視此 X 光。請儘快諮詢醫護人員作正規診斷。",
   "results.tab.xray": "你的 X 光",
   "results.tab.attention": "AI 注意力熱圖",
+  "results.attention.cardTitle": "X 光熱圖分析",
+  "results.attention.cardDescription":
+    "Grad-CAM 疊圖顯示卷積模型在肺野的關注區域。僅供教育用途，並非診斷。",
   "results.attention.overlayBadge": "模型 1 — ResNet-50 注意力",
   "results.attention.overlayBadgeModel3": "模型 3 — DenseNet-121 注意力",
   "results.attention.overlayBadgeGlobalDemo": "AI 注意力熱圖（教育演示）",
@@ -974,6 +980,9 @@ const dictHans: Dict = {
   "results.learnMore": "延伸阅读",
   "results.tab.xray": "你的 X 光",
   "results.tab.attention": "AI 注意力热图",
+  "results.attention.cardTitle": "X 光热图分析",
+  "results.attention.cardDescription":
+    "Grad-CAM 叠图显示卷积模型在肺野的关注区域。仅供教育用途，并非诊断。",
   "results.attention.overlayBadge": "模型 1 — ResNet-50 注意力",
   "results.attention.overlayBadgeModel3": "模型 3 — DenseNet-121 注意力",
   "results.attention.overlayBadgeGlobalDemo": "AI 注意力热图（教育演示）",

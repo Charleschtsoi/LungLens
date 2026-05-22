@@ -380,48 +380,47 @@ export function PitchPresentation() {
             title="Interpretability plus responsible language"
           />
 
-          <div className="mt-16 lg:grid lg:grid-cols-2 lg:gap-16">
-            <motion.div
-              className="space-y-5 lg:sticky lg:top-32 lg:self-start"
-              variants={scrollReveal}
-              initial="hidden"
-              whileInView="show"
-              viewport={viewport}
-            >
-              <IconTile>
-                <Eye className="h-6 w-6" aria-hidden />
-              </IconTile>
-              <h3 className="text-2xl font-bold tracking-tight">Grad-CAM attention maps</h3>
-              <p className="leading-relaxed text-muted-foreground">
-                DenseNet-121 Grad-CAM overlays show where convolutional filters attend on the lung
-                field — helping users see whether the model focuses on anatomy versus spurious cues
-                like tubes, labels, or hardware artifacts. That transparency supports educational
-                critique, not automated diagnosis.
-              </p>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex gap-2">
-                  <GitBranch className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  Spatial sanity checks before narrative synthesis
-                </li>
-                <li className="flex gap-2">
-                  <GitBranch className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  Paired with anatomy guides on the results experience
-                </li>
-              </ul>
-            </motion.div>
-
-            <div className="mt-12 space-y-16 lg:mt-0 lg:space-y-24">
-              <GradCamDemoVisual />
+          <div className="mt-16 lg:grid lg:grid-cols-2 lg:items-start lg:gap-16">
+            <div className="space-y-12 lg:sticky lg:top-32 lg:self-start">
               <motion.div
-                className="space-y-5 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/80 to-white p-8 shadow-sm"
+                className="space-y-5"
                 variants={scrollReveal}
                 initial="hidden"
                 whileInView="show"
                 viewport={viewport}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
+                <IconTile>
+                  <Eye className="h-6 w-6" aria-hidden />
+                </IconTile>
+                <h3 className="text-2xl font-bold tracking-tight">Grad-CAM attention maps</h3>
+                <p className="leading-relaxed text-muted-foreground">
+                  DenseNet-121 Grad-CAM overlays show where convolutional filters attend on the lung
+                  field — helping users see whether the model focuses on anatomy versus spurious cues
+                  like tubes, labels, or hardware artifacts. That transparency supports educational
+                  critique, not automated diagnosis.
+                </p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex gap-2">
+                    <GitBranch className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    Spatial sanity checks before narrative synthesis
+                  </li>
+                  <li className="flex gap-2">
+                    <GitBranch className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    Live attention overlays on the results dashboard
+                  </li>
+                </ul>
+              </motion.div>
+
+              <motion.div
+                className="space-y-5"
+                variants={scrollReveal}
+                initial="hidden"
+                whileInView="show"
+                viewport={viewport}
+              >
+                <IconTile>
                   <Sparkles className="h-6 w-6" aria-hidden />
-                </div>
+                </IconTile>
                 <h3 className="text-2xl font-bold tracking-tight">Gemini AI educator layer</h3>
                 <p className="leading-relaxed text-muted-foreground">
                   After ensemble consensus, an optional BYOK Gemini pass turns structured findings into
@@ -440,6 +439,10 @@ export function PitchPresentation() {
                   </li>
                 </ul>
               </motion.div>
+            </div>
+
+            <div className="mt-12 lg:mt-0">
+              <GradCamDemoVisual />
             </div>
           </div>
         </div>

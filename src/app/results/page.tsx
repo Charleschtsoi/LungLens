@@ -741,9 +741,6 @@ export default function ResultsPage() {
           denseNetDisplay={denseNetDisplay}
           previewUrl={previewUrl}
           fileLabel={imageFile?.name ?? null}
-          anatomyGuideProvenance={
-            analysis.provenance?.anatomy_guide ?? (nestedProv ? "static" : undefined)
-          }
         />
       </motion.div>
 
