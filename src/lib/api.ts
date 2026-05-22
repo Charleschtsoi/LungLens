@@ -125,7 +125,7 @@ export async function analyzeImageFile(
       console.error("[LungLens] POST /api/analyze failed", {
         httpStatus: res.status,
         response: data,
-        hint: "Check server BACKEND_API_BASE_URL (e.g. http://127.0.0.1:7861 — match uvicorn port) and BACKEND_API_KEY; see terminal logs from the Next route.",
+        hint: "Check server BACKEND_API_BASE_URL (e.g. http://127.0.0.1:7861 — match uvicorn port) and BACKEND_API_KEY. See terminal logs from the Next route.",
       });
       if (!data || !("success" in data) || data.success !== false) {
         return {
@@ -191,7 +191,7 @@ export async function analyzeImageFile(
         ok.warnings.push({
           code: "missing_provenance",
           message:
-            "Backend did not provide provenance metadata; run mode is shown as hybrid until backend is updated.",
+            "Backend did not provide provenance metadata. Run mode is shown as hybrid until backend is updated.",
           stage: "pipeline",
         });
       }

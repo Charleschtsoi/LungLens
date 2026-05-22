@@ -41,7 +41,7 @@ const CONTRIBUTORS = [
   },
   {
     id: "jina",
-    name: "Jina Tse",
+    name: "Jenna Tse",
     initials: "JT",
     roleKey: "about.member.jina.role",
     detailKey: "about.member.jina.detail",

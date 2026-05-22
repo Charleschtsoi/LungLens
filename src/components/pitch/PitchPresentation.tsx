@@ -81,7 +81,7 @@ const TEAM = [
     accent: "from-slate-600 to-slate-800",
   },
   {
-    name: "Jina Tse",
+    name: "Jenna Tse",
     badges: ["Systems Optimization", "Presentation"],
     modelBadge: "Platform & delivery",
     initials: "JT",
@@ -274,7 +274,7 @@ export function PitchPresentation() {
             dark
             label="System architecture"
             title="Full-stack pipeline built for parallel inference"
-            description="The browser never runs ML. Next.js orchestrates consent-aware UX; FastAPI owns preprocessing, ensemble fusion, and optional LLM synthesis server-side."
+            description="The browser never runs ML. Next.js orchestrates consent-aware UX. FastAPI owns preprocessing, ensemble fusion, and optional LLM synthesis server-side."
             descriptionClassName="text-slate-400"
           />
 

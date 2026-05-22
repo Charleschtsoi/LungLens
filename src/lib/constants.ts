@@ -36,7 +36,7 @@ export const ANATOMY_REGIONS: AnatomyRegion[] = [
   {
     id: "trachea",
     label: "Trachea",
-    description: "Midline airway; deviation can have many causes your radiologist comments on.",
+    description: "Midline airway. Deviation can have many causes your radiologist comments on.",
     top: "14%",
     left: "50%",
   },
@@ -67,7 +67,7 @@ export const ANATOMY_REGIONS: AnatomyRegion[] = [
   {
     id: "diaphragm",
     label: "Diaphragm",
-    description: "The muscle below the lungs; its position hints at lung volume and adjacent structures.",
+    description: "The muscle below the lungs. Its position hints at lung volume and adjacent structures.",
     top: "78%",
     left: "50%",
   },

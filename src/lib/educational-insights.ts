@@ -21,7 +21,7 @@ const TEMPLATES_EN: Record<FindingLabel, InsightTemplate[]> = {
   "Lung Opacity": [
     {
       title: "Understanding lung opacity",
-      text: "Opacity means part of the lung looks denser or hazier than normal. Causes range from infection and fluid to inflammation or scarring; radiology wording and your symptoms guide next steps.",
+      text: "Opacity means part of the lung looks denser or hazier than normal. Causes range from infection and fluid to inflammation or scarring. Radiology wording and your symptoms guide next steps.",
       category: "overview",
     },
     {
@@ -65,7 +65,7 @@ const TEMPLATES_ZH_HANT: Record<FindingLabel, InsightTemplate[]> = {
     },
     {
       title: "常見處理方向",
-      text: "醫師可能安排覆照、電腦掃描或化驗；治療針對真正病因，請以你的主診醫師計劃為準。",
+      text: "醫師可能安排覆照、電腦掃描或化驗。治療針對真正病因，請以你的主診醫師計劃為準。",
       category: "treatment",
     },
   ],
@@ -104,7 +104,7 @@ const TEMPLATES_ZH_HANS: Record<FindingLabel, InsightTemplate[]> = {
     },
     {
       title: "常见处理方向",
-      text: "医生可能安排复查、CT 或化验；治疗针对真正病因，请以你的主治医生方案为准。",
+      text: "医生可能安排复查、CT 或化验。治疗针对真正病因，请以你的主治医生方案为准。",
       category: "treatment",
     },
   ],

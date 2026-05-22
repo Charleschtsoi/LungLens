@@ -136,7 +136,7 @@ const dictEn: Dict = {
   "densenet.caption.modelInputCrop":
     "Same 224×224 center crop fed to DenseNet-121 (matches Grad-CAM framing).",
   "densenet.caption.fullUploadPreview":
-    "Full upload preview; framing may differ from the 224×224 model input and Grad-CAM.",
+    "Full upload preview. Framing may differ from the 224×224 model input and Grad-CAM.",
   "densenet.gradcam.captionAligned": "Same center crop and size as the image on the left.",
 
   "upload.q.title": "Clinical questionnaire",
@@ -160,7 +160,7 @@ const dictEn: Dict = {
   "upload.modeConfigured.demo": "Configured for demo mock mode (no backend call).",
   "upload.geminiOptional.label": "Gemini API key (optional, for AI clinical summary)",
   "upload.geminiOptional.help":
-    "Optional. Stored only in this browser. Validated when you submit this form, then sent with your answers as gemini_api_key; LungLens servers do not retain it.",
+    "Optional. Stored only in this browser. Validated when you submit this form, then sent with your answers as gemini_api_key. LungLens servers do not retain it.",
   "upload.geminiOptional.placeholder": "Paste your Google AI Studio key for BYOK",
 
   "results.loading": "Loading results...",
@@ -240,9 +240,9 @@ const dictEn: Dict = {
   "results.notice.pneumoniaBacterialTitle": "Pneumonia (bacterial pattern)",
   "results.notice.pneumoniaViralTitle": "Pneumonia (viral pattern)",
   "results.notice.pneumoniaBacterialBody":
-    "Educationally, bacterial pneumonia is often described as air-space consolidation (sometimes lobar); pleural fluid may appear. Patterns overlap on X-ray and cannot confirm the germ alone. This is a model-score hint—your clinician interprets it with symptoms and tests.",
+    "Educationally, bacterial pneumonia is often described as air-space consolidation (sometimes lobar). Pleural fluid may appear. Patterns overlap on X-ray and cannot confirm the germ alone. This is a model-score hint—your clinician interprets it with symptoms and tests.",
   "results.notice.pneumoniaViralBody":
-    "Viral pneumonia is often described with more interstitial change and later patchy opacities; ground-glass or small nodules may appear on advanced imaging but can resemble other pneumonias. Educational output only—not a substitute for viral testing or clinical judgment.",
+    "Viral pneumonia is often described with more interstitial change and later patchy opacities. Ground-glass or small nodules may appear on advanced imaging but can resemble other pneumonias. Educational output only—not a substitute for viral testing or clinical judgment.",
   "results.anatomySub":
     "Educational model scores-not a diagnosis. Only a radiologist can confirm what your film shows.",
   "results.noSignificant":
@@ -271,7 +271,7 @@ const dictEn: Dict = {
   "anatomy.right-lung": "Right lung",
   "anatomy.diaphragm": "Diaphragm",
   "anatomy.desc.trachea":
-    "Midline airway; deviation can have many causes your radiologist comments on.",
+    "Midline airway. Deviation can have many causes your radiologist comments on.",
   "anatomy.desc.heart":
     "Cardiac silhouette-size and shape are interpreted with your clinical context.",
   "anatomy.desc.left-lung":
@@ -279,7 +279,7 @@ const dictEn: Dict = {
   "anatomy.desc.right-lung":
     "Appears on the left side of the image in a standard PA view.",
   "anatomy.desc.diaphragm":
-    "Domed muscle below the lungs; position helps assess lung volume.",
+    "Domed muscle below the lungs. Position helps assess lung volume.",
   "results.complianceImportant": "Important",
   "results.sticky":
     "LungLens is an educational tool only. This is not a medical diagnosis. Always consult a qualified healthcare professional for medical advice.",
@@ -556,7 +556,7 @@ const dictHant: Dict = {
   "densenet.alt.preview": "已上傳胸肺 X 光預覽",
   "densenet.alt.gradcam": "DenseNet-121 Grad-CAM 疊加圖",
   "densenet.caption.modelInputCrop": "與 DenseNet-121 相同的 224×224 中央裁切（與右側 Grad-CAM 畫面一致）。",
-  "densenet.caption.fullUploadPreview": "完整上傳預覽；構圖可能與模型 224×224 輸入及 Grad-CAM 不同。",
+  "densenet.caption.fullUploadPreview": "完整上傳預覽。構圖可能與模型 224×224 輸入及 Grad-CAM 不同。",
   "densenet.gradcam.captionAligned": "與左側相同的中央裁切與尺寸。",
 
   "upload.q.title": "臨床問卷",
@@ -579,7 +579,7 @@ const dictHant: Dict = {
   "upload.modeConfigured.demo": "目前設定為示範模擬模式（不呼叫後端）。",
   "upload.geminiOptional.label": "Gemini API 金鑰（選填，供 AI 臨床摘要）",
   "upload.geminiOptional.help":
-    "選填。僅存在此瀏覽器。提交本表單時驗證金鑰，並與問卷答案一併以 gemini_api_key 送出；LungLens 伺服端不會保存。",
+    "選填。僅存在此瀏覽器。提交本表單時驗證金鑰，並與問卷答案一併以 gemini_api_key 送出。LungLens 伺服端不會保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，請貼上 Google AI Studio 金鑰",
   "results.loading": "結果載入中…",
   "results.redirecting": "正在返回上傳頁…",
@@ -654,7 +654,7 @@ const dictHant: Dict = {
   "results.notice.pneumoniaBacterialBody":
     "教育上，細菌性肺炎常描述為肺泡實變（有時呈葉性分布），可能伴隨肋膜積液。X 光模式可重疊，無法單靠影像確定病原。此為模型分數提示，需由醫師結合症狀與檢查解讀。",
   "results.notice.pneumoniaViralBody":
-    "病毒性肺炎常描述為較多間質變化，後期可出現斑片狀陰影；進階影像可能見磨玻璃或小结節，但可與其他肺炎相似。僅供教育用途，不能取代病毒檢測或臨床判斷。",
+    "病毒性肺炎常描述為較多間質變化，後期可出現斑片狀陰影。進階影像可能見磨玻璃或小结節，但可與其他肺炎相似。僅供教育用途，不能取代病毒檢測或臨床判斷。",
   "results.anatomySub": "以下為教育用途分數，不代表診斷，最終仍需由放射科醫師確認。",
   "results.noSignificant": "AI 未標示明顯重點區域。這一般可能接近正常 X 光表現，但仍需放射科醫師確認。",
   "results.attentionLevel": "關注程度",
@@ -678,7 +678,7 @@ const dictHant: Dict = {
   "anatomy.left-lung": "左肺",
   "anatomy.right-lung": "右肺",
   "anatomy.diaphragm": "橫膈膜",
-  "anatomy.desc.trachea": "中線氣道；若偏移可能有多種原因，需由放射科醫師判讀。",
+  "anatomy.desc.trachea": "中線氣道。若偏移可能有多種原因，需由放射科醫師判讀。",
   "anatomy.desc.heart": "心影大小與形狀需配合臨床狀況解讀。",
   "anatomy.desc.left-lung": "在標準 PA 視圖中，左肺常顯示於影像右側。",
   "anatomy.desc.right-lung": "在標準 PA 視圖中，右肺常顯示於影像左側。",
@@ -718,9 +718,9 @@ const dictHant: Dict = {
   "results.provenance.hybridBanner.bothModels":
     "本次執行中，模型 1 與模型 6 皆使用即時分類模型。關注圖覆蓋與部分報告文字仍可能為教育用模擬或規則型內容。",
   "results.provenance.hybridBanner.model1Only":
-    "模型 1 使用即時分類模型；模型 6（COPD 問卷）此輪未以已載入的神經模型執行（模擬或規則）。發現區塊、關注圖與醫師提問提示仍可能是模擬或規則型。",
+    "模型 1 使用即時分類模型。模型 6（COPD 問卷）此輪未以已載入的神經模型執行（模擬或規則）。發現區塊、關注圖與醫師提問提示仍可能是模擬或規則型。",
   "results.provenance.hybridBanner.model2Only":
-    "模型 6（COPD 問卷）已執行；模型 1 此輪未以已載入的 X 光分類模型執行（模擬或規則）。發現區塊、關注圖與醫師提問提示仍可能是模擬或規則型。",
+    "模型 6（COPD 問卷）已執行。模型 1 此輪未以已載入的 X 光分類模型執行（模擬或規則）。發現區塊、關注圖與醫師提問提示仍可能是模擬或規則型。",
   "results.provenance.hybridBanner.fallback":
     "本次為混合來源執行。請參考下方各步驟標籤，確認哪些為模型、模擬或規則。",
   "results.provenance.badge.llm": "LLM",
@@ -757,7 +757,7 @@ const dictHant: Dict = {
   "results.provenance.impact.model5": "模型 5 — DenseNet-121 (H5)",
   "results.provenance.impact.model6": "模型 6 — 慢性肺部風險（COPD）",
   "results.impact.title": "模型影響對照",
-  "results.impact.subtitle": "每一列是此教育報告的一部分；最右欄表示該部分是否於本次執行，並非臨床診斷結論。",
+  "results.impact.subtitle": "每一列是此教育報告的一部分。最右欄表示該部分是否於本次執行，並非臨床診斷結論。",
   "results.impact.colSection": "區塊",
   "results.impact.colSource": "產製方式",
   "results.impact.colRun": "本次執行",
@@ -904,7 +904,7 @@ const dictHans: Dict = {
   "densenet.alt.preview": "已上传胸片预览",
   "densenet.alt.gradcam": "DenseNet-121 Grad-CAM 叠加图",
   "densenet.caption.modelInputCrop": "与 DenseNet-121 相同的 224×224 居中裁剪（与右侧 Grad-CAM 一致）。",
-  "densenet.caption.fullUploadPreview": "完整上传预览；构图可能与模型 224×224 输入及 Grad-CAM 不同。",
+  "densenet.caption.fullUploadPreview": "完整上传预览。构图可能与模型 224×224 输入及 Grad-CAM 不同。",
   "densenet.gradcam.captionAligned": "与左侧相同的居中裁剪与尺寸。",
 
   "upload.q.title": "临床问卷",
@@ -927,7 +927,7 @@ const dictHans: Dict = {
   "upload.modeConfigured.demo": "当前配置为演示模拟模式（不调用后端）。",
   "upload.geminiOptional.label": "Gemini API 密钥（可选，用于 AI 临床摘要）",
   "upload.geminiOptional.help":
-    "可选。仅保存在本浏览器。提交本表单时验证密钥，并与问卷答案一并作为 gemini_api_key 发送；LungLens 服务端不会保存。",
+    "可选。仅保存在本浏览器。提交本表单时验证密钥，并与问卷答案一并作为 gemini_api_key 发送。LungLens 服务端不会保存。",
   "upload.geminiOptional.placeholder": "若使用 BYOK，请粘贴 Google AI Studio 密钥",
   "results.title": "你的教育报告",
   "results.subtitle": "查看影像、注意力热图与解剖提示，再把问题带回给医护团队。",
@@ -993,7 +993,7 @@ const dictHans: Dict = {
   "results.notice.pneumoniaBacterialBody":
     "教育上，细菌性肺炎常描述为肺泡实变（有时呈叶性分布），可能伴随胸膜积液。X 光模式可重叠，无法单靠影像确定病原。此为模型分数提示，需由医生结合症状与检查解读。",
   "results.notice.pneumoniaViralBody":
-    "病毒性肺炎常描述为较多间质变化，后期可出现斑片状阴影；进阶影像可能见磨玻璃或小结节，但可与其他肺炎相似。仅供教育用途，不能取代病毒检测或临床判断。",
+    "病毒性肺炎常描述为较多间质变化，后期可出现斑片状阴影。进阶影像可能见磨玻璃或小结节，但可与其他肺炎相似。仅供教育用途，不能取代病毒检测或临床判断。",
   "results.questionsTitle": "与本次扫描相关的健康资讯",
   "results.questionsSub":
     "根据 AI 发现提供的一般背景（治疗方向与研究脉络），并非诊断或即时新闻。",
@@ -1047,9 +1047,9 @@ const dictHans: Dict = {
   "results.provenance.hybridBanner.bothModels":
     "本次运行中，模型 1 与模型 6 均使用实时分类模型。关注图覆盖与部分报告文字仍可能是教育用模拟或基于规则的内容。",
   "results.provenance.hybridBanner.model1Only":
-    "模型 1 使用实时分类模型；模型 6（COPD 问卷）本轮未以已加载的神经网络模型运行（模拟或规则）。发现板块、关注图与医生提问提示仍可能是模拟或基于规则。",
+    "模型 1 使用实时分类模型。模型 6（COPD 问卷）本轮未以已加载的神经网络模型运行（模拟或规则）。发现板块、关注图与医生提问提示仍可能是模拟或基于规则。",
   "results.provenance.hybridBanner.model2Only":
-    "模型 6（COPD 问卷）已运行；模型 1 本轮未以已加载的 X 光分类模型运行（模拟或规则）。发现板块、关注图与医生提问提示仍可能是模拟或基于规则。",
+    "模型 6（COPD 问卷）已运行。模型 1 本轮未以已加载的 X 光分类模型运行（模拟或规则）。发现板块、关注图与医生提问提示仍可能是模拟或基于规则。",
   "results.provenance.hybridBanner.fallback":
     "本次为混合来源运行。请参考下方各步骤标签，确认哪些为模型、模拟或规则。",
   "results.provenance.nested.stageSkipped": "模型 {n} 已跳过。",
@@ -1067,7 +1067,7 @@ const dictHans: Dict = {
   "results.provenance.impact.model5": "模型 5 — DenseNet-121 (H5)",
   "results.provenance.impact.model6": "模型 6 — 慢性肺部风险（COPD）",
   "results.impact.title": "模型影响对照",
-  "results.impact.subtitle": "每一行是此教育报告的一部分；最右列表示该部分是否在本次运行中生成，并非临床诊断结论。",
+  "results.impact.subtitle": "每一行是此教育报告的一部分。最右列表示该部分是否在本次运行中生成，并非临床诊断结论。",
   "results.impact.colSection": "区块",
   "results.impact.colSource": "如何生成",
   "results.impact.colRun": "本次运行",
@@ -1115,7 +1115,7 @@ const dictHans: Dict = {
   "anatomy.left-lung": "左肺",
   "anatomy.right-lung": "右肺",
   "anatomy.diaphragm": "膈肌",
-  "anatomy.desc.trachea": "中线气道；若偏移可能有多种原因，需由放射科医生判读。",
+  "anatomy.desc.trachea": "中线气道。若偏移可能有多种原因，需由放射科医生判读。",
   "anatomy.desc.heart": "心影大小与形状需结合临床情况解读。",
   "anatomy.desc.left-lung": "在标准 PA 视图中，左肺常显示在影像右侧。",
   "anatomy.desc.right-lung": "在标准 PA 视图中，右肺常显示在影像左侧。",
@@ -1188,7 +1188,7 @@ export const CONDITION_DESC: Record<
   en: CONDITION_DESCRIPTIONS,
   "zh-Hant": {
     Pneumonia:
-      "肺炎表示肺部氣囊可能因感染而發炎，並可能積聚液體或膿。AI 顯示與此相符的模式；醫生會結合發燒、咳嗽等症狀解讀。",
+      "肺炎表示肺部氣囊可能因感染而發炎，並可能積聚液體或膿。AI 顯示與此相符的模式。醫生會結合發燒、咳嗽等症狀解讀。",
     "Lung Opacity":
       "肺部陰影（opacity）是廣義描述，指 X 光上某區域比正常肺部更實或較霧狀，可能與積液、感染或組織變化有關，需臨床對照。",
     "COVID-19":
@@ -1196,7 +1196,7 @@ export const CONDITION_DESC: Record<
   },
   "zh-Hans": {
     Pneumonia:
-      "肺炎表示肺部气囊可能因感染而发炎，并可能积聚液体或脓。AI 显示与此相符的模式；医生会结合发烧、咳嗽等症状解读。",
+      "肺炎表示肺部气囊可能因感染而发炎，并可能积聚液体或脓。AI 显示与此相符的模式。医生会结合发烧、咳嗽等症状解读。",
     "Lung Opacity":
       "肺部阴影（opacity）是广义描述，指 X 光上某区域比正常肺部更实或较雾状，可能与积液、感染或组织变化有关，需临床对照。",
     "COVID-19":

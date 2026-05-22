@@ -560,7 +560,7 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
       {
         code: "missing_provenance",
         message:
-          "Backend did not provide provenance metadata; run mode is shown as hybrid until backend is updated.",
+          "Backend did not provide provenance metadata. Run mode is shown as hybrid until backend is updated.",
         stage: "pipeline",
       },
     ];
