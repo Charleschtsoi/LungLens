@@ -225,6 +225,17 @@ const dictEn: Dict = {
   "results.attention.overlayBadge": "Model 1 — ResNet-50 Attention",
   "results.attention.overlayBadgeModel3": "Model 3 — DenseNet-121 Attention",
   "results.attention.overlayBadgeGlobalDemo": "AI Attention Map (Educational Demo)",
+  "results.attention.edu.title": "Understanding the AI Attention Map",
+  "results.attention.edu.intro":
+    "Advanced AI models can feel like a black box. To stay transparent, LungLens uses explainable AI (XAI) heatmaps so you can see what influenced the model's educational summary. This is not a diagnosis.",
+  "results.attention.edu.colorsTitle": "The colors",
+  "results.attention.edu.colorsBody":
+    "Red and yellow areas highlight the pixel patterns that most strongly influenced the model's educational output.",
+  "results.attention.edu.purposeTitle": "The purpose",
+  "results.attention.edu.purposeBody":
+    "This helps confirm the model is focusing on your lung fields rather than medical hardware, posture differences, or text on the X-ray film. You and your doctor can discuss what the AI highlighted together.",
+  "results.attention.edu.soloModelCamNote":
+    "This overlay uses the same 224×224 center-cropped input the model analyzed. It may not match your full-resolution upload preview. Educational only.",
   "results.tab.anatomy": "Anatomy Guide",
   "results.noPreview":
     "Preview not available for this file. Export a PNG or JPEG if you need to view it here.",
@@ -431,9 +442,9 @@ const dictEn: Dict = {
   "about.member.edward.role": "Vision AI Researcher & Clinical Logic",
   "about.member.edward.detail":
     "Developed and trained Model 2 (ResNet-152V2). Designed the conditional user intake questionnaire to capture patient context and supply structured clinical inputs to the LLM diagnostic module.",
-  "about.member.jina.role": "Systems Optimization & Presentation Specialist",
+  "about.member.jina.role": "Code Contributor",
   "about.member.jina.detail":
-    "Handled backend performance tuning, code quality improvements, and repository maintenance using AI-assisted engineering tools. Co-authored reporting templates and led the final presentation design.",
+    "Provided assistance with code enhancements and repository maintenance.",
   "about.member.dicky.role": "Vision AI Researcher",
   "about.member.dicky.detail":
     "Conducted data analysis on medical reporting standards and deploying Model 5 (DenseNet-121) to scale our diagnostic ensemble.",
@@ -640,6 +651,17 @@ const dictHant: Dict = {
   "results.attention.overlayBadge": "模型 1 — ResNet-50 注意力",
   "results.attention.overlayBadgeModel3": "模型 3 — DenseNet-121 注意力",
   "results.attention.overlayBadgeGlobalDemo": "AI 注意力熱圖（教育演示）",
+  "results.attention.edu.title": "了解 AI 注意力熱圖",
+  "results.attention.edu.intro":
+    "進階 AI 模型有時像黑箱。為保持透明，LungLens 使用可解釋 AI（XAI）熱圖，讓你了解哪些區域影響了模型的教育性摘要。這並非診斷。",
+  "results.attention.edu.colorsTitle": "顏色的意義",
+  "results.attention.edu.colorsBody":
+    "紅色與黃色區域標示最強烈影響模型教育性輸出的像素模式。",
+  "results.attention.edu.purposeTitle": "用途",
+  "results.attention.edu.purposeBody":
+    "有助確認模型是否關注肺野，而非醫療管路、姿勢差異或片上的文字。你可與醫生一同討論 AI 所強調的區域。",
+  "results.attention.edu.soloModelCamNote":
+    "此疊圖使用與模型相同的 224×224 中央裁切輸入，可能與你上傳的完整解析度預覽不同。僅供教育用途。",
   "results.tab.anatomy": "解剖導覽",
   "results.noPreview": "此檔案暫無預覽，若需要可轉成 PNG/JPEG 再查看。",
   "results.noAttention": "本次分析沒有提供注意力熱圖。",
@@ -826,9 +848,9 @@ const dictHant: Dict = {
   "about.member.edward.role": "視覺 AI 研究員與臨床邏輯",
   "about.member.edward.detail":
     "開發並訓練模型 2（ResNet-152V2）。設計條件式使用者問卷以擷取病患情境，並為 LLM 診斷模組提供結構化臨床輸入。",
-  "about.member.jina.role": "系統優化與簡報專家",
+  "about.member.jina.role": "程式碼協作者",
   "about.member.jina.detail":
-    "負責後端效能調校、程式品質改進與程式庫維護（含 AI 輔助工程工具）。共同撰寫報告範本並主導最終簡報設計。",
+    "協助程式碼增強與儲存庫維護工作。",
   "about.member.dicky.role": "視覺 AI 研究員",
   "about.member.dicky.detail":
     "進行醫療報告標準數據分析，並部署模型 5（DenseNet-121）以擴大診斷集成系統。",
@@ -986,6 +1008,17 @@ const dictHans: Dict = {
   "results.attention.overlayBadge": "模型 1 — ResNet-50 注意力",
   "results.attention.overlayBadgeModel3": "模型 3 — DenseNet-121 注意力",
   "results.attention.overlayBadgeGlobalDemo": "AI 注意力热图（教育演示）",
+  "results.attention.edu.title": "了解 AI 注意力热图",
+  "results.attention.edu.intro":
+    "进阶 AI 模型有时像黑箱。为保持透明，LungLens 使用可解释 AI（XAI）热图，让你了解哪些区域影响了模型的教育性摘要。这并非诊断。",
+  "results.attention.edu.colorsTitle": "颜色的意义",
+  "results.attention.edu.colorsBody":
+    "红色与黄色区域标示最强烈影响模型教育性输出的像素模式。",
+  "results.attention.edu.purposeTitle": "用途",
+  "results.attention.edu.purposeBody":
+    "有助确认模型是否关注肺野，而非医疗管路、姿势差异或片上的文字。你可与医生一同讨论 AI 所强调的区域。",
+  "results.attention.edu.soloModelCamNote":
+    "此叠图使用与模型相同的 224×224 中心裁切输入，可能与你上传的完整分辨率预览不同。仅供教育用途。",
   "results.tab.anatomy": "解剖导览",
   "results.anatomyHeader": "AI 注意到的内容",
   "results.notice.pneumoniaBacterialTitle": "肺炎（细菌性模式）",
@@ -1137,9 +1170,9 @@ const dictHans: Dict = {
   "about.member.edward.role": "视觉 AI 研究员与临床逻辑",
   "about.member.edward.detail":
     "开发并训练模型 2（ResNet-152V2）。设计条件式用户问卷以捕获患者情境，并为 LLM 诊断模块提供结构化临床输入。",
-  "about.member.jina.role": "系统优化与演示专家",
+  "about.member.jina.role": "代码贡献者",
   "about.member.jina.detail":
-    "负责后端性能调优、代码质量改进与仓库维护（含 AI 辅助工程工具）。共同撰写报告模板并主导最终演示设计。",
+    "协助代码增强与仓库维护工作。",
   "about.member.dicky.role": "视觉 AI 研究员",
   "about.member.dicky.detail":
     "进行医疗报告标准数据分析，并部署模型 5（DenseNet-121）以扩大诊断集成系统。",

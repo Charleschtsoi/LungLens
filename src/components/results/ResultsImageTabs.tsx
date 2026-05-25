@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AttentionMapEducationPanel } from "@/components/results/AttentionMapEducationPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
@@ -75,6 +76,7 @@ export function ResultsImageTabs({
   const hasGlobalDemoHeatmap = !hasM1 && !hasM3 && Boolean(globalHeatmapBase64);
   const globalHeatmapSrc = globalHeatmapBase64 ? attentionDataUrl(globalHeatmapBase64) : null;
   const hasAnyAttention = hasM1 || hasM3 || hasGlobalDemoHeatmap;
+  const showSoloModelCamNote = hasM1 && !hasM3 && hasAnyAttention;
 
   const attentionBody = !hasAnyAttention ? (
     <figure className="m-0">
@@ -224,9 +226,13 @@ export function ResultsImageTabs({
               {t("results.attention.cardDescription")}
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-4 pb-6 pt-4 md:px-6 md:pb-8 md:pt-6">{attentionBody}</CardContent>
+          <CardContent className="px-4 pb-6 pt-4 md:px-6 md:pb-8 md:pt-6">
+            {attentionBody}
+            {hasAnyAttention ? (
+              <AttentionMapEducationPanel showSoloModelCamNote={showSoloModelCamNote} />
+            ) : null}
+          </CardContent>
         </Card>
-        <p className="mt-3 text-xs text-muted-foreground sm:text-sm">{t("results.attentionNote")}</p>
       </TabsContent>
     </Tabs>
   );

@@ -45,7 +45,7 @@ export function buildHighAttentionFindingKeys(
   }
 
   const top = analysis.gradcam.top_prediction;
-  if (top) {
+  if (top && analysis.gradcam.confidence >= 0.3) {
     return [top];
   }
 

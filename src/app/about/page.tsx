@@ -40,16 +40,6 @@ const CONTRIBUTORS = [
     cardClass: "border-emerald-100/90 bg-gradient-to-br from-white to-emerald-50/40",
   },
   {
-    id: "jina",
-    name: "Jenna Tse",
-    initials: "JT",
-    roleKey: "about.member.jina.role",
-    detailKey: "about.member.jina.detail",
-    ringClass: "ring-amber-200/80",
-    avatarClass: "bg-gradient-to-br from-amber-500 to-orange-600 text-white",
-    cardClass: "border-amber-100/90 bg-gradient-to-br from-white to-amber-50/40",
-  },
-  {
     id: "dicky",
     name: "Dicky Ng",
     initials: "DN",
@@ -57,6 +47,16 @@ const CONTRIBUTORS = [
     detailKey: "about.member.dicky.detail",
     ringClass: "ring-slate-200/80",
     avatarClass: "bg-gradient-to-br from-slate-600 to-slate-800 text-white",
+    cardClass: "border-slate-200/90 bg-gradient-to-br from-white to-slate-50/60",
+  },
+  {
+    id: "jina",
+    name: "Jenna Tse",
+    initials: "JT",
+    roleKey: "about.member.jina.role",
+    detailKey: "about.member.jina.detail",
+    ringClass: "ring-slate-200/80",
+    avatarClass: "bg-gradient-to-br from-slate-500 to-slate-700 text-white",
     cardClass: "border-slate-200/90 bg-gradient-to-br from-white to-slate-50/60",
   },
 ] as const;

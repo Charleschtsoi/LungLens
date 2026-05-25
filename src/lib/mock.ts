@@ -2,6 +2,10 @@ import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 import { PIPELINE } from "@/lib/constants";
 import type {
   AnalyzeSuccessResponse,
+  DemoAnalyzeKind,
+  DemoLlmSynthesisContext,
+  DemoLlmSynthesisResponse,
+  LlmEvaluationResult,
   Model2VisionResult,
   Model6TabularResult,
   Predictions,
@@ -9,12 +13,14 @@ import type {
   StageClinicalResult,
   StageMultiClassResult,
   StageBinaryResult,
+  StageReportResult,
 } from "@/types";
 
 /** Alias for mock / ML success payloads. */
 export type AnalysisResult = AnalyzeSuccessResponse;
 
 const MOCK_DELAY_MS = 2000;
+const DEMO_INTERCEPT_DELAY_MS = 3500;
 
 /** 1×1 PNG fallback if canvas is unavailable. */
 const FALLBACK_HEATMAP_BASE64 =
@@ -32,6 +38,32 @@ export type MockScenario = {
   primary: FindingLabel;
   scores: Partial<Record<FindingLabel, number>>;
   heatmapFoci: HeatmapFocus[];
+};
+
+const NORMAL_DEMO_SCENARIO: MockScenario = {
+  id: "demo-normal",
+  primary: "Lung Opacity",
+  scores: {
+    Pneumonia: 0.03,
+    "Lung Opacity": 0.04,
+    "COVID-19": 0.02,
+  },
+  heatmapFoci: [],
+};
+
+const VIRAL_DEMO_SCENARIO: MockScenario = {
+  id: "demo-viral",
+  primary: "Pneumonia",
+  scores: {
+    Pneumonia: 0.96,
+    "Lung Opacity": 0.91,
+    "COVID-19": 0.34,
+  },
+  heatmapFoci: [
+    { x: 0.45, y: 0.46, radius: 0.24, intensity: 1 },
+    { x: 0.58, y: 0.52, radius: 0.2, intensity: 0.92 },
+    { x: 0.5, y: 0.61, radius: 0.14, intensity: 0.7 },
+  ],
 };
 
 const MOCK_SCENARIOS: MockScenario[] = [
@@ -77,6 +109,20 @@ const MOCK_SCENARIOS: MockScenario[] = [
 ];
 
 const fileScenarioCache = new WeakMap<File, MockScenario>();
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function resolveDemoAnalyzeKind(fileOrName?: File | string | null): DemoAnalyzeKind | null {
+  const raw =
+    typeof fileOrName === "string" ? fileOrName : fileOrName instanceof File ? fileOrName.name : "";
+  const lower = raw.trim().toLowerCase();
+  if (!lower) return null;
+  if (lower.includes("viral")) return "viral";
+  if (lower.includes("normal")) return "normal";
+  return null;
+}
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
@@ -349,6 +395,442 @@ export async function createPlaceholderHeatmapBase64(
   return base64 || FALLBACK_HEATMAP_BASE64;
 }
 
+function demoPredictions(kind: DemoAnalyzeKind): Predictions {
+  if (kind === "normal") {
+    return {
+      Pneumonia: 0.03,
+      "Lung Opacity": 0.04,
+      "COVID-19": 0.02,
+    };
+  }
+  return {
+    Pneumonia: 0.96,
+    "Lung Opacity": 0.91,
+    "COVID-19": 0.34,
+  };
+}
+
+function demoStage1(kind: DemoAnalyzeKind, gradcam: string): StageBinaryResult {
+  if (kind === "normal") {
+    return {
+      label: "Normal",
+      confidence: 0.95,
+      model_name: "ResNet-50",
+      gradcam,
+      probabilities: {
+        Normal: 0.95,
+        "Pneumonia-Bacteria": 0.02,
+        "Pneumonia-Virus": 0.03,
+      },
+    };
+  }
+  return {
+    label: "Pneumonia-Virus",
+    confidence: 0.98,
+    model_name: "ResNet-50",
+    gradcam,
+    probabilities: {
+      Normal: 0.01,
+      "Pneumonia-Bacteria": 0.01,
+      "Pneumonia-Virus": 0.98,
+    },
+  };
+}
+
+function demoModel2Vision(kind: DemoAnalyzeKind, gradcam: string): Model2VisionResult {
+  if (kind === "normal") {
+    return {
+      prediction: "Normal",
+      confidence: 0.92,
+      status: "success",
+      model_name: "ResNet-152V2 (Edward)",
+      input_type: "vision",
+      probabilities: {
+        Normal: 0.92,
+        "Viral Pneumonia": 0.05,
+        "Lung Opacity": 0.03,
+      },
+      gradcam,
+    };
+  }
+  return {
+    prediction: "Viral Pneumonia",
+    confidence: 0.94,
+    status: "success",
+    model_name: "ResNet-152V2 (Edward)",
+    input_type: "vision",
+    probabilities: {
+      Normal: 0.02,
+      "Viral Pneumonia": 0.94,
+      "Lung Opacity": 0.04,
+    },
+    gradcam,
+  };
+}
+
+function demoDenseNetModel3(kind: DemoAnalyzeKind, gradcam: string) {
+  if (kind === "normal") {
+    return {
+      model_name: "DenseNet-121",
+      prediction: "Normal",
+      class_name: "Normal",
+      confidence_score: 0.9,
+      probabilities: {
+        Normal: 0.9,
+        "Pneumonia-Bacteria": 0.04,
+        "Pneumonia-Virus": 0.06,
+      },
+      gradcam,
+    };
+  }
+  return {
+    model_name: "DenseNet-121",
+    prediction: "Pneumonia-Virus",
+    class_name: "Pneumonia-Virus",
+    confidence_score: 0.93,
+    probabilities: {
+      Normal: 0.03,
+      "Pneumonia-Bacteria": 0.04,
+      "Pneumonia-Virus": 0.93,
+    },
+    gradcam,
+  };
+}
+
+function demoModel4Swint(kind: DemoAnalyzeKind) {
+  if (kind === "normal") {
+    const probabilities: Record<string, number> = {
+      Normal: 0.89,
+      Consolidation: 0.03,
+      Effusion: 0.02,
+      Edema: 0.02,
+      Atelectasis: 0.02,
+      Cardiomegaly: 0.02,
+    };
+    return {
+      prediction: "Normal",
+      confidence: 0.89,
+      status: "success",
+      model_name: "Swin-T",
+      probabilities,
+    };
+  }
+  const probabilities: Record<string, number> = {
+    Normal: 0.03,
+    "Viral Pneumonia": 0.9,
+    "Lung Opacity": 0.05,
+    Consolidation: 0.02,
+  };
+  return {
+    prediction: "Viral Pneumonia",
+    confidence: 0.9,
+    status: "success",
+    model_name: "Swin-T",
+    probabilities,
+  };
+}
+
+function demoModel5DenseNet(kind: DemoAnalyzeKind) {
+  if (kind === "normal") {
+    const probabilities: Record<string, number> = {
+      Normal: 0.87,
+      "No Finding": 0.87,
+      Atelectasis: 0.03,
+      Effusion: 0.02,
+      Infiltration: 0.03,
+      Pneumonia: 0.02,
+      Consolidation: 0.03,
+    };
+    return {
+      prediction: "Normal",
+      confidence: 0.87,
+      status: "success",
+      model_name: "DenseNet-121 Expansion",
+      probabilities,
+    };
+  }
+  const probabilities: Record<string, number> = {
+    Normal: 0.03,
+    Pneumonia: 0.92,
+    Infiltration: 0.78,
+    Consolidation: 0.33,
+    Effusion: 0.05,
+  };
+  return {
+    prediction: "Viral Pneumonia",
+    confidence: 0.92,
+    status: "success",
+    model_name: "DenseNet-121 Expansion",
+    probabilities,
+  };
+}
+
+function demoModel6(kind: DemoAnalyzeKind): Model6TabularResult {
+  const high = kind === "viral";
+  return {
+    prediction: high ? "High COPD Risk" : "Low COPD Risk",
+    confidence: high ? 0.74 : 0.82,
+    status: "success",
+    input_type: "tabular",
+    model_name: "Chronic Lung Risk (COPD)",
+    label: high ? "High COPD Risk" : "Low COPD Risk",
+    probabilities: {
+      "High COPD Risk": high ? 0.74 : 0.18,
+      "Low COPD Risk": high ? 0.26 : 0.82,
+    },
+  };
+}
+
+function demoClinicalRisk(kind: DemoAnalyzeKind): StageClinicalResult {
+  if (kind === "viral") {
+    return { enabled: true, severity: "moderate", risk_level: "high", recovery_outlook: "uncertain" };
+  }
+  return { enabled: true, severity: "low", risk_level: "low", recovery_outlook: "favorable" };
+}
+
+function questionnaireSummary(q: Stage3QuestionnaireInput | null | undefined): string {
+  if (!q) return "the questionnaire profile entered during the demo";
+  const smokingText =
+    q.smoking === "never" ? "a non-smoker" : q.smoking === "former" ? "a former smoker" : "a current smoker";
+  const feverText = q.fever ? "reported fever" : "no reported fever";
+  return `${q.age}-year-old ${smokingText} with a ${q.coughDurationDays}-day cough and ${feverText}`;
+}
+
+function demoReport(kind: DemoAnalyzeKind, q: Stage3QuestionnaireInput | null | undefined): StageReportResult {
+  const patient = questionnaireSummary(q);
+  if (kind === "normal") {
+    return {
+      summary:
+        `Educational analysis suggests no significant pulmonary opacity or consolidation in this demo image. Questionnaire inputs for ${patient} map to a low COPD screening risk in the tabular stage.`,
+      recommended_actions: [
+        "Review the official radiology report with your clinician.",
+        "Use symptoms and history to decide whether routine follow-up is appropriate.",
+        "Treat this as educational context rather than a diagnosis.",
+      ],
+      disclaimer: PIPELINE.reportDisclaimer,
+    };
+  }
+  return {
+    summary:
+      `Educational analysis suggests patterns associated with viral pneumonia and lung opacity in this demo image. Questionnaire inputs for ${patient} map to a high COPD screening risk in the tabular stage.`,
+    recommended_actions: [
+      "Discuss the highlighted regions and symptom history with your clinician.",
+      "Compare this educational output with the official radiology impression and any clinical testing.",
+      "Do not self-diagnose or start treatment from this demo output alone.",
+    ],
+    disclaimer: PIPELINE.reportDisclaimer,
+  };
+}
+
+function demoLlmText(kind: DemoAnalyzeKind, q: Stage3QuestionnaireInput | null | undefined): string {
+  const patient = questionnaireSummary(q);
+  if (kind === "normal") {
+    return `### 🩺 Clinical Observation
+
+The AI ensemble has established a consensus of **normal pulmonary findings** in this educational demo. No significant opacities, focal consolidations, or high-salience abnormalities were highlighted across the vision models. This output remains educational and must be interpreted alongside the official radiology report.
+
+### 💡 Clinical Context & Management Strategy
+
+When the imaging pattern is paired with the questionnaire profile for ${patient}, the tabular screening stage returns **Low COPD Risk**. In routine practice, clinicians usually weigh symptoms, prior imaging, smoking history, and physical examination before deciding whether any follow-up is needed.
+
+### 📌 What To Discuss With Your Clinician
+
+You can use this demo result to ask whether your formal report was also read as reassuring, whether prior chest imaging should be compared, and which symptoms would justify re-evaluation. LungLens does not confirm that a patient is normal and does not replace clinician judgment.`;
+  }
+
+  return `### 🩺 Clinical Observation
+
+The AI analysis detected patterns **consistent with lung opacity and viral pneumonia** in this educational demo. Multiple computer vision models converged on a similar signal, which is why the ensemble presents a strong consensus. This remains educational output and is not a diagnosis.
+
+### 💡 Clinical Context & Management Strategy
+
+When the imaging pattern is paired with the questionnaire profile for ${patient}, the tabular screening stage returns **High COPD Risk**. In standard clinical practice, a clinician would compare the chest X-ray with symptoms, oxygenation, examination findings, and any virology testing before deciding on next steps.
+
+### 📌 What To Discuss With Your Clinician
+
+You can ask whether the highlighted lung regions match the formal radiology impression, whether additional testing is appropriate, and how respiratory history changes the interpretation. LungLens is intended to support discussion with your clinician rather than provide treatment advice or certainty.`;
+}
+
+export function buildDemoLlmFallback(
+  kind: DemoAnalyzeKind,
+  q: Stage3QuestionnaireInput | null | undefined,
+): DemoLlmSynthesisResponse {
+  const llm_evaluation: LlmEvaluationResult = {
+    status: "success",
+    text: demoLlmText(kind, q),
+  };
+  return {
+    model4: demoReport(kind, q),
+    llm_evaluation,
+  };
+}
+
+export function buildDemoLlmSynthesisContext(
+  kind: DemoAnalyzeKind,
+  analysis: Pick<
+    AnalyzeSuccessResponse,
+    "predictions" | "gradcam" | "model1" | "model2" | "model3" | "model6"
+  >,
+  questionnaire: Stage3QuestionnaireInput,
+  locale = "en",
+): DemoLlmSynthesisContext {
+  const model2Prediction =
+    analysis.model2 && "prediction" in analysis.model2
+      ? analysis.model2.prediction
+      : analysis.model2 && "label" in analysis.model2
+        ? analysis.model2.label
+        : "Normal";
+  const model2Confidence =
+    analysis.model2 && "confidence" in analysis.model2 ? analysis.model2.confidence : 0;
+  const model3Prediction =
+    typeof analysis.model3?.class_name === "string"
+      ? analysis.model3.class_name
+      : typeof analysis.model3?.prediction === "string"
+        ? analysis.model3.prediction
+        : "Normal";
+  const model3Confidence =
+    typeof analysis.model3?.confidence_score === "number"
+      ? analysis.model3.confidence_score
+      : typeof analysis.model3?.confidence === "number"
+        ? analysis.model3.confidence
+        : 0;
+
+  return {
+    demo_kind: kind,
+    locale,
+    questionnaire_summary: questionnaireSummary(questionnaire),
+    predictions: analysis.predictions,
+    gradcam_top_prediction: analysis.gradcam.top_prediction,
+    gradcam_confidence: analysis.gradcam.confidence,
+    model1_label: analysis.model1?.label ?? "Normal",
+    model1_confidence: analysis.model1?.confidence ?? 0,
+    model2_prediction: model2Prediction ?? "Normal",
+    model2_confidence: model2Confidence,
+    model3_prediction: model3Prediction,
+    model3_confidence: model3Confidence,
+    model6_prediction: analysis.model6?.prediction ?? "Unavailable",
+    model6_confidence: analysis.model6?.confidence ?? 0,
+  };
+}
+
+function demoTiming(kind: DemoAnalyzeKind, hasQuestionnaire: boolean) {
+  if (kind === "normal") {
+    return {
+      model1: 520,
+      model2: 610,
+      model3: 430,
+      model4: hasQuestionnaire ? 780 : 0,
+      model6: hasQuestionnaire ? 470 : 0,
+      total: 3500,
+    };
+  }
+  return {
+    model1: 540,
+    model2: 650,
+    model3: 470,
+    model4: hasQuestionnaire ? 820 : 0,
+    model6: hasQuestionnaire ? 510 : 0,
+    total: 3500,
+  };
+}
+
+function demoGate(kind: DemoAnalyzeKind, hasQuestionnaire: boolean) {
+  if (!hasQuestionnaire) {
+    return { route: "continue" as const, reason: "positive_detected" as const };
+  }
+  if (kind === "normal") {
+    return { route: "early_stop" as const, reason: "both_negative" as const };
+  }
+  return { route: "continue" as const, reason: "positive_detected" as const };
+}
+
+function demoGradcamTopPrediction(kind: DemoAnalyzeKind): { label: FindingLabel; confidence: number } {
+  if (kind === "normal") {
+    return { label: "Lung Opacity", confidence: 0.08 };
+  }
+  return { label: "Pneumonia", confidence: 0.96 };
+}
+
+function demoProvenance(kind: DemoAnalyzeKind, hasQuestionnaire: boolean) {
+  return {
+    run_mode: "real" as const,
+    model1_result: "model",
+    model2_result: "model",
+    model6_result: hasQuestionnaire ? "model" : "skipped",
+    model3_result: "model",
+    clinical_risk_result: hasQuestionnaire ? "rules" : "skipped",
+    gate_decision: "rules",
+    findings: "rules",
+    doctor_questions: hasQuestionnaire ? "rules" : "skipped",
+    report_summary: hasQuestionnaire ? "llm" : "skipped",
+    anatomy_guide: "static",
+    model1: { source: "model" as const, status: "ok" as const, model_id: `demo-${kind}-model1`, model_version: "demo-v2" },
+    model2: { source: "model" as const, status: "ok" as const, model_id: `demo-${kind}-model2`, model_version: "demo-v2" },
+    model6: hasQuestionnaire
+      ? { source: "model" as const, status: "ok" as const, model_id: `demo-${kind}-model6`, model_version: "demo-v2" }
+      : { source: "model" as const, status: "skipped" as const, model_id: `demo-${kind}-model6`, model_version: "demo-v2" },
+    model3: { source: "model" as const, status: "ok" as const, model_id: `demo-${kind}-model3`, model_version: "demo-v2" },
+    clinical_risk: hasQuestionnaire
+      ? { source: "rule" as const, status: "ok" as const, model_id: `demo-${kind}-clinical`, model_version: "demo-v2" }
+      : { source: "rule" as const, status: "skipped" as const, model_id: `demo-${kind}-clinical`, model_version: "demo-v2" },
+    model4: hasQuestionnaire
+      ? { source: "llm" as const, status: "ok" as const, model_id: `demo-${kind}-model4`, model_version: "demo-v2" }
+      : { source: "llm" as const, status: "skipped" as const, model_id: `demo-${kind}-model4`, model_version: "demo-v2" },
+    explanations: [
+      {
+        section: "pipeline-summary",
+        stage_keys: ["model1", "model2", "model3", "model6", "clinical_risk"],
+        source_type: "model" as const,
+      },
+      { section: "report-summary", stage_keys: ["model4"], source_type: "llm" as const },
+      { section: "anatomy-guide", stage_keys: ["pipeline"], source_type: "static" as const },
+    ],
+  };
+}
+
+export async function filenameDemoAnalyze(
+  image: File,
+  kind: DemoAnalyzeKind,
+  opts?: { questionnaire?: Stage3QuestionnaireInput | null },
+): Promise<AnalysisResult> {
+  await sleep(DEMO_INTERCEPT_DELAY_MS);
+
+  const questionnaire = opts?.questionnaire ?? null;
+  const hasQuestionnaire = Boolean(questionnaire);
+  const scenario = kind === "normal" ? NORMAL_DEMO_SCENARIO : VIRAL_DEMO_SCENARIO;
+  const heatmapBase64 = await createPlaceholderHeatmapBase64(image, scenario);
+  const predictions = demoPredictions(kind);
+  const gradcamTop = demoGradcamTopPrediction(kind);
+  const model6 = hasQuestionnaire ? demoModel6(kind) : undefined;
+  const clinicalRisk = hasQuestionnaire ? demoClinicalRisk(kind) : null;
+  const llmFallback = hasQuestionnaire ? buildDemoLlmFallback(kind, questionnaire) : null;
+
+  return {
+    success: true,
+    predictions,
+    gradcam: {
+      heatmap_base64: heatmapBase64,
+      top_prediction: gradcamTop.label,
+      confidence: gradcamTop.confidence,
+    },
+    gate: demoGate(kind, hasQuestionnaire),
+    model1: demoStage1(kind, heatmapBase64),
+    model2: demoModel2Vision(kind, heatmapBase64),
+    model3: demoDenseNetModel3(kind, heatmapBase64),
+    model4: llmFallback?.model4 ?? null,
+    model4_swint: demoModel4Swint(kind),
+    model5_densenet: demoModel5DenseNet(kind),
+    model6,
+    copd_screening: model6,
+    clinical_risk: clinicalRisk,
+    llm_evaluation: llmFallback?.llm_evaluation,
+    requires_questionnaire: !hasQuestionnaire,
+    timing_ms: demoTiming(kind, hasQuestionnaire),
+    provenance: demoProvenance(kind, hasQuestionnaire),
+    warnings: [],
+  };
+}
+
 /**
  * Simulates the ML API: delay, scenario-based scores, Grad-CAM-like heatmap, top prediction.
  * Intended to run in the browser (uses Canvas).
@@ -357,7 +839,7 @@ export async function mockAnalyze(
   image: File,
   opts?: { questionnaire?: Stage3QuestionnaireInput | null },
 ): Promise<AnalysisResult> {
-  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+  await sleep(MOCK_DELAY_MS);
 
   const t0 = performance.now?.() ?? Date.now();
   const scenario = selectScenario(image);

@@ -40,7 +40,7 @@ Important: this project is educational and research-oriented. It is not a medica
 - Charts: Recharts
 - Integration:
   - Mock path: `src/lib/mock.ts`
-  - Real path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`, `src/app/api/gemini/health-check/route.ts`
+  - Real path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`, `src/app/api/gemini/health-check/route.ts`, `src/app/api/demo-llm-evaluation/route.ts`
 
 ## Local Setup (Detailed)
 
@@ -74,6 +74,7 @@ Set values in `.env.local`:
   - Frontend routes call:
     - `${BACKEND_API_BASE_URL}/api/v1/analyze`
     - `${BACKEND_API_BASE_URL}/api/v1/gemini/health-check` (BYOK key probe; proxied by Next as `POST /api/gemini/health-check`)
+    - `${BACKEND_API_BASE_URL}/api/v1/demo-llm-evaluation` (demo filename flow with real Gemini synthesis)
     - `${BACKEND_API_BASE_URL}/api/v1/generate-questions`
     - `${BACKEND_API_BASE_URL}/api/v1/predict/densenet` (if used)
 - `BACKEND_API_KEY` (server-only)

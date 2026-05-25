@@ -20,7 +20,7 @@ import { UploadDestructiveAlert } from "@/components/upload/UploadDestructiveAle
 
 export function ClinicalQuestionnaire() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [pipelineFinishing, setPipelineFinishing] = useState(false);
   const [geminiKey, setGeminiKey] = useState("");
 
@@ -62,7 +62,7 @@ export function ClinicalQuestionnaire() {
     try {
       const key = geminiKey.trim();
       if (key) {
-        const probe = await probeGeminiApiKey(key);
+        const probe = await probeGeminiApiKey(key, imageFile);
         if (!probe.ok) {
           const msg = probe.error_code
             ? t(`upload.geminiHealth.${probe.error_code}`, probe.error || t("upload.geminiHealth.failed"))
@@ -75,6 +75,7 @@ export function ClinicalQuestionnaire() {
 
       const res = await analyzeImageFile(imageFile, {
         questionnaire,
+        locale,
         ...(key ? { geminiApiKey: key } : {}),
       });
 
