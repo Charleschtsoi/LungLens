@@ -205,35 +205,6 @@ export interface LlmEvaluationResult {
   text_by_locale?: LlmEvaluationTextByLocale;
 }
 
-export type DemoAnalyzeKind = "normal" | "viral";
-
-export interface DemoLlmSynthesisContext {
-  demo_kind: DemoAnalyzeKind;
-  locale?: string;
-  questionnaire_summary: string;
-  predictions: Predictions;
-  gradcam_top_prediction: FindingLabel;
-  gradcam_confidence: number;
-  model1_label: string;
-  model1_confidence: number;
-  model2_prediction: string;
-  model2_confidence: number;
-  model3_prediction: string;
-  model3_confidence: number;
-  model6_prediction: string;
-  model6_confidence: number;
-}
-
-export interface DemoLlmSynthesisRequest {
-  gemini_api_key: string;
-  context: DemoLlmSynthesisContext;
-}
-
-export interface DemoLlmSynthesisResponse {
-  model4: StageReportResult;
-  llm_evaluation: LlmEvaluationResult;
-}
-
 export interface StageTiming {
   model1: number;
   model2: number;
@@ -255,11 +226,11 @@ export interface EducationalInsight {
 /** @deprecated Use EducationalInsight */
 export type SuggestedDoctorQuestion = EducationalInsight;
 
-export type AnalyzeRunMode = "real" | "mock" | "hybrid";
+export type AnalyzeRunMode = "real" | "hybrid";
 export type AnalyzeStageStatus = "ok" | "fallback" | "failed" | "skipped";
-export type AnalyzeStageSource = "model" | "mock" | "rule" | "llm" | "static";
+export type AnalyzeStageSource = "model" | "rule" | "llm" | "static";
 /** Flat provenance tags from backend (`model1_result`, `findings`, …). Uses `rules` (not `rule`). */
-export type ProvenanceSectionSource = "model" | "rules" | "mock" | "llm" | "static";
+export type ProvenanceSectionSource = "model" | "rules" | "llm" | "static";
 export type AnalyzeStageKey =
   | "pipeline"
   | "model1"

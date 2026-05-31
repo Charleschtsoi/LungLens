@@ -398,7 +398,7 @@ export default function ResultsPage() {
       ? educationalInsights
       : fallbackInsights;
   const pdfInsightLines = educationalInsightsToPdfLines(resolvedInsights);
-  const runMode = analysis.provenance?.run_mode ?? (process.env.NEXT_PUBLIC_USE_MOCK === "true" ? "mock" : "real");
+  const runMode = analysis.provenance?.run_mode ?? "real";
   const runModeLabel = t(`results.runMode.${runMode}`, runMode);
   const warningMessages = (analysis.warnings ?? []).map((w) => w.message);
   const flatProv = isFlatSectionProvenance(analysis.provenance);

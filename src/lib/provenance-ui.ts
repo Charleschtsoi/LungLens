@@ -28,7 +28,7 @@ export const FLAT_PROVENANCE_KEYS = [
 
 export type FlatProvenanceKey = (typeof FLAT_PROVENANCE_KEYS)[number];
 
-const BADGE_SOURCES: ReadonlySet<string> = new Set(["model", "mock", "rule", "llm", "static"]);
+const BADGE_SOURCES: ReadonlySet<string> = new Set(["model", "rule", "llm", "static"]);
 
 /**
  * Normalizes backend `source` strings for badges (nested `model1.source`, flat tags, etc.).
@@ -96,24 +96,24 @@ export function hybridRunModeBannerMessage(
   if (m1 && !m2Vision) {
     return t(
       "results.provenance.hybridBanner.model1Only",
-      "Model 1 used a live classifier. Model 2 (ResNet-152V2) did not run as a loaded neural model on this run (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+      "Model 1 used a live classifier. Model 2 (ResNet-152V2) did not run as a loaded neural model on this run. Findings, attention overlay, and doctor-question hints may include rule-based scaffolding.",
     );
   }
   if (!m1 && m2Vision) {
     return t(
       "results.provenance.hybridBanner.model2Only",
-      "Model 2 (ResNet-152V2) ran on this upload. Model 1 did not run as a loaded X-ray classifier (mock or rules). Findings, attention overlay, and doctor-question hints may still be mock or rule-based.",
+      "Model 2 (ResNet-152V2) ran on this upload. Model 1 did not run as a loaded X-ray classifier. Findings, attention overlay, and doctor-question hints may include rule-based scaffolding.",
     );
   }
   if (!m1 && !m2Vision && m6Copd) {
     return t(
       "results.provenance.hybridBanner.model6Only",
-      "Model 6 (COPD tabular) ran on this upload. X-ray classifiers did not run as loaded neural models (mock or rules).",
+      "Model 6 (COPD tabular) ran on this upload. X-ray classifiers did not run as loaded neural models.",
     );
   }
   return t(
     "results.provenance.hybridBanner.fallback",
-    "This run mixed live and non-live sources. Check the pipeline badges for which steps used a model versus mock or rules.",
+    "This run mixed live and non-live sources. Check the pipeline badges for which steps used a model, rules, LLM, or static educational content.",
   );
 }
 
@@ -131,28 +131,20 @@ export function isNestedStageProvenance(p: AnalyzeProvenance | undefined): boole
 
 export function provenanceBadgeClassName(
   source: AnalyzeStageSource,
-  opts?: { prominent?: boolean },
 ): string {
-  const prominent = opts?.prominent ?? false;
   const base =
     "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-semibold tracking-tight";
-  const ring =
-    prominent && source === "mock"
-      ? " ring-2 ring-amber-400 ring-offset-2 ring-offset-background"
-      : "";
   switch (source) {
     case "model":
-      return `${base} border-emerald-200 bg-emerald-100 text-emerald-950${ring}`;
+      return `${base} border-emerald-200 bg-emerald-100 text-emerald-950`;
     case "rule":
-      return `${base} border-slate-300 bg-slate-100 text-slate-800${ring}`;
-    case "mock":
-      return `${base} border-amber-200 bg-amber-100 text-amber-950${ring}`;
+      return `${base} border-slate-300 bg-slate-100 text-slate-800`;
     case "llm":
-      return `${base} border-sky-200 bg-sky-100 text-sky-950${ring}`;
+      return `${base} border-sky-200 bg-sky-100 text-sky-950`;
     case "static":
-      return `${base} border-slate-200 bg-slate-100 text-slate-800${ring}`;
+      return `${base} border-slate-200 bg-slate-100 text-slate-800`;
     default:
-      return `${base} border-slate-200 bg-slate-100 text-slate-700${ring}`;
+      return `${base} border-slate-200 bg-slate-100 text-slate-700`;
   }
 }
 
@@ -195,7 +187,7 @@ export function buildFlatProvenanceSummary(
     bySource.set(e.source, list);
   }
 
-  const order: ProvenanceSectionSource[] = ["model", "rules", "mock", "llm", "static"];
+  const order: ProvenanceSectionSource[] = ["model", "rules", "llm", "static"];
   const parts: string[] = [];
   for (const source of order) {
     const labels = bySource.get(source);
@@ -219,8 +211,6 @@ function stageSentence(
   switch (sp.source) {
     case "model":
       return repl(t("results.provenance.nested.stageUsesModel", `Model ${n} uses a real ML model.`));
-    case "mock":
-      return repl(t("results.provenance.nested.stageUsesMock", `Model ${n} uses mock data.`));
     case "rule":
       return repl(t("results.provenance.nested.stageUsesRule", `Model ${n} is rule-based.`));
     case "llm":
@@ -579,13 +569,12 @@ export function nestedProvenanceImpactRows(
 
 /**
  * Findings scores mirror backend `predictions` (primary ML class scores). Badge defaults to rule-based
- * when the backend omits `provenance.findings`, so the UI does not imply separate mock 14-class scaffolding.
+ * when the backend omits `provenance.findings`, so the UI does not imply separate classifier stages.
  */
 export function resolveFindingsBadgeSource(prov: AnalyzeProvenance | undefined): AnalyzeStageSource | null {
   if (!prov) return null;
   const explicit = normalizeToBadgeSource(prov.findings);
   if (explicit) return explicit;
   if (prov.model2?.source === "model") return "rule";
-  if (prov.model2?.source === "mock") return "mock";
   return "rule";
 }

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const SECTION = "px-6 py-24 md:py-32";
 const H2 = "mt-3 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl";
 
-/** Product UI screenshots in /public (educational demo captures, not holdout plots). */
+/** Product UI screenshots in /public (interface captures, not holdout plots). */
 const PRODUCT_ASSETS = {
   resultsDashboard: "/result-page-ui.jpeg",
   clinicalQuestionnaire: "/clinical-questionnaire-ui.png",

@@ -34,7 +34,6 @@ export function UploadFlowShell() {
   const educationalNotDiagnosticAck = useAppStore((s) => s.educationalNotDiagnosticAck);
   const preQuestionnaireAnalysis = useAppStore((s) => s.preQuestionnaireAnalysis);
   const questionnaireSubmitted = useAppStore((s) => s.questionnaireSubmitted);
-  const configuredMode = process.env.NEXT_PUBLIC_USE_MOCK === "true" ? "demo" : "api";
 
   const steps = [
     { n: 1 as const, label: t("upload.step1") },
@@ -103,7 +102,7 @@ export function UploadFlowShell() {
         <p className="text-xs leading-relaxed text-muted-foreground/60">
           <span className="font-medium text-muted-foreground/70">{t("upload.modeConfiguredTitle")}</span>
           {" · "}
-          {t(`upload.modeConfigured.${configuredMode}`, configuredMode)}
+          {t("upload.modeConfigured.api")}
         </p>
       </footer>
     </div>

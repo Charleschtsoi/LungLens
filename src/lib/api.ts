@@ -1,9 +1,3 @@
-import {
-  buildDemoLlmSynthesisContext,
-  filenameDemoAnalyze,
-  mockAnalyze,
-  resolveDemoAnalyzeKind,
-} from "@/lib/mock";
 import { FINDING_LABELS } from "@/lib/constants";
 import {
   isDenseNetProbabilities,
@@ -15,13 +9,9 @@ import type {
   AnalyzeResponse,
   AnalyzeSuccessResponse,
   AnalyzeErrorCode,
-  DemoLlmSynthesisContext,
-  DemoLlmSynthesisResponse,
   DenseNetResponse,
-  LlmEvaluationResult,
   Predictions,
   Stage3QuestionnaireInput,
-  StageReportResult,
 } from "@/types";
 
 function analyzeUrl(): string {
@@ -30,8 +20,8 @@ function analyzeUrl(): string {
 
 /**
  * Single entry point for analysis from the app.
- * - `NEXT_PUBLIC_USE_MOCK=true` → client-side mock (no server hop).
- * - Otherwise → `POST` multipart `image` to frontend `/api/analyze` proxy.
+ * Browser uploads always go through the Next.js `/api/analyze` proxy,
+ * which forwards the raw image to the configured FastAPI backend.
  */
 export interface AnalyzeOptions {
   questionnaire?: Stage3QuestionnaireInput | null;
@@ -90,115 +80,10 @@ function isValidGradcam(value: unknown): boolean {
   );
 }
 
-function isStageReportResult(value: unknown): value is StageReportResult {
-  return (
-    Boolean(value) &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    typeof (value as StageReportResult).summary === "string" &&
-    Array.isArray((value as StageReportResult).recommended_actions) &&
-    (value as StageReportResult).recommended_actions.every((item) => typeof item === "string") &&
-    typeof (value as StageReportResult).disclaimer === "string"
-  );
-}
-
-function isLlmEvaluationResult(value: unknown): value is LlmEvaluationResult {
-  return (
-    Boolean(value) &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    typeof (value as LlmEvaluationResult).status === "string" &&
-    typeof (value as LlmEvaluationResult).text === "string"
-  );
-}
-
-const DEMO_LLM_SYNTHESIS_URL = "/api/demo-llm-evaluation";
-
-async function requestDemoLlmSynthesis(
-  geminiApiKey: string,
-  context: DemoLlmSynthesisContext,
-): Promise<DemoLlmSynthesisResponse | null> {
-  const body = {
-    gemini_api_key: geminiApiKey,
-    context,
-  };
-  const res = await fetch(DEMO_LLM_SYNTHESIS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  let data: unknown = null;
-  try {
-    data = (await res.json()) as unknown;
-  } catch {
-    data = null;
-  }
-
-  if (!res.ok) {
-    return null;
-  }
-  if (
-    !data ||
-    typeof data !== "object" ||
-    Array.isArray(data) ||
-    !isStageReportResult((data as DemoLlmSynthesisResponse).model4) ||
-    !isLlmEvaluationResult((data as DemoLlmSynthesisResponse).llm_evaluation)
-  ) {
-    return null;
-  }
-  return data as DemoLlmSynthesisResponse;
-}
-
 export async function analyzeImageFile(
   file: File,
   options?: AnalyzeOptions,
 ): Promise<AnalyzeResponse> {
-  const demoKind = resolveDemoAnalyzeKind(file);
-  if (demoKind) {
-    try {
-      const demoAnalysis = await filenameDemoAnalyze(file, demoKind, {
-        questionnaire: options?.questionnaire ?? null,
-      });
-      if (
-        demoAnalysis.success &&
-        options?.questionnaire &&
-        options?.geminiApiKey?.trim()
-      ) {
-        try {
-          const context = buildDemoLlmSynthesisContext(
-            demoKind,
-            demoAnalysis,
-            options.questionnaire,
-            options.locale ?? "en",
-          );
-          const overlay = await requestDemoLlmSynthesis(options.geminiApiKey.trim(), context);
-          if (overlay) {
-            demoAnalysis.model4 = overlay.model4;
-            demoAnalysis.llm_evaluation = overlay.llm_evaluation;
-          }
-        } catch {
-          /* Fall back to deterministic local demo report text. */
-        }
-      }
-      return demoAnalysis;
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Demo analysis failed.";
-      return { success: false, error: message };
-    }
-  }
-
-  const useMock = process.env.NEXT_PUBLIC_USE_MOCK === "true";
-
-  if (useMock) {
-    try {
-      return await mockAnalyze(file, { questionnaire: options?.questionnaire ?? null });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Mock analysis failed.";
-      return { success: false, error: message };
-    }
-  }
-
   /** Browser always POSTs here; Next.js route forwards to BACKEND_API_BASE_URL/api/v1/analyze (see src/app/api/analyze/route.ts). */
   const url = analyzeUrl();
 
@@ -325,7 +210,6 @@ export type GeminiHealthCheckResult =
 /**
  * BYOK probe: short backend `generate_content` using the same model path as analyze.
  * - Empty / whitespace-only key → `{ ok: true, skipped: true }` (no network).
- * - Mock mode → skipped, no network.
  */
 export async function probeGeminiApiKey(
   geminiApiKey: string | undefined | null,
@@ -333,11 +217,6 @@ export async function probeGeminiApiKey(
 ): Promise<GeminiHealthCheckResult> {
   const trimmed = typeof geminiApiKey === "string" ? geminiApiKey.trim() : "";
   if (!trimmed) {
-    return { ok: true, skipped: true };
-  }
-
-  const useMock = process.env.NEXT_PUBLIC_USE_MOCK === "true";
-  if (useMock) {
     return { ok: true, skipped: true };
   }
 
@@ -392,7 +271,7 @@ const DENSENET_UNAVAILABLE = "__DENSENET_UNAVAILABLE__";
 
 /**
  * POST /api/predict/densenet → backend /predict (multipart `file`) via Next proxy.
- * Does not use mock mode; requires Next proxy + backend configured.
+ * Requires Next proxy + backend configured.
  */
 export async function predictDenseNet(imageFile: File): Promise<DenseNetResponse> {
   const form = new FormData();

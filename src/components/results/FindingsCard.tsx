@@ -60,7 +60,7 @@ export function FindingsCard({
   predictions: Predictions | null;
   /** When set (e.g. merged fusion + per-model >50%), drives notice rows instead of fusion-only scores. */
   notableFindings?: AiNoticeFindingRow[] | null;
-  /** Resolved badge source (mock / rule / …) from provenance. */
+  /** Resolved badge source from provenance. */
   findingsBadgeSource?: AnalyzeStageSource | null;
 }) {
   const { t, locale } = useI18n();
@@ -70,9 +70,6 @@ export function FindingsCard({
       : predictions
         ? legacyNotableToRows(getNotableFindings(predictions))
         : [];
-  const findingsAreMock = findingsBadgeSource === "mock";
-  const showDemoFindingsNotice = findingsAreMock;
-  const showPrimaryClassNotice = !showDemoFindingsNotice;
   return (
     <Card id="what-ai-noticed">
       <CardHeader>
@@ -80,27 +77,18 @@ export function FindingsCard({
           <div className="min-w-0 flex-1 space-y-1.5">
             <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
               <span>{t("results.anatomyHeader")}</span>
-              <SectionSourceBadge source={findingsBadgeSource} prominentMock={findingsAreMock} />
+              <SectionSourceBadge source={findingsBadgeSource} />
             </CardTitle>
             <CardDescription>{t("results.anatomySub")}</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {showDemoFindingsNotice && (
-          <Alert className="border-amber-200 bg-amber-50 text-amber-950 shadow-sm [&>div]:text-amber-950">
-            <AlertDescription className="text-sm font-medium">
-              {t("results.provenance.findingsDemoNotice")}
-            </AlertDescription>
-          </Alert>
-        )}
-        {showPrimaryClassNotice && (
-          <Alert className="border-slate-200 bg-slate-50 text-slate-900 shadow-sm [&>div]:text-slate-900">
-            <AlertDescription className="text-sm font-medium">
-              {t("results.provenance.findingsPrimaryClassNotice")}
-            </AlertDescription>
-          </Alert>
-        )}
+        <Alert className="border-slate-200 bg-slate-50 text-slate-900 shadow-sm [&>div]:text-slate-900">
+          <AlertDescription className="text-sm font-medium">
+            {t("results.provenance.findingsPrimaryClassNotice")}
+          </AlertDescription>
+        </Alert>
         {notable.length === 0 ? (
           <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
             <p>{t("results.noSignificant")}</p>

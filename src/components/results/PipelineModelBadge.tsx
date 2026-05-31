@@ -15,7 +15,7 @@ type PipelineModelBadgeProps = {
   modelNumber: PipelineModelNumber;
   /** Model ran successfully (vision classifier or tabular Model 2). */
   live?: boolean;
-  /** When not live, show mock/rule/static badge from provenance if present. */
+  /** When not live, show rule/LLM/static badge from provenance if present. */
   provenanceSource?: unknown;
   className?: string;
 };

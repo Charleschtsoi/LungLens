@@ -218,7 +218,7 @@ export function PitchPresentation() {
           >
             <Button asChild size="lg" className={PRIMARY_CTA}>
               <FreshUploadLink href="/upload" className="inline-flex items-center gap-2 font-bold">
-                Launch Live Demo
+                Launch Live App
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </FreshUploadLink>
             </Button>
@@ -376,7 +376,7 @@ export function PitchPresentation() {
           <SectionIntro
             label="Holdout validation"
             title="Performance metrics on validation splits"
-            description="Reported figures reflect internal holdout evaluation for research demonstration — not clinical deployment claims."
+            description="Reported figures reflect internal holdout evaluation for research use — not clinical deployment claims."
           />
           <motion.div
             className="mt-14 grid gap-6 md:grid-cols-3"
@@ -500,7 +500,7 @@ export function PitchPresentation() {
               >
                 GNU AGPLv3
               </a>
-              . Educational demonstration — not FDA-cleared diagnostic software.
+              . Educational software — not FDA-cleared diagnostic software.
             </p>
           </footer>
         </motion.div>

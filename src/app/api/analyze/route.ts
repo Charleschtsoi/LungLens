@@ -3,7 +3,7 @@ import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 
 const BACKEND_TIMEOUT_MS = 30000;
 
-/** 1×1 PNG — used when backend omits heatmaps (healthy/demo runs) so normalization + client checks succeed. */
+/** 1×1 PNG — used when backend omits heatmaps (for example, healthy runs) so normalization + client checks succeed. */
 const PLACEHOLDER_HEATMAP_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 

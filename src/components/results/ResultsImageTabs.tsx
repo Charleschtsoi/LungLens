@@ -73,9 +73,9 @@ export function ResultsImageTabs({
 
   const hasM1 = Boolean(model1AttentionBase64);
   const hasM3 = Boolean(model3AttentionBase64);
-  const hasGlobalDemoHeatmap = !hasM1 && !hasM3 && Boolean(globalHeatmapBase64);
+  const hasFallbackHeatmap = !hasM1 && !hasM3 && Boolean(globalHeatmapBase64);
   const globalHeatmapSrc = globalHeatmapBase64 ? attentionDataUrl(globalHeatmapBase64) : null;
-  const hasAnyAttention = hasM1 || hasM3 || hasGlobalDemoHeatmap;
+  const hasAnyAttention = hasM1 || hasM3 || hasFallbackHeatmap;
   const showSoloModelCamNote = hasM1 && !hasM3 && hasAnyAttention;
 
   const attentionBody = !hasAnyAttention ? (
@@ -109,11 +109,11 @@ export function ResultsImageTabs({
         )}
       </div>
     </figure>
-  ) : hasGlobalDemoHeatmap && globalHeatmapSrc ? (
+  ) : hasFallbackHeatmap && globalHeatmapSrc ? (
     <div className="grid w-full grid-cols-1 justify-items-center">
       <div className={cn(attentionFrameClass, "max-w-4xl")}>
         <span className={badgeClassName} aria-hidden>
-          {t("results.attention.overlayBadgeGlobalDemo")}
+          {t("results.attention.overlayBadgeGlobal")}
         </span>
         {previewUrl ? (
           <div className="relative z-0 mx-auto max-h-[560px] w-full max-w-4xl">

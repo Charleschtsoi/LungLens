@@ -1,4 +1,4 @@
-# LungLens Env Switch Notes
+# LungLens Backend Env Notes
 
 Use this as a quick reference when switching between localhost backend testing and production backend.
 
@@ -7,7 +7,6 @@ Use this as a quick reference when switching between localhost backend testing a
 Set `.env.local` to:
 
 ```env
-NEXT_PUBLIC_USE_MOCK=false
 BACKEND_API_BASE_URL=http://127.0.0.1:7861
 BACKEND_API_KEY=test-key
 ```
@@ -21,7 +20,6 @@ Notes:
 Set `.env.local` to:
 
 ```env
-NEXT_PUBLIC_USE_MOCK=false
 BACKEND_API_BASE_URL=https://charleschtsoi-lunglens-backend.hf.space
 BACKEND_API_KEY=<your production backend key>
 ```
@@ -47,7 +45,6 @@ Before production push/deploy:
 You can override at command run time:
 
 ```bash
-NEXT_PUBLIC_USE_MOCK=false \
 BACKEND_API_BASE_URL=http://127.0.0.1:7861 \
 BACKEND_API_KEY=test-key \
 npm run dev -- -p 3006

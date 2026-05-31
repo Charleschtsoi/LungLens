@@ -8,22 +8,14 @@ Important: this project is educational and research-oriented. It is not a medica
 
 1. Install dependencies: `npm install`
 2. Copy env template: `cp .env.example .env.local`
-3. Start in mock mode first:
-   - set `NEXT_PUBLIC_USE_MOCK=true`
-   - run `npm run dev`
-4. Open [http://localhost:3000](http://localhost:3000), upload any chest image, confirm results page renders.
-5. Switch to real backend:
-   - set `NEXT_PUBLIC_USE_MOCK=false`
-   - set `BACKEND_API_BASE_URL` and `BACKEND_API_KEY`
-   - restart dev server
-6. Re-test upload + results flow.
+3. Set `BACKEND_API_BASE_URL` and `BACKEND_API_KEY` for the ML backend.
+4. Run `npm run dev`.
+5. Open [http://localhost:3000](http://localhost:3000), upload a chest image, and confirm the backend-backed results page renders.
 
 ## What This App Does
 
 - Guides users through doctor-review + disclaimer-aware upload flow.
-- Runs analysis through:
-  - browser mock mode (`NEXT_PUBLIC_USE_MOCK=true`), or
-  - server proxy route (`/api/analyze`) forwarding to backend.
+- Runs analysis through the server proxy route (`/api/analyze`) forwarding to the configured ML backend.
 - Shows educational results:
   - original image,
   - AI attention overlay,
@@ -39,8 +31,8 @@ Important: this project is educational and research-oriented. It is not a medica
 - Upload: react-dropzone
 - Charts: Recharts
 - Integration:
-  - Mock path: `src/lib/mock.ts`
-  - Real path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`, `src/app/api/gemini/health-check/route.ts`, `src/app/api/demo-llm-evaluation/route.ts`
+  - Upload path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`
+  - Gemini key probe: `src/app/api/gemini/health-check/route.ts`
 
 ## Local Setup (Detailed)
 
@@ -64,9 +56,6 @@ cp .env.example .env.local
 
 Set values in `.env.local`:
 
-- `NEXT_PUBLIC_USE_MOCK`
-  - `true` = browser mock pipeline
-  - `false` = use server proxy routes
 - `NEXT_PUBLIC_API_URL`
   - Used only for silent warm-up ping (`${NEXT_PUBLIC_API_URL}/health`).
 - `BACKEND_API_BASE_URL` (server-only)
@@ -74,7 +63,6 @@ Set values in `.env.local`:
   - Frontend routes call:
     - `${BACKEND_API_BASE_URL}/api/v1/analyze`
     - `${BACKEND_API_BASE_URL}/api/v1/gemini/health-check` (BYOK key probe; proxied by Next as `POST /api/gemini/health-check`)
-    - `${BACKEND_API_BASE_URL}/api/v1/demo-llm-evaluation` (demo filename flow with real Gemini synthesis)
     - `${BACKEND_API_BASE_URL}/api/v1/generate-questions`
     - `${BACKEND_API_BASE_URL}/api/v1/predict/densenet` (if used)
 - `BACKEND_API_KEY` (server-only)
@@ -139,34 +127,10 @@ See [`docs/BACKEND_MODELS.md`](docs/BACKEND_MODELS.md) for detailed payload cont
 
 ## Manual Test Checklist
 
-### A) Mock mode test
+### A) Real backend test
 
 Use:
 
-- `NEXT_PUBLIC_USE_MOCK=true`
-
-Steps:
-
-1. Open `/upload`
-2. Complete doctor gate + privacy step
-3. Upload image and run analysis
-4. Verify `/results` renders:
-   - pipeline cards
-   - findings section with three-class labels only
-   - doctor questions section
-   - visible educational disclaimers
-5. Export PDF and confirm file downloads.
-
-Expected:
-
-- Findings badge may show `Mock Data`
-- Findings notice indicates demo/mock context.
-
-### B) Real backend test
-
-Use:
-
-- `NEXT_PUBLIC_USE_MOCK=false`
 - valid `BACKEND_API_BASE_URL` and `BACKEND_API_KEY`
 
 Steps:
@@ -181,13 +145,13 @@ Steps:
    - provenance badge aligns with backend source metadata
    - text: "These findings are generated directly from the AI models' primary classifications."
 
-### C) Error handling test
+### B) Error handling test
 
-1. Stop backend and run with `NEXT_PUBLIC_USE_MOCK=false`
+1. Stop backend.
 2. Upload an image
 3. Confirm user-facing error is graceful and app does not crash.
 
-### D) i18n smoke test
+### C) i18n smoke test
 
 1. Switch language in UI
 2. Verify findings titles/descriptions and provenance messages render in selected locale.
@@ -220,7 +184,6 @@ src/lib/i18n.ts                          # Localized copy
 src/lib/provenance-ui.ts                 # Badge normalization and provenance mapping
 src/app/api/analyze/route.ts             # Backend response normalization
 src/lib/high-attention-findings.ts       # Mapping to doctor-question triggers
-src/lib/mock.ts                          # Browser mock pipeline implementation
 src/types/index.ts                       # Shared API/types contract
 docs/BACKEND_MODELS.md                   # Backend payload expectations
 ```
@@ -245,7 +208,6 @@ docs/BACKEND_MODELS.md                   # Backend payload expectations
 - Frontend: Vercel, **Cloudflare Workers** (OpenNext), or any Next.js-compatible runtime
 - Backend: container host (Railway, Cloud Run, etc.)
 - Set platform env vars:
-  - `NEXT_PUBLIC_USE_MOCK`
   - `NEXT_PUBLIC_API_URL`
   - `BACKEND_API_BASE_URL`
   - `BACKEND_API_KEY`
@@ -264,7 +226,6 @@ Cloudflare’s auto-migrate installs `@opennextjs/cloudflare@latest`, which **re
 
 - `BACKEND_API_BASE_URL` — your ML API root (HTTPS)
 - `BACKEND_API_KEY` — server API key
-- `NEXT_PUBLIC_USE_MOCK` — `false` for production
 - `NEXT_PUBLIC_API_URL` — optional warm-up health URL
 
 The log line `WARN Failed to set up cache for your project` is expected when R2 is not enabled; caching uses the default in-memory config in `open-next.config.ts` until you add an R2 bucket binding.
