@@ -1,35 +1,18 @@
 import { NextResponse } from "next/server";
+import {
+  BACKEND_ANALYZE_TIMEOUT_MS,
+  backendApiKey,
+  backendBaseUrl,
+  backendEndpoint,
+  fetchBackendWithTimeout,
+} from "@/lib/backend-bff-server";
 
-const BACKEND_TIMEOUT_MS = 30000;
+export const maxDuration = 60;
 
 type JsonRecord = Record<string, unknown>;
 
-function backendBaseUrl(): string | null {
-  const base = process.env.BACKEND_API_BASE_URL?.trim();
-  if (!base) return null;
-  return base.replace(/\/$/, "");
-}
-
-function endpoint(base: string, path: string): string {
-  return `${base}${path}`;
-}
-
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
-  try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      cache: "no-store",
-    });
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 async function parseJsonBody(res: Response): Promise<JsonRecord | null> {
@@ -49,7 +32,7 @@ async function parseJsonBody(res: Response): Promise<JsonRecord | null> {
  */
 export async function POST(req: Request) {
   const base = backendBaseUrl();
-  const apiKey = process.env.BACKEND_API_KEY?.trim();
+  const apiKey = backendApiKey();
 
   if (!base) {
     return NextResponse.json(
@@ -60,7 +43,6 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
-
 
   try {
     const incoming = await req.formData();
@@ -76,11 +58,15 @@ export async function POST(req: Request) {
     const forward = new FormData();
     forward.append("file", image, image.name);
 
-    const res = await fetchWithTimeout(endpoint(base, "/predict"), {
-      method: "POST",
-      headers: apiKey ? { "X-API-Key": apiKey } : {},
-      body: forward,
-    });
+    const res = await fetchBackendWithTimeout(
+      backendEndpoint(base, "/predict/densenet"),
+      {
+        method: "POST",
+        headers: apiKey ? { "X-API-Key": apiKey } : {},
+        body: forward,
+      },
+      BACKEND_ANALYZE_TIMEOUT_MS,
+    );
 
     const payload = await parseJsonBody(res);
 
@@ -102,7 +88,7 @@ export async function POST(req: Request) {
         success: false,
         error: isAbort ? "Backend request timed out." : "Network error contacting backend.",
       },
-      { status: 502 },
+      { status: isAbort ? 504 : 502 },
     );
   }
 }

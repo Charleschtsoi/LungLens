@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { warmBackend } from "@/lib/backend-warmup";
 import { useAppStore } from "@/store/useAppStore";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -36,7 +37,10 @@ export function PrivacyNotice() {
         <Button
           type="button"
           disabled={!educationalNotDiagnosticAck}
-          onClick={() => setUploadFlowStep(3)}
+          onClick={() => {
+            warmBackend();
+            setUploadFlowStep(3);
+          }}
         >
           {t("upload.privacy.next")}
         </Button>

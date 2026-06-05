@@ -15,9 +15,11 @@ Set in **Project → Settings → Environment Variables** (Production + Preview)
 |----------|--------|
 | `BACKEND_API_BASE_URL` | `https://charleschtsoi-lunglens-backend.hf.space` |
 | `BACKEND_API_KEY` | Same as Hugging Face Space `API_KEY` |
-| `NEXT_PUBLIC_API_URL` | Optional: same HF base URL (silent backend warm-up) |
+| `NEXT_PUBLIC_API_URL` | Optional (legacy). Warm-up uses `GET /api/health` BFF — no public HF URL required. |
 
 Do **not** set `NEXT_PUBLIC_USE_MOCK` (removed from codebase).
+
+**Vercel Pro** recommended: analyze route uses `maxDuration = 60` and 60s BFF timeout to HF.
 
 Redeploy after changing env vars.
 
@@ -28,7 +30,7 @@ In **Settings → Variables** for `Charleschtsoi/lunglens-backend`:
 - `ENVIRONMENT=production`
 - `REQUIRE_API_KEY=true`
 - `API_KEY` — must match Vercel `BACKEND_API_KEY`
-- `ALLOWED_ORIGINS` — include `https://lung-lens.vercel.app` (no `*` in production)
+- `ALLOWED_ORIGINS` — include your live Vercel URL(s), e.g. `https://lung-lens-five.vercel.app` and any custom domain (no `*` in production)
 - Enable models and set `*_PATH` for weights under `/app/models/` (weights are not in Git)
 
 ## Smoke tests

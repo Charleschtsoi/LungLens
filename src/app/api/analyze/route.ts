@@ -1,26 +1,21 @@
 import { NextResponse } from "next/server";
 import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
+import {
+  BACKEND_ANALYZE_TIMEOUT_MS,
+  backendApiKey,
+  backendBaseUrl as resolveBackendBaseUrl,
+  backendEndpoint,
+  fetchBackendWithTimeout,
+} from "@/lib/backend-bff-server";
 
 /** Vercel Pro allows up to 300s; HF cold start + multi-model analyze often exceeds Hobby 10s default. */
 export const maxDuration = 60;
-
-const BACKEND_TIMEOUT_MS = 30000;
 
 /** 1×1 PNG — used when backend omits heatmaps (for example, healthy runs) so normalization + client checks succeed. */
 const PLACEHOLDER_HEATMAP_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 type JsonRecord = Record<string, unknown>;
-
-function backendBaseUrl(): string | null {
-  const base = process.env.BACKEND_API_BASE_URL?.trim();
-  if (!base) return null;
-  return base.replace(/\/$/, "");
-}
-
-function endpoint(base: string, path: string): string {
-  return `${base}${path}`;
-}
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -576,20 +571,6 @@ function normalizeSuccessPayload(payload: JsonRecord): JsonRecord | null {
   return normalized;
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
-  try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      cache: "no-store",
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function parseJsonBody(res: Response): Promise<JsonRecord | null> {
   const text = await res.text();
   if (!text) return null;
@@ -613,8 +594,8 @@ async function parseJsonBody(res: Response): Promise<JsonRecord | null> {
  * `isValidGradcam` after proxy normalization.
  */
 export async function POST(req: Request) {
-  const base = backendBaseUrl();
-  const apiKey = process.env.BACKEND_API_KEY?.trim();
+  const base = resolveBackendBaseUrl();
+  const apiKey = backendApiKey();
 
   if (!base) {
     return NextResponse.json(
@@ -659,11 +640,15 @@ export async function POST(req: Request) {
       forward.append("gemini_api_key", geminiKey.trim());
     }
 
-    const res = await fetchWithTimeout(endpoint(base, "/api/v1/analyze"), {
-      method: "POST",
-      headers: apiKey ? { "X-API-Key": apiKey } : {},
-      body: forward,
-    });
+    const res = await fetchBackendWithTimeout(
+      backendEndpoint(base, "/api/v1/analyze"),
+      {
+        method: "POST",
+        headers: apiKey ? { "X-API-Key": apiKey } : {},
+        body: forward,
+      },
+      BACKEND_ANALYZE_TIMEOUT_MS,
+    );
     const payload = await parseJsonBody(res);
 
     if (!payload) {

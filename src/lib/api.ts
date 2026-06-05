@@ -37,7 +37,7 @@ function normalizeError(status: number, fallback?: string): string {
       return "Model 2 is temporarily unavailable. We are showing fallback educational output.";
     }
     if (lower.includes("timed out")) {
-      return "AI service timed out. Please retry in a moment.";
+      return "AI service timed out. First analysis can take up to a minute while the service starts. Please retry.";
     }
   }
   if (fallback && fallback.trim()) return fallback;

@@ -1,18 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { warmBackend } from "@/lib/backend-warmup";
 
-function backendHealthUrl(): string | null {
-  const base = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (!base) return null;
-  return `${base.replace(/\/$/, "")}/health`;
-}
-
+/** Wake HF via BFF once on app load (fire-and-forget). */
 export function BackendWarmup() {
   useEffect(() => {
-    const healthUrl = backendHealthUrl();
-    if (!healthUrl) return;
-    fetch(healthUrl).catch(() => {});
+    warmBackend();
   }, []);
 
   return null;

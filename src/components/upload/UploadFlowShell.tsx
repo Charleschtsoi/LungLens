@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { warmBackend } from "@/lib/backend-warmup";
 import { DoctorGateQuestion } from "@/components/upload/DoctorGateQuestion";
 import { useAppMotion } from "@/lib/app-motion";
 import { PrivacyNotice } from "@/components/upload/PrivacyNotice";
@@ -41,6 +43,16 @@ export function UploadFlowShell() {
     { n: 3 as const, label: t("upload.step3") },
     { n: 4 as const, label: t("upload.step4") },
   ];
+  useEffect(() => {
+    warmBackend();
+  }, []);
+
+  useEffect(() => {
+    if (educationalNotDiagnosticAck && step >= 3) {
+      warmBackend();
+    }
+  }, [educationalNotDiagnosticAck, step]);
+
   const canAccessStep = (target: (typeof steps)[number]["n"]): boolean => {
     if (target === 1) return true;
     if (target === 2) return doctorReviewed !== null;

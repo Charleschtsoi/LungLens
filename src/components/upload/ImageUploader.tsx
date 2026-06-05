@@ -9,6 +9,8 @@ import { useDropzone, type FileRejection } from "react-dropzone";
 import { FileImage, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeImageFile } from "@/lib/api";
+import { warmBackend } from "@/lib/backend-warmup";
+import type { AnalyzeErrorCode } from "@/types";
 import { persistAnalyzeSuccessToSession } from "@/lib/analysis-session-storage";
 import { holdPipelineCompleteAnimation } from "@/lib/analysis-pipeline-loading";
 import { denseNetResponseFromAnalyzeModel3 } from "@/lib/dense-net-from-analysis";
@@ -46,6 +48,8 @@ export function ImageUploader() {
   const { reduced } = useAppMotion();
   const [rejectError, setRejectError] = useState<string | null>(null);
   const [pipelineFinishing, setPipelineFinishing] = useState(false);
+  const [analysisErrorCode, setAnalysisErrorCode] = useState<AnalyzeErrorCode | null>(null);
+  const [analysisRetryable, setAnalysisRetryable] = useState(false);
 
   const imageFile = useAppStore((s) => s.imageFile);
   const previewUrl = useAppStore((s) => s.previewUrl);
@@ -105,6 +109,7 @@ export function ImageUploader() {
       }
       const url = isPreviewableImage(file) ? URL.createObjectURL(file) : null;
       setImage(file, url);
+      warmBackend();
     },
     [setImage, t],
   );
@@ -134,17 +139,27 @@ export function ImageUploader() {
     },
   });
 
-  const runAnalyze = async () => {
+  const runAnalyze = async (options?: { afterTimeout?: boolean }) => {
     const file = useAppStore.getState().imageFile;
     if (!file || showPipelineLoader) return;
     setAnalysisError(null);
+    setAnalysisErrorCode(null);
+    setAnalysisRetryable(false);
     setPipelineFinishing(false);
     setAnalysisLoading(true);
+    if (options?.afterTimeout) {
+      warmBackend();
+    }
 
     try {
       const res = await analyzeImageFile(file);
       if (!res.success) {
         setAnalysisError(res.error || t("upload.error.analysisFailed"));
+        setAnalysisErrorCode(res.error_code ?? null);
+        setAnalysisRetryable(Boolean(res.retryable) || res.error_code === "timeout");
+        if (res.error_code === "timeout") {
+          warmBackend();
+        }
         stopPipeline();
         return;
       }
@@ -174,10 +189,22 @@ export function ImageUploader() {
     <div className="space-y-6">
       {rejectError && <UploadDestructiveAlert description={rejectError} />}
       {analysisError && (
-        <UploadDestructiveAlert
-          title={t("upload.error.analysisFailed")}
-          description={analysisError}
-        />
+        <div className="space-y-3">
+          <UploadDestructiveAlert
+            title={t("upload.error.analysisFailed")}
+            description={analysisError}
+          />
+          {(analysisRetryable || analysisErrorCode === "timeout") && imageFile && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => runAnalyze({ afterTimeout: true })}
+            >
+              {t("upload.error.retry")}
+            </Button>
+          )}
+        </div>
       )}
 
       <motion.div
@@ -224,7 +251,7 @@ export function ImageUploader() {
             </div>
           )}
 
-          <Button type="button" className="w-full sm:w-auto" size="lg" onClick={runAnalyze}>
+          <Button type="button" className="w-full sm:w-auto" size="lg" onClick={() => runAnalyze()}>
             {t("upload.analyze")}
           </Button>
         </div>
