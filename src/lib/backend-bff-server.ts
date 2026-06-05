@@ -9,6 +9,12 @@ export const BACKEND_ANALYZE_TIMEOUT_MS = 280_000;
 /** Wake + model load via `/health` can be slow on cold HF Spaces. */
 export const BACKEND_HEALTH_TIMEOUT_MS = 60_000;
 
+/** Submit async analyze job (returns job_id quickly). */
+export const BACKEND_JOB_SUBMIT_TIMEOUT_MS = 15_000;
+
+/** Poll async analyze job status (each poll must stay under Vercel Hobby ~10s). */
+export const BACKEND_JOB_POLL_TIMEOUT_MS = 10_000;
+
 export function backendBaseUrl(): string | null {
   const base = process.env.BACKEND_API_BASE_URL?.trim();
   if (!base) return null;

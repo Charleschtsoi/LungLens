@@ -14,14 +14,18 @@ import type {
   Stage3QuestionnaireInput,
 } from "@/types";
 
-function analyzeUrl(): string {
-  return "/api/analyze";
+const ANALYZE_JOBS_URL = "/api/analyze/jobs";
+const POLL_INTERVAL_MS = 2500;
+const MAX_POLL_MS = 300_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
  * Single entry point for analysis from the app.
- * Browser uploads always go through the Next.js `/api/analyze` proxy,
- * which forwards the raw image to the configured FastAPI backend.
+ * Submits an async job via `/api/analyze/jobs` and polls until HF inference completes.
+ * Each poll stays under Vercel Hobby limits; long work runs on Hugging Face.
  */
 export interface AnalyzeOptions {
   questionnaire?: Stage3QuestionnaireInput | null;
@@ -83,13 +87,7 @@ function isValidGradcam(value: unknown): boolean {
   );
 }
 
-export async function analyzeImageFile(
-  file: File,
-  options?: AnalyzeOptions,
-): Promise<AnalyzeResponse> {
-  /** Browser always POSTs here; Next.js route forwards to BACKEND_API_BASE_URL/api/v1/analyze (see src/app/api/analyze/route.ts). */
-  const url = analyzeUrl();
-
+function buildAnalyzeForm(file: File, options?: AnalyzeOptions): FormData {
   const form = new FormData();
   form.append("image", file);
   if (options?.questionnaire) {
@@ -98,105 +96,182 @@ export async function analyzeImageFile(
   if (options?.geminiApiKey?.trim()) {
     form.append("gemini_api_key", options.geminiApiKey.trim());
   }
+  return form;
+}
+
+function enrichAnalyzeSuccess(ok: AnalyzeSuccessResponse, reqStart: number): AnalyzeSuccessResponse {
+  const elapsed = Math.round((performance.now?.() ?? Date.now()) - reqStart);
+  if (!ok.timing_ms) {
+    ok.timing_ms = {
+      model1: 0,
+      model2: 0,
+      model3: 0,
+      model4: 0,
+      total: elapsed,
+    };
+  }
+  if (!ok.provenance) {
+    const m2Vision =
+      ok.model2 &&
+      typeof ok.model2 === "object" &&
+      "input_type" in ok.model2 &&
+      ok.model2.input_type === "vision";
+    ok.provenance = {
+      run_mode: "hybrid",
+      model1: { source: "model", status: ok.model1 ? "fallback" : "skipped" },
+      model2: { source: "model", status: m2Vision ? "fallback" : "skipped" },
+      model6: { source: "model", status: ok.model6 ? "fallback" : "skipped" },
+      model3: { source: "model", status: ok.model3 != null ? "fallback" : "skipped" },
+      clinical_risk: { source: "rule", status: ok.clinical_risk != null ? "fallback" : "skipped" },
+      model4: { source: "llm", status: ok.model4 != null ? "fallback" : "skipped" },
+    };
+    if (!ok.warnings) ok.warnings = [];
+    if (!ok.warnings.some((w) => w.code === "missing_provenance")) {
+      ok.warnings.push({
+        code: "missing_provenance",
+        message:
+          "Backend did not provide provenance metadata. Run mode is shown as hybrid until backend is updated.",
+        stage: "pipeline",
+      });
+    }
+  } else if (!ok.warnings) {
+    ok.warnings = [];
+  }
+  return ok;
+}
+
+function parseAnalyzeSuccessPayload(data: unknown, reqStart: number): AnalyzeResponse {
+  if (!data || typeof data !== "object") {
+    return { success: false, error: "Invalid response from ML server." };
+  }
+  const ok = data as AnalyzeSuccessResponse;
+  if (!ok.success || !isPredictionMap(ok.predictions) || !isValidGradcam(ok.gradcam)) {
+    console.error("[LungLens] analyze success payload failed validation", {
+      success: ok.success,
+      hasPredictions: Boolean(ok.predictions),
+      hasGradcam: Boolean(ok.gradcam),
+    });
+    return { success: false, error: "Invalid ML server payload." };
+  }
+  return enrichAnalyzeSuccess(ok, reqStart);
+}
+
+type AnalyzeJobPollBody = {
+  job_id?: string;
+  status?: string;
+  result?: AnalyzeSuccessResponse;
+  error?: string;
+  error_code?: AnalyzeErrorCode;
+  retryable?: boolean;
+  success?: boolean;
+};
+
+export async function analyzeImageFile(
+  file: File,
+  options?: AnalyzeOptions,
+): Promise<AnalyzeResponse> {
+  const form = buildAnalyzeForm(file, options);
 
   try {
     const reqStart = performance.now?.() ?? Date.now();
-    const res = await fetch(url, {
+    const submitRes = await fetch(ANALYZE_JOBS_URL, {
       method: "POST",
       body: form,
     });
 
-    let data: AnalyzeResponse | null = null;
+    let submitBody: AnalyzeJobPollBody | null = null;
     try {
-      data = (await res.json()) as AnalyzeResponse;
+      submitBody = (await submitRes.json()) as AnalyzeJobPollBody;
     } catch {
-      data = null;
+      submitBody = null;
     }
 
-    if (!res.ok) {
-      console.error("[LungLens] POST /api/analyze failed", {
-        httpStatus: res.status,
-        response: data,
-        hint: "Check server BACKEND_API_BASE_URL (e.g. http://127.0.0.1:7861 — match uvicorn port) and BACKEND_API_KEY. See terminal logs from the Next route.",
+    if (!submitRes.ok) {
+      console.error("[LungLens] POST /api/analyze/jobs failed", {
+        httpStatus: submitRes.status,
+        response: submitBody,
       });
-      if (!data || !("success" in data) || data.success !== false) {
-        return {
-          success: false,
-          error: normalizeError(res.status),
-          error_code: normalizeErrorCode(res.status),
-          stage: "pipeline",
-          retryable: res.status >= 500,
-        };
-      }
+      const errText = submitBody?.error;
+      const errCode = submitBody?.error_code ?? normalizeErrorCode(submitRes.status);
       return {
         success: false,
-        error: normalizeError(res.status, data.error),
-        error_code: data.error_code ?? normalizeErrorCode(res.status),
-        stage: data.stage ?? "pipeline",
-        retryable: data.retryable ?? res.status >= 500,
+        error: normalizeError(submitRes.status, errText),
+        error_code: errCode,
+        stage: "pipeline",
+        retryable: submitBody?.retryable ?? submitRes.status >= 500,
       };
     }
 
-    if (!data || typeof data !== "object") {
-      console.error("[LungLens] /api/analyze returned OK but body is not JSON object");
-      return { success: false, error: "Invalid response from ML server." };
+    const jobId = typeof submitBody?.job_id === "string" ? submitBody.job_id.trim() : "";
+    if (!jobId) {
+      return { success: false, error: "Invalid ML server job response." };
     }
 
-    const ok = data as AnalyzeSuccessResponse;
-    if (!ok.success || !isPredictionMap(ok.predictions) || !isValidGradcam(ok.gradcam)) {
-      console.error("[LungLens] /api/analyze success payload failed validation", {
-        success: ok.success,
-        hasPredictions: Boolean(ok.predictions),
-        hasGradcam: Boolean(ok.gradcam),
-        model1: ok.model1,
-        model2: ok.model2,
+    const deadline = (performance.now?.() ?? Date.now()) + MAX_POLL_MS;
+    while ((performance.now?.() ?? Date.now()) < deadline) {
+      await sleep(POLL_INTERVAL_MS);
+
+      const pollRes = await fetch(`${ANALYZE_JOBS_URL}/${encodeURIComponent(jobId)}`, {
+        cache: "no-store",
       });
-      return { success: false, error: "Invalid ML server payload." };
-    }
-    const elapsed = Math.round((performance.now?.() ?? Date.now()) - reqStart);
-    if (!ok.timing_ms) {
-      ok.timing_ms = {
-        model1: 0,
-        model2: 0,
-        model3: 0,
-        model4: 0,
-        total: elapsed,
-      };
-    }
-    if (!ok.provenance) {
-      const m2Vision =
-        ok.model2 &&
-        typeof ok.model2 === "object" &&
-        "input_type" in ok.model2 &&
-        ok.model2.input_type === "vision";
-      ok.provenance = {
-        run_mode: "hybrid",
-        model1: { source: "model", status: ok.model1 ? "fallback" : "skipped" },
-        model2: { source: "model", status: m2Vision ? "fallback" : "skipped" },
-        model6: { source: "model", status: ok.model6 ? "fallback" : "skipped" },
-        model3: { source: "model", status: ok.model3 != null ? "fallback" : "skipped" },
-        clinical_risk: { source: "rule", status: ok.clinical_risk != null ? "fallback" : "skipped" },
-        model4: { source: "llm", status: ok.model4 != null ? "fallback" : "skipped" },
-      };
-      if (!ok.warnings) ok.warnings = [];
-      if (!ok.warnings.some((w) => w.code === "missing_provenance")) {
-        ok.warnings.push({
-          code: "missing_provenance",
-          message:
-            "Backend did not provide provenance metadata. Run mode is shown as hybrid until backend is updated.",
-          stage: "pipeline",
-        });
+      let pollBody: AnalyzeJobPollBody | null = null;
+      try {
+        pollBody = (await pollRes.json()) as AnalyzeJobPollBody;
+      } catch {
+        pollBody = null;
       }
-    } else if (!ok.warnings) {
-      ok.warnings = [];
+
+      if (!pollRes.ok) {
+        console.error("[LungLens] GET /api/analyze/jobs poll failed", {
+          httpStatus: pollRes.status,
+          jobId,
+          response: pollBody,
+        });
+        if (pollRes.status >= 500) {
+          continue;
+        }
+        return {
+          success: false,
+          error: normalizeError(pollRes.status, pollBody?.error),
+          error_code: pollBody?.error_code ?? normalizeErrorCode(pollRes.status),
+          stage: "pipeline",
+          retryable: pollBody?.retryable ?? false,
+        };
+      }
+
+      if (!pollBody || typeof pollBody !== "object") {
+        continue;
+      }
+
+      if (pollBody.status === "failed") {
+        return {
+          success: false,
+          error: pollBody.error || "Analysis failed on the AI service.",
+          error_code: pollBody.error_code ?? "backend_unavailable",
+          stage: "pipeline",
+          retryable: pollBody.retryable ?? true,
+        };
+      }
+
+      if (pollBody.status === "complete" && pollBody.result) {
+        return parseAnalyzeSuccessPayload(pollBody.result, reqStart);
+      }
     }
-    return data;
+
+    return {
+      success: false,
+      error:
+        "AI service timed out. First analysis can take a few minutes while models run. Please retry.",
+      error_code: "timeout",
+      stage: "pipeline",
+      retryable: true,
+    };
   } catch (e) {
     console.error("[LungLens] analyzeImageFile fetch error (network or CORS)", e);
     return {
       success: false,
       error:
-        "Network error contacting backend API. Check BACKEND_API_BASE_URL (port must match uvicorn, often 7861), that the backend is running, and BACKEND_API_KEY when REQUIRE_API_KEY=true.",
+        "Network error contacting backend API. Check BACKEND_API_BASE_URL and BACKEND_API_KEY.",
       error_code: "network_error",
       stage: "pipeline",
       retryable: true,

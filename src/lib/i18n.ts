@@ -105,7 +105,7 @@ const dictEn: Dict = {
     "Preview unavailable for this file in the browser.",
   "upload.preview.noType": "No image preview for this file type.",
   "upload.analyze": "Analyze",
-  "upload.pipeline.init": "Initializing diagnostic pipeline...",
+  "upload.pipeline.init": "Starting AI analysis (first run may take a few minutes)...",
   "upload.pipeline.model1": "Running Model 1 (ResNet-50) pattern matching...",
   "upload.pipeline.model2": "Running Model 6 (Chronic Lung Risk / COPD) from your questionnaire…",
   "upload.pipeline.model3": "Applying Model 3 (DenseNet-121) visual interpretability...",

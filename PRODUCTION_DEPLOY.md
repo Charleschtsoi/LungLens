@@ -19,7 +19,7 @@ Set in **Project → Settings → Environment Variables** (Production + Preview)
 
 Do **not** set `NEXT_PUBLIC_USE_MOCK` (removed from codebase).
 
-**Vercel Pro required**: analyze route uses `maxDuration = 300` and 280s BFF timeout (HF 6-model CPU analyze exceeds 60s).
+**Vercel Hobby**: analyze uses async jobs (`POST /api/analyze/jobs` + polling). Each request stays under ~10s; HF runs inference in the background.
 
 Redeploy after changing env vars.
 
