@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { FINDING_LABELS, type FindingLabel } from "@/lib/constants";
 
+/** Vercel Pro allows up to 300s; HF cold start + multi-model analyze often exceeds Hobby 10s default. */
+export const maxDuration = 60;
+
 const BACKEND_TIMEOUT_MS = 30000;
 
 /** 1×1 PNG — used when backend omits heatmaps (for example, healthy runs) so normalization + client checks succeed. */
