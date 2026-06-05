@@ -4,6 +4,18 @@ LungLens is a chest X-ray education companion built with Next.js. It helps users
 
 Important: this project is educational and research-oriented. It is not a medical diagnostic tool.
 
+## Repositories and live URLs
+
+| Role | GitHub | Live |
+|------|--------|------|
+| **Frontend (this repo)** | [github.com/Charleschtsoi/LungLens](https://github.com/Charleschtsoi/LungLens) (`main`) | [lung-lens-five.vercel.app](https://lung-lens-five.vercel.app) |
+| **Backend (ML API)** | [github.com/Charleschtsoi/lunglens-backend](https://github.com/Charleschtsoi/lunglens-backend) (`main`) | [charleschtsoi-lunglens-backend.hf.space](https://charleschtsoi-lunglens-backend.hf.space) |
+| **HF Space admin** | — | [huggingface.co/spaces/Charleschtsoi/lunglens-backend](https://huggingface.co/spaces/Charleschtsoi/lunglens-backend) |
+
+Production flow: browser → Vercel BFF → Hugging Face backend. See [`PRODUCTION_DEPLOY.md`](PRODUCTION_DEPLOY.md) for env vars and smoke tests.
+
+The `backend/` folder in **this** repo is a lightweight sample (Gemini + questions only). Full chest X-ray inference lives in **lunglens-backend**.
+
 ## Teammate Quick Run (5-10 minutes)
 
 1. Install dependencies: `npm install`
@@ -15,7 +27,7 @@ Important: this project is educational and research-oriented. It is not a medica
 ## What This App Does
 
 - Guides users through doctor-review + disclaimer-aware upload flow.
-- Runs analysis through the server proxy route (`/api/analyze`) forwarding to the configured ML backend.
+- Runs analysis through async job routes (`POST /api/analyze/jobs` + polling) so each Vercel function stays under Hobby time limits while HF runs full inference.
 - Shows educational results:
   - original image,
   - AI attention overlay,
@@ -31,7 +43,8 @@ Important: this project is educational and research-oriented. It is not a medica
 - Upload: react-dropzone
 - Charts: Recharts
 - Integration:
-  - Upload path: `src/lib/api.ts` -> `src/app/api/analyze/route.ts`
+  - Upload path: `src/lib/api.ts` → `src/app/api/analyze/jobs` (submit + poll)
+  - Backend warm-up: `GET /api/health` (BFF proxy to HF `/health`)
   - Gemini key probe: `src/app/api/gemini/health-check/route.ts`
 
 ## Local Setup (Detailed)
@@ -60,11 +73,12 @@ Set values in `.env.local`:
   - Used only for silent warm-up ping (`${NEXT_PUBLIC_API_URL}/health`).
 - `BACKEND_API_BASE_URL` (server-only)
   - Backend root — must match your uvicorn port (often `http://127.0.0.1:7861`, not 8000)
-  - Frontend routes call:
-    - `${BACKEND_API_BASE_URL}/api/v1/analyze`
-    - `${BACKEND_API_BASE_URL}/api/v1/gemini/health-check` (BYOK key probe; proxied by Next as `POST /api/gemini/health-check`)
+  - Production BFF forwards to:
+    - `${BACKEND_API_BASE_URL}/api/v1/analyze/jobs` (submit + poll; primary path)
+    - `${BACKEND_API_BASE_URL}/api/v1/gemini/health-check` (BYOK; proxied as `POST /api/gemini/health-check`)
     - `${BACKEND_API_BASE_URL}/api/v1/generate-questions`
-    - `${BACKEND_API_BASE_URL}/api/v1/predict/densenet` (if used)
+    - `${BACKEND_API_BASE_URL}/predict/densenet` (if used)
+  - Local full backend: clone [lunglens-backend](https://github.com/Charleschtsoi/lunglens-backend), run on port `7861`, or point at the HF URL above.
 - `BACKEND_API_KEY` (server-only)
   - Sent by Next.js API routes as `X-API-Key`.
 
@@ -137,8 +151,8 @@ Steps:
 
 1. Repeat upload flow
 2. Open browser devtools -> Network
-3. Confirm browser calls Next routes (not backend directly):
-   - `POST /api/analyze`
+3. Confirm browser calls Next routes (not HF directly):
+   - `POST /api/analyze/jobs` then `GET /api/analyze/jobs/{job_id}` until `complete`
    - `POST /api/generate-questions`
 4. Verify findings section:
    - explanations for `Pneumonia`, `Lung Opacity`, `COVID-19`
@@ -182,7 +196,9 @@ src/components/results/FindingsCard.tsx  # Findings UI + provenance notice
 src/lib/constants.ts                     # Finding labels and English explanations
 src/lib/i18n.ts                          # Localized copy
 src/lib/provenance-ui.ts                 # Badge normalization and provenance mapping
-src/app/api/analyze/route.ts             # Backend response normalization
+src/app/api/analyze/jobs/route.ts        # Async job submit (Hobby-safe)
+src/app/api/analyze/jobs/[jobId]/route.ts # Job status polling
+src/lib/analyze-bff-normalize.ts         # Backend response normalization
 src/lib/high-attention-findings.ts       # Mapping to doctor-question triggers
 src/types/index.ts                       # Shared API/types contract
 docs/BACKEND_MODELS.md                   # Backend payload expectations
@@ -205,12 +221,11 @@ docs/BACKEND_MODELS.md                   # Backend payload expectations
 
 ## Deployment Notes
 
-- Frontend: Vercel, **Cloudflare Workers** (OpenNext), or any Next.js-compatible runtime
-- Backend: container host (Railway, Cloud Run, etc.)
-- Set platform env vars:
-  - `NEXT_PUBLIC_API_URL`
-  - `BACKEND_API_BASE_URL`
-  - `BACKEND_API_KEY`
+- **Production frontend:** [Vercel](https://lung-lens-five.vercel.app) — repo `Charleschtsoi/LungLens`, branch `main`, build `npm run build`
+- **Production backend:** [Hugging Face Space](https://charleschtsoi-lunglens-backend.hf.space) — repo `Charleschtsoi/lunglens-backend`; push with `git push hf main:main`
+- **Vercel env (required):** `BACKEND_API_BASE_URL`, `BACKEND_API_KEY` (must match HF `API_KEY`)
+- Analyze uses **async jobs + polling** (works on Vercel Hobby; first run may take 1–2 minutes)
+- Optional alt host: **Cloudflare Workers** (OpenNext) — see below
 
 ### Cloudflare Workers (OpenNext)
 

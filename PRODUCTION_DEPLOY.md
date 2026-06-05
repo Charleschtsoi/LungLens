@@ -4,7 +4,7 @@
 
 | Component | GitHub | Live host |
 |-----------|--------|-----------|
-| Frontend | https://github.com/Charleschtsoi/LungLens (`main`) | Vercel: https://lung-lens.vercel.app |
+| Frontend | https://github.com/Charleschtsoi/LungLens (`main`) | Vercel: https://lung-lens-five.vercel.app |
 | Backend | https://github.com/Charleschtsoi/lunglens-backend (`main`) | Hugging Face: https://charleschtsoi-lunglens-backend.hf.space |
 
 ## Vercel environment variables
@@ -41,7 +41,7 @@ curl -H "X-API-Key: <API_KEY>" -X POST "https://charleschtsoi-lunglens-backend.h
   -F "image=@testfile/Lung Xray.jpeg;type=image/jpeg" -F 'questionnaire={}'
 ```
 
-On Vercel: upload a chest X-ray and confirm Network shows `POST /api/analyze` → results page.
+On Vercel: upload a chest X-ray and confirm Network shows `POST /api/analyze/jobs` and polling `GET /api/analyze/jobs/{id}` → results page.
 
 ### Verified (agent run)
 
@@ -53,7 +53,7 @@ On Vercel: upload a chest X-ray and confirm Network shows `POST /api/analyze` �
 
 1. Confirm the Vercel project is linked to `Charleschtsoi/LungLens`, branch `main`.
 2. Set env vars above and **Redeploy** after `main` includes commit `5eac1a9` (or later).
-3. If `https://lung-lens.vercel.app/upload` returns 404, the live deployment is stale or points at the wrong project—fix linkage and redeploy.
+3. Live upload URL: https://lung-lens-five.vercel.app/upload
 
 ## Push commands
 
