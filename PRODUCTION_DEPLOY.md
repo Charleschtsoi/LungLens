@@ -39,7 +39,19 @@ curl -H "X-API-Key: <API_KEY>" -X POST "https://charleschtsoi-lunglens-backend.h
   -F "image=@testfile/Lung Xray.jpeg;type=image/jpeg" -F 'questionnaire={}'
 ```
 
-On Vercel: upload a chest X-ray at https://lung-lens.vercel.app/upload and confirm Network shows `POST /api/analyze` → results page.
+On Vercel: upload a chest X-ray and confirm Network shows `POST /api/analyze` → results page.
+
+### Verified (agent run)
+
+- HF `GET /healthz` → healthy (allow ~60s on cold start).
+- HF `POST /api/v1/analyze` with valid `X-API-Key` → `success: true` (may show `run_mode: rules` until model files are loaded on the Space).
+- `GET /health` on HF: enable flags and upload weights under `/app/models/` if `loaded: false`.
+
+### Action required on Vercel
+
+1. Confirm the Vercel project is linked to `Charleschtsoi/LungLens`, branch `main`.
+2. Set env vars above and **Redeploy** after `main` includes commit `5eac1a9` (or later).
+3. If `https://lung-lens.vercel.app/upload` returns 404, the live deployment is stale or points at the wrong project—fix linkage and redeploy.
 
 ## Push commands
 
