@@ -8,8 +8,8 @@ import {
   fetchBackendWithTimeout,
 } from "@/lib/backend-bff-server";
 
-/** Vercel Pro allows up to 300s; HF cold start + multi-model analyze often exceeds Hobby 10s default. */
-export const maxDuration = 60;
+/** Vercel Pro: up to 300s. HF 6-model CPU inference often exceeds 60s on lung-lens-five. */
+export const maxDuration = 300;
 
 /** 1×1 PNG — used when backend omits heatmaps (for example, healthy runs) so normalization + client checks succeed. */
 const PLACEHOLDER_HEATMAP_BASE64 =

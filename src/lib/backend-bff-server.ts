@@ -1,7 +1,10 @@
 /** Server-only helpers for Next.js BFF routes → Hugging Face / local FastAPI. */
 
-/** HF analyze on cpu-basic often exceeds 30s (cold ~60s, warm ~15–20s). Align with `maxDuration`. */
-export const BACKEND_ANALYZE_TIMEOUT_MS = 60_000;
+/**
+ * HF 6-model analyze on cpu-basic often exceeds 60s even when warm.
+ * Keep below `maxDuration` on analyze route (Vercel Pro allows up to 300s).
+ */
+export const BACKEND_ANALYZE_TIMEOUT_MS = 280_000;
 
 /** Wake + model load via `/health` can be slow on cold HF Spaces. */
 export const BACKEND_HEALTH_TIMEOUT_MS = 60_000;

@@ -45,6 +45,9 @@ function normalizeError(status: number, fallback?: string): string {
   if (status === 413) return "The uploaded file is too large. Please keep it under 10MB.";
   if (status === 415) return "Unsupported file type. Please upload JPG, PNG, or WEBP.";
   if (status === 400) return "The AI service rejected this request. Please check file format and try again.";
+  if (status === 502 || status === 504) {
+    return "AI service timed out. First analysis can take up to a few minutes while models run. Please retry.";
+  }
   if (status >= 500) return "AI service is temporarily unavailable. Please try again shortly.";
   return `Request failed (${status}).`;
 }
