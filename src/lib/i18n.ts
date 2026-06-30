@@ -28,7 +28,7 @@ const dictEn: Dict = {
     "Already have your X-ray results? Let us help you learn what you're looking at.",
   "landing.hero.ctaUpload": "Upload Your X-Ray",
   "landing.hero.ctaLearn": "Learn about chest X-rays",
-  "landing.hero.trust": "Your images never leave your device",
+  "landing.hero.trust": "Your images are not stored after analysis",
 
   "landing.how.title": "How it works",
   "landing.how.subtitle":
@@ -90,7 +90,7 @@ const dictEn: Dict = {
 
   "upload.privacy.title": "Privacy & purpose",
   "upload.privacy.desc":
-    "Your image is sent to this app's secure API for educational analysis. We don't use it for advertising. In a future version, processing may stay entirely on your device-check the latest privacy policy before uploading anything sensitive.",
+    "Your image is sent to our secure API for educational analysis only. It is processed in memory and not stored on our servers afterward. We don't use it for advertising.",
   "upload.privacy.ack":
     "I understand this is educational, not diagnostic. I will not use LungLens to decide whether I need treatment or emergency care.",
   "upload.privacy.next": "Continue to upload",
@@ -479,7 +479,7 @@ const dictHant: Dict = {
   "landing.hero.subtitle": "已經有 X 光結果？我們可以幫你理解你正在看的影像內容。",
   "landing.hero.ctaUpload": "上傳你的 X 光",
   "landing.hero.ctaLearn": "了解胸肺 X 光",
-  "landing.hero.trust": "你的影像不會離開你的裝置",
+  "landing.hero.trust": "分析完成後不會儲存你的影像",
   "landing.how.title": "如何使用",
   "landing.how.subtitle": "由就診影像到更清晰理解，只需三個步驟。",
   "landing.how.step1.title": "先看醫生並取得 X 光",
@@ -523,7 +523,7 @@ const dictHant: Dict = {
   "upload.gate.continue": "仍要繼續學習",
   "upload.privacy.title": "隱私與用途",
   "upload.privacy.desc":
-    "你的影像會傳送到本應用的安全 API 作教育性分析，不會用於廣告。未來版本可能支援完全本地處理，上傳前請先查看最新隱私政策。",
+    "你的影像會傳送至我們的安全 API 作教育性分析。影像僅在記憶體中處理，分析完成後不會儲存在伺服器。我們不會用於廣告。",
   "upload.privacy.ack": "我明白此工具僅供教育用途，不作診斷，也不會據此決定是否需要治療或急診。",
   "upload.privacy.next": "繼續上傳",
   "upload.dicom.title": "支援的影像格式",
@@ -870,6 +870,7 @@ const dictHans: Dict = {
   "footer.copy": "仅供教育用途",
   "landing.hero.title": "看懂你的胸片结果",
   "landing.hero.subtitle": "已经有 X 光结果？我们可以帮你理解你正在看的影像内容。",
+  "landing.hero.trust": "分析完成后不会存储你的影像",
   "landing.how.title": "如何使用",
   "landing.expect.title": "先明确定位",
   "landing.explore.aria": "更多关于 LungLens",
@@ -883,6 +884,8 @@ const dictHans: Dict = {
   "upload.gate.warnTitle": "建议先由医护人员评估",
   "upload.gate.findDoctor": "查找附近医生",
   "upload.privacy.title": "隐私与用途",
+  "upload.privacy.desc":
+    "你的影像会发送至我们的安全 API 作教育性分析。影像仅在内存中处理，分析完成后不会存储在服务器。我们不会用于广告。",
   "upload.dicom.title": "支持的影像格式",
   "upload.dicom.desc": "请上传 JPEG、PNG 或 WEBP。文件上限 10MB。",
   "upload.drop.note": "JPEG、PNG 或 WEBP，上限 10MB",
