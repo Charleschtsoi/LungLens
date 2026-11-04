@@ -6,12 +6,12 @@ function isFindingLabel(s: string): s is FindingLabel {
   return (FINDING_LABELS as readonly string[]).includes(s);
 }
 
-export default function LearnPage({
+export default async function LearnPage({
   searchParams,
 }: {
-  searchParams: { topic?: string };
+  searchParams: Promise<{ topic?: string }>;
 }) {
-  const raw = searchParams.topic;
+  const { topic: raw } = await searchParams;
   const topic = raw && isFindingLabel(raw) ? raw : null;
   return <LearnPageClient topic={topic} />;
 }
